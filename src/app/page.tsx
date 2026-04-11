@@ -150,18 +150,18 @@ export default function HomePage() {
             background:'rgba(79,127,255,0.1)', border:'1px solid rgba(79,127,255,0.25)',
             color:'#6b93ff', fontSize:13, fontWeight:600, marginBottom:'1.5rem',
           }}>
-            <Zap size={13}/> Comparateur N°1 en Algérie • 50+ offres en temps réel
+            <Zap size={13}/> Algeria's #1 Mobile Comparator • 50+ live offers
           </div>
 
           <h1 className="section-title" style={{fontSize:'clamp(2rem,5vw,3.5rem)', marginBottom:'1.25rem'}}>
-            Trouvez la <span className="gradient-text">meilleure offre</span>
-            <br/>mobile en Algérie
+            Find the <span className="gradient-text">best mobile plan</span>
+            <br/>in Algeria
           </h1>
 
           <p style={{color:'var(--text-secondary)', fontSize:'1.1rem', marginBottom:'2.5rem', lineHeight:1.7}}>
-            Comparez instantanément les offres de <strong style={{color:'#ff6b6b'}}>Djezzy</strong>,{' '}
-            <strong style={{color:'#ff80cc'}}>Ooredoo</strong> et{' '}
-            <strong style={{color:'#4ade80'}}>Mobilis</strong>. Économisez des milliers de dinars chaque mois.
+            Instantly compare plans from <strong style={{color:'#ff6b6b'}}>Djezzy</strong>,{' '}
+            <strong style={{color:'#ff80cc'}}>Ooredoo</strong> and{' '}
+            <strong style={{color:'#4ade80'}}>Mobilis</strong>. Save thousands of dinars every month.
           </p>
 
           {/* Search bar */}
@@ -173,7 +173,7 @@ export default function HomePage() {
             <Search size={18} style={{color:'var(--text-secondary)', flexShrink:0, alignSelf:'center'}}/>
             <input
               type="text"
-              placeholder="Rechercher une offre, un opérateur..."
+              placeholder="Search offers, operators..."
               value={search}
               onChange={e => setSearch(e.target.value)}
               style={{
@@ -183,16 +183,16 @@ export default function HomePage() {
               }}
             />
             <button className="btn-primary" style={{borderRadius:10, padding:'0.6rem 1.25rem', fontSize:14}}>
-              Rechercher
+              Search
             </button>
           </div>
 
           {/* Stats row */}
           <div style={{display:'flex', justifyContent:'center', gap:'2.5rem', marginTop:'2.5rem', flexWrap:'wrap'}}>
             {[
-              {label:'Offres disponibles', value: stats.total || '50+'},
-              {label:'Prix moyen', value: stats.avgPrice ? formatDA(stats.avgPrice) : 'N/A'},
-              {label:'Meilleur prix', value: stats.cheapest ? formatDA(stats.cheapest) : 'N/A'},
+              {label:'Available offers', value: stats.total || '50+'},
+              {label:'Average price', value: stats.avgPrice ? formatDA(stats.avgPrice) : 'N/A'},
+              {label:'Best price', value: stats.cheapest ? formatDA(stats.cheapest) : 'N/A'},
             ].map(stat => (
               <div key={stat.label} style={{textAlign:'center'}}>
                 <div style={{fontSize:'1.5rem', fontWeight:800, color:'var(--text-primary)'}}>{stat.value}</div>
@@ -208,10 +208,10 @@ export default function HomePage() {
         <div style={{maxWidth:1280, margin:'0 auto'}}>
           <div style={{display:'flex', justifyContent:'center', gap:'1.5rem', flexWrap:'wrap'}}>
             {[
-              {slug:'all', name:'Tous', color:'#4f7fff', emoji:'🇩🇿'},
-              {slug:'djezzy', name:'Djezzy', color:'#E30613', emoji:'🔴'},
-              {slug:'ooredoo', name:'Ooredoo', color:'#E20074', emoji:'🟣'},
-              {slug:'mobilis', name:'Mobilis', color:'#00A651', emoji:'🟢'},
+              {slug:'all',    name:'All',     color:'#4f7fff', emoji:'🇩🇿'},
+              {slug:'djezzy', name:'Djezzy',  color:'#E30613', emoji:'🔴'},
+              {slug:'ooredoo',name:'Ooredoo', color:'#E20074', emoji:'🟣'},
+              {slug:'mobilis',name:'Mobilis', color:'#00A651', emoji:'🟢'},
             ].map(op => (
               <button
                 key={op.slug}
@@ -244,10 +244,10 @@ export default function HomePage() {
         }}>
           {/* Type pills */}
           {[
-            {id:'all', label:'Tous'},
-            {id:'PREPAID', label:'Prépayé'},
-            {id:'POSTPAID', label:'Postpayé'},
-            {id:'DATA_ONLY', label:'Internet'},
+            {id:'all',       label:'All'},
+            {id:'PREPAID',   label:'Prepaid'},
+            {id:'POSTPAID',  label:'Postpaid'},
+            {id:'DATA_ONLY', label:'Data only'},
           ].map(t => (
             <button
               key={t.id}
@@ -270,9 +270,9 @@ export default function HomePage() {
               fontSize:13, cursor:'pointer', outline:'none', fontFamily:'inherit',
             }}
           >
-            <option value="price">Trier: Prix ↑</option>
-            <option value="data">Trier: Data ↓</option>
-            <option value="value">Trier: Meilleur rapport</option>
+            <option value="price">Sort: Price ↑</option>
+            <option value="data">Sort: Data ↓</option>
+            <option value="value">Sort: Best value</option>
           </select>
 
           {/* Advanced filters toggle */}
@@ -281,7 +281,7 @@ export default function HomePage() {
             onClick={() => setShowFilters(!showFilters)}
             style={{display:'flex', alignItems:'center', gap:6}}
           >
-            <Filter size={13}/> Filtres avancés
+            <Filter size={13}/> Advanced filters
             <ChevronDown size={13} style={{transform: showFilters ? 'rotate(180deg)' : 'none', transition:'transform 0.2s'}}/>
           </button>
         </div>
@@ -294,7 +294,7 @@ export default function HomePage() {
           }}>
             <div>
               <label style={{fontSize:12, color:'var(--text-secondary)', display:'block', marginBottom:6}}>
-                Budget max: <strong style={{color:'var(--text-primary)'}}>{formatDA(maxPrice)}</strong>
+                Max budget: <strong style={{color:'var(--text-primary)'}}>{formatDA(maxPrice)}</strong>
               </label>
               <input type="range" min={100} max={10000} step={100} value={maxPrice}
                 onChange={e => setMaxPrice(+e.target.value)}
@@ -303,7 +303,7 @@ export default function HomePage() {
             </div>
             <div>
               <label style={{fontSize:12, color:'var(--text-secondary)', display:'block', marginBottom:6}}>
-                Data min: <strong style={{color:'var(--text-primary)'}}>{minData} GB</strong>
+                Min data: <strong style={{color:'var(--text-primary)'}}>{minData} GB</strong>
               </label>
               <input type="range" min={0} max={200} step={1} value={minData}
                 onChange={e => setMinData(+e.target.value)}
@@ -311,13 +311,13 @@ export default function HomePage() {
               />
             </div>
             <div>
-              <label style={{fontSize:12, color:'var(--text-secondary)', display:'block', marginBottom:6}}>Réseau</label>
+              <label style={{fontSize:12, color:'var(--text-secondary)', display:'block', marginBottom:6}}>Network</label>
               <div style={{display:'flex', gap:6}}>
                 {['all','4G','5G'].map(n => (
                   <button key={n} onClick={() => setActiveNetwork(n)}
                     className={`filter-pill ${activeNetwork===n?'active':''}`}
                     style={{fontSize:12}}
-                  >{n==='all'?'Tous':n}</button>
+                  >{n==='all'?'All':n}</button>
                 ))}
               </div>
             </div>
@@ -327,7 +327,7 @@ export default function HomePage() {
         {/* Offers Count */}
         <div style={{marginBottom:'1.25rem', display:'flex', alignItems:'center', justifyContent:'space-between'}}>
           <p style={{color:'var(--text-secondary)', fontSize:14}}>
-            {loading ? 'Chargement...' : `${sortedOffers.length} offres trouvées`}
+            {loading ? 'Loading...' : `${sortedOffers.length} offer${sortedOffers.length !== 1 ? 's' : ''} found`}
           </p>
           {compareList.length > 0 && (
             <Link href={`/compare?ids=${compareList.join(',')}`}
@@ -339,7 +339,7 @@ export default function HomePage() {
               }}
             >
               <BarChart3 size={14}/>
-              Comparer {compareList.length} offres sélectionnées
+              Compare {compareList.length} selected offer{compareList.length !== 1 ? 's' : ''}
             </Link>
           )}
         </div>
@@ -357,11 +357,11 @@ export default function HomePage() {
           <div style={{textAlign:'center', padding:'5rem 1rem'}}>
             <div style={{fontSize:'3rem', marginBottom:'1rem'}}>🔍</div>
             <h3 style={{color:'var(--text-secondary)', fontSize:'1.125rem'}}>
-              Aucune offre trouvée pour ces critères
+              No offers found for these criteria
             </h3>
             <button onClick={() => {setActiveType('all'); setActiveOperator('all'); setSearch(''); setMaxPrice(10000); setMinData(0);}}
               className="btn-primary" style={{marginTop:'1rem'}}>
-              Réinitialiser les filtres
+              Reset filters
             </button>
           </div>
         ) : (
@@ -382,17 +382,74 @@ export default function HomePage() {
       </main>
 
       {/* ── Footer ──────────────────────────────────────────────── */}
-      <footer style={{
-        borderTop:'1px solid var(--border)',
-        padding:'2rem 1.5rem',
-        textAlign:'center',
-        color:'var(--text-secondary)',
-        fontSize:13,
-      }}>
-        <p>© 2026 Mobile Match Algeria · Tous droits réservés · Données mises à jour quotidiennement</p>
-        <p style={{marginTop:6, fontSize:12, opacity:0.6}}>
-          Information non contractuelle. Vérifiez les offres directement auprès des opérateurs.
-        </p>
+      <footer style={{ borderTop:'1px solid var(--border)', padding:'2.5rem 1.5rem', color:'var(--text-secondary)', fontSize:13 }}>
+        <div style={{ maxWidth:1280, margin:'0 auto' }}>
+          <div style={{ display:'flex', flexWrap:'wrap', gap:'2.5rem', justifyContent:'space-between', marginBottom:'2rem' }}>
+            {/* Branding */}
+            <div style={{ minWidth:200, maxWidth:300 }}>
+              <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:'0.75rem' }}>
+                <div style={{ width:28, height:28, borderRadius:8, background:'linear-gradient(135deg,#4f7fff,#7c3aed)', display:'flex', alignItems:'center', justifyContent:'center' }}>
+                  <Zap size={14} color="white"/>
+                </div>
+                <span style={{ fontWeight:800, fontSize:'0.9375rem', color:'white' }}>Mobile<span style={{color:'#6b93ff'}}>Match</span> Algeria</span>
+              </div>
+              <p style={{ fontSize:12, lineHeight:1.7 }}>Algeria's independent mobile plan comparator — free, unbiased, updated daily.</p>
+            </div>
+            {/* Quick links */}
+            <div>
+              <div style={{ fontWeight:700, color:'var(--text-primary)', marginBottom:'0.75rem', fontSize:13 }}>Platform</div>
+              <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
+                {[
+                  {href:'/', label:'Browse plans'},
+                  {href:'/compare', label:'Compare'},
+                  {href:'/recommend', label:'Recommendations'},
+                  {href:'/saved', label:'Saved offers'},
+                ].map(l => (
+                  <Link key={l.href} href={l.href} style={{ color:'var(--text-secondary)', textDecoration:'none', fontSize:13, transition:'color .15s' }}
+                    onMouseEnter={e=>(e.currentTarget.style.color='white')} onMouseLeave={e=>(e.currentTarget.style.color='var(--text-secondary)')}>
+                    {l.label}
+                  </Link>
+                ))}
+              </div>
+            </div>
+            {/* Operators */}
+            <div>
+              <div style={{ fontWeight:700, color:'var(--text-primary)', marginBottom:'0.75rem', fontSize:13 }}>Operators</div>
+              <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
+                {[
+                  {href:'https://mobilis.dz/', label:'Mobilis', color:'#00A651'},
+                  {href:'https://www.djezzy5g.dz/#Offer', label:'Djezzy', color:'#E30613'},
+                  {href:'https://www.ooredoo.dz/', label:'Ooredoo', color:'#E20074'},
+                ].map(l => (
+                  <a key={l.label} href={l.href} target="_blank" rel="noopener noreferrer"
+                    style={{ color:l.color, textDecoration:'none', fontSize:13, fontWeight:600 }}>
+                    {l.label} ↗
+                  </a>
+                ))}
+              </div>
+            </div>
+            {/* About */}
+            <div>
+              <div style={{ fontWeight:700, color:'var(--text-primary)', marginBottom:'0.75rem', fontSize:13 }}>Info</div>
+              <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
+                {[
+                  {href:'/about', label:'About us'},
+                  {href:'/login', label:'Sign in'},
+                  {href:'/register', label:'Create account'},
+                ].map(l => (
+                  <Link key={l.href} href={l.href} style={{ color:'var(--text-secondary)', textDecoration:'none', fontSize:13, transition:'color .15s' }}
+                    onMouseEnter={e=>(e.currentTarget.style.color='white')} onMouseLeave={e=>(e.currentTarget.style.color='var(--text-secondary)')}>
+                    {l.label}
+                  </Link>
+                ))}
+              </div>
+            </div>
+          </div>
+          <div style={{ borderTop:'1px solid var(--border)', paddingTop:'1.25rem', display:'flex', flexWrap:'wrap', gap:'0.5rem', justifyContent:'space-between', alignItems:'center' }}>
+            <p>© 2026 Mobile Match Algeria · All rights reserved · Data updated daily</p>
+            <p style={{ fontSize:12, opacity:0.55 }}>Information is non-contractual. Always verify with operators.</p>
+          </div>
+        </div>
       </footer>
     </div>
   )
@@ -412,7 +469,7 @@ function OfferCard({ offer, index, isSelected, onToggleCompare, isSaved, onToggl
   const opColor = offer.operator.primaryColor || getOperatorColor(offer.operator.slug)
 
   const badgeClass = `badge-${offer.operator.slug}`
-  const typeLabel = { PREPAID:'Prépayé', POSTPAID:'Postpayé', DATA_ONLY:'Internet' }[offer.type] || offer.type
+  const typeLabel = { PREPAID:'Prepaid', POSTPAID:'Postpaid', DATA_ONLY:'Data only' }[offer.type] || offer.type
 
   return (
     <div
@@ -436,7 +493,7 @@ function OfferCard({ offer, index, isSelected, onToggleCompare, isSaved, onToggl
           padding:'2px 8px', borderRadius:50,
           display:'flex', alignItems:'center', gap:4,
         }}>
-          <Star size={10}/> POPULAIRE
+          <Star size={10}/> POPULAR
         </div>
       )}
 
@@ -499,9 +556,9 @@ function OfferCard({ offer, index, isSelected, onToggleCompare, isSaved, onToggl
         }}>
           {[
             {icon: <Wifi size={13}/>, label:'Data', value: formatData(offer.dataGB)},
-            {icon: <Phone size={13}/>, label:'Appels', value: formatMinutes(offer.voiceMinutes)},
+            {icon: <Phone size={13}/>, label:'Calls', value: formatMinutes(offer.voiceMinutes)},
             {icon: <MessageSquare size={13}/>, label:'SMS', value: formatSms(offer.smsCount)},
-            {icon: <Calendar size={13}/>, label:'Validité', value: formatValidity(offer.validityDays)},
+            {icon: <Calendar size={13}/>, label:'Validity', value: formatValidity(offer.validityDays)},
           ].map(spec => (
             <div key={spec.label} style={{
               display:'flex', alignItems:'center', gap:6,
@@ -556,11 +613,11 @@ function OfferCard({ offer, index, isSelected, onToggleCompare, isSaved, onToggl
             }}
           >
             {isSelected ? <CheckCircle size={14}/> : <BarChart3 size={14}/>}
-            {isSelected ? 'Sélectionné' : 'Comparer'}
+            {isSelected ? 'Selected' : 'Compare'}
           </button>
           <button
             onClick={() => onToggleSave(offer.id)}
-            title={isSaved ? 'Retirer des favoris' : 'Sauvegarder'}
+            title={isSaved ? 'Remove from saved' : 'Save offer'}
             style={{
               padding:'0.625rem 0.75rem', borderRadius:8, fontSize:13, fontWeight:600,
               cursor:'pointer', transition:'all 0.2s',
@@ -586,7 +643,7 @@ function OfferCard({ offer, index, isSelected, onToggleCompare, isSaved, onToggl
               transition:'all 0.2s',
             }}
           >
-            Voir l'offre ↗
+            View offer ↗
           </a>
         </div>
       </div>

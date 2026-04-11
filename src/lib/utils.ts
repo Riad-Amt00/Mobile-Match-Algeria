@@ -23,34 +23,34 @@ export function formatDA(amount: number): string {
 }
 
 export function formatData(gb: number): string {
-  if (gb === 0) return 'Illimité'
+  if (gb === 0) return 'Unlimited'
   if (gb < 1) return `${Math.round(gb * 1000)} MB`
   return `${gb} GB`
 }
 
 export function formatMinutes(min: number | null | undefined): string {
   if (min === null || min === undefined) return 'N/A'
-  if (min === -1) return 'Illimité'
-  if (min === 0) return 'Aucun'
+  if (min === -1) return 'Unlimited'
+  if (min === 0) return 'None'
   return `${min} min`
 }
 
 export function formatSms(sms: number | null | undefined): string {
   if (sms === null || sms === undefined) return 'N/A'
-  if (sms === -1) return 'Illimité'
-  if (sms === 0) return 'Aucun'
+  if (sms === -1) return 'Unlimited'
+  if (sms === 0) return 'None'
   return `${sms} SMS`
 }
 
 export function formatValidity(days: number): string {
   if (days === 1) return '24h'
-  if (days === 7) return '1 semaine'
-  if (days === 14) return '2 semaines'
-  if (days === 30) return '1 mois'
-  if (days === 90) return '3 mois'
-  if (days === 365) return '1 an'
-  if (days < 30) return `${days} jours`
-  return `${Math.round(days / 30)} mois`
+  if (days === 7) return '1 week'
+  if (days === 14) return '2 weeks'
+  if (days === 30) return '1 month'
+  if (days === 90) return '3 months'
+  if (days === 365) return '1 year'
+  if (days < 30) return `${days} days`
+  return `${Math.round(days / 30)} months`
 }
 
 export function getOperatorColor(slug: string): string {

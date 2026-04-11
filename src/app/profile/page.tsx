@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, User, Wifi, Phone, MessageSquare, Save, LogOut, Bell, BookmarkCheck, Loader2 } from 'lucide-react'
+import { ArrowLeft, User, Wifi, Phone, Save, LogOut, Bell, Target, Loader2, Settings } from 'lucide-react'
 import { signOut, useSession } from 'next-auth/react'
 import { formatDA } from '@/lib/utils'
 
@@ -47,26 +47,26 @@ export default function ProfilePage() {
   if (status === 'loading') {
     return (
       <div style={{ minHeight: '100vh', background: 'var(--bg-dark)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <Loader2 size={32} style={{ animation: 'spin 1s linear infinite', color: '#4f7fff' }} />
+        <Loader2 size={32} style={{ animation: 'spin 1s linear infinite', color: '#4f7fff' }}/>
       </div>
     )
   }
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg-dark)', padding: '2rem 1.5rem' }}>
-      <div style={{ maxWidth: 760, margin: '0 auto' }}>
+      <div style={{ maxWidth: 820, margin: '0 auto' }}>
         <Link href="/" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: 'var(--text-secondary)', textDecoration: 'none', fontSize: 14, marginBottom: '2rem' }}>
-          <ArrowLeft size={16} /> Accueil
+          <ArrowLeft size={16}/> Back to home
         </Link>
 
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-            <div style={{ width: 52, height: 52, borderRadius: '50%', background: 'linear-gradient(135deg, #4f7fff, #7c3aed)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, fontWeight: 800, color: 'white' }}>
+            <div style={{ width: 54, height: 54, borderRadius: '50%', background: 'linear-gradient(135deg, #4f7fff, #7c3aed)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, fontWeight: 900, color: 'white' }}>
               {session?.user?.name?.[0]?.toUpperCase() || 'U'}
             </div>
             <div>
-              <h1 style={{ fontSize: '1.375rem', fontWeight: 800 }}>{session?.user?.name || 'Utilisateur'}</h1>
+              <h1 style={{ fontSize: '1.375rem', fontWeight: 800 }}>{session?.user?.name || 'User'}</h1>
               <p style={{ color: 'var(--text-secondary)', fontSize: 13 }}>{session?.user?.email}</p>
             </div>
           </div>
@@ -74,72 +74,77 @@ export default function ProfilePage() {
             onClick={() => signOut({ callbackUrl: '/' })}
             style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '0.5rem 1rem', borderRadius: 8, background: 'rgba(248,113,113,0.1)', border: '1px solid rgba(248,113,113,0.25)', color: '#f87171', cursor: 'pointer', fontSize: 13, fontWeight: 600 }}
           >
-            <LogOut size={14} /> Déconnexion
+            <LogOut size={14}/> Sign out
           </button>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.5rem' }}>
-          {/* Profile settings */}
-          <div className="glass" style={{ borderRadius: 16, padding: '1.5rem' }}>
-            <h2 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: 8 }}>
-              <User size={16} style={{ color: '#6b93ff' }} /> Mon profil de consommation
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(330px, 1fr))', gap: '1.5rem' }}>
+          {/* Consumption profile settings */}
+          <div className="glass" style={{ borderRadius: 18, padding: '1.5rem' }}>
+            <h2 style={{ fontSize: '1rem', fontWeight: 800, marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: 8 }}>
+              <Settings size={16} style={{ color: '#6b93ff' }}/> My usage profile
             </h2>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
               {/* Budget */}
               <div>
                 <label style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, fontWeight: 600, marginBottom: 8 }}>
-                  <span>💰 Budget mensuel</span>
+                  <span>💰 Monthly budget</span>
                   <span style={{ color: '#6b93ff' }}>{formatDA(budget)}</span>
                 </label>
-                <input type="range" min={100} max={8000} step={100} value={budget} onChange={e => setBudget(+e.target.value)} style={{ width: '100%', accentColor: '#4f7fff' }} />
+                <input type="range" min={100} max={8000} step={100} value={budget} onChange={e => setBudget(+e.target.value)} style={{ width: '100%', accentColor: '#4f7fff' }}/>
               </div>
 
               {/* Data */}
               <div>
                 <label style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, fontWeight: 600, marginBottom: 8 }}>
-                  <span><Wifi size={13} style={{ display: 'inline', marginRight: 4 }} />Data / mois</span>
+                  <span><Wifi size={13} style={{ display: 'inline', marginRight: 4 }}/>Data / month</span>
                   <span style={{ color: '#6b93ff' }}>{dataGB} GB</span>
                 </label>
-                <input type="range" min={0} max={200} step={1} value={dataGB} onChange={e => setDataGB(+e.target.value)} style={{ width: '100%', accentColor: '#4f7fff' }} />
+                <input type="range" min={0} max={200} step={1} value={dataGB} onChange={e => setDataGB(+e.target.value)} style={{ width: '100%', accentColor: '#4f7fff' }}/>
               </div>
 
               {/* Voice */}
               <div>
                 <label style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, fontWeight: 600, marginBottom: 8 }}>
-                  <span><Phone size={13} style={{ display: 'inline', marginRight: 4 }} />Minutes d'appels</span>
-                  <span style={{ color: '#6b93ff' }}>{voice >= 500 ? 'Illimité' : `${voice} min`}</span>
+                  <span><Phone size={13} style={{ display: 'inline', marginRight: 4 }}/>Call minutes</span>
+                  <span style={{ color: '#6b93ff' }}>{voice >= 500 ? 'Unlimited' : `${voice} min`}</span>
                 </label>
-                <input type="range" min={0} max={500} step={10} value={voice} onChange={e => setVoice(+e.target.value)} style={{ width: '100%', accentColor: '#4f7fff' }} />
+                <input type="range" min={0} max={500} step={10} value={voice} onChange={e => setVoice(+e.target.value)} style={{ width: '100%', accentColor: '#4f7fff' }}/>
               </div>
 
-              {/* Type */}
+              {/* Plan type */}
               <div>
-                <label style={{ fontSize: 13, fontWeight: 600, display: 'block', marginBottom: 8 }}>Type d'offre préféré</label>
+                <label style={{ fontSize: 13, fontWeight: 600, display: 'block', marginBottom: 8 }}>Preferred plan type</label>
                 <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                  {[{ id: 'any', label: 'Tous' }, { id: 'PREPAID', label: 'Prépayé' }, { id: 'POSTPAID', label: 'Postpayé' }, { id: 'DATA_ONLY', label: 'Internet' }].map(t => (
+                  {[
+                    { id: 'any',       label: 'Any' },
+                    { id: 'PREPAID',   label: 'Prepaid' },
+                    { id: 'POSTPAID',  label: 'Postpaid' },
+                    { id: 'DATA_ONLY', label: 'Data only' },
+                  ].map(t => (
                     <button key={t.id} onClick={() => setType(t.id)} className={`filter-pill ${type === t.id ? 'active' : ''}`} style={{ fontSize: 12 }}>{t.label}</button>
                   ))}
                 </div>
               </div>
 
               <button onClick={saveProfile} disabled={saving} className="btn-primary" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '0.75rem', borderRadius: 10 }}>
-                {saving ? <Loader2 size={15} style={{ animation: 'spin 1s linear infinite' }} /> : <Save size={15} />}
-                {saved ? '✅ Enregistré!' : 'Enregistrer'}
+                {saving ? <Loader2 size={15} style={{ animation: 'spin 1s linear infinite' }}/> : <Save size={15}/>}
+                {saved ? '✅ Saved!' : 'Save profile'}
               </button>
             </div>
           </div>
 
           {/* Notifications */}
-          <div className="glass" style={{ borderRadius: 16, padding: '1.5rem' }}>
-            <h2 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: 8 }}>
-              <Bell size={16} style={{ color: '#6b93ff' }} /> Notifications récentes
+          <div className="glass" style={{ borderRadius: 18, padding: '1.5rem' }}>
+            <h2 style={{ fontSize: '1rem', fontWeight: 800, marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: 8 }}>
+              <Bell size={16} style={{ color: '#6b93ff' }}/> Recent notifications
             </h2>
             {notifications.length === 0 ? (
               <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-secondary)', fontSize: 14 }}>
-                <Bell size={32} style={{ opacity: 0.3, marginBottom: '0.75rem' }} />
-                <p>Aucune notification pour le moment</p>
-                <p style={{ fontSize: 12, marginTop: 4 }}>Vous serez notifié des nouvelles offres</p>
+                <Bell size={32} style={{ opacity: 0.2, marginBottom: '0.75rem', display: 'block', margin: '0 auto 0.75rem' }}/>
+                <p>No notifications yet</p>
+                <p style={{ fontSize: 12, marginTop: 4 }}>You'll be notified of new offers and price drops</p>
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -148,15 +153,15 @@ export default function ProfilePage() {
                     <div style={{ fontSize: 13, fontWeight: 600 }}>{n.title}</div>
                     <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>{n.message}</div>
                     <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 4, opacity: 0.6 }}>
-                      {new Date(n.createdAt).toLocaleDateString('fr-DZ')}
+                      {new Date(n.createdAt).toLocaleDateString('en-GB')}
                     </div>
                   </div>
                 ))}
               </div>
             )}
 
-            <Link href="/recommend" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: '1.5rem', padding: '0.75rem', borderRadius: 10, background: 'linear-gradient(135deg, #4f7fff, #7c3aed)', color: 'white', textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
-              <BookmarkCheck size={14} /> Voir mes recommandations
+            <Link href="/recommend" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: '1.5rem', padding: '0.75rem', borderRadius: 10, background: 'linear-gradient(135deg, #4f7fff, #7c3aed)', color: 'white', textDecoration: 'none', fontSize: 13, fontWeight: 700 }}>
+              <Target size={14}/> Get my recommendations
             </Link>
           </div>
         </div>

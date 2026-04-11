@@ -45,17 +45,17 @@ export default function SavedOffersPage() {
     <div style={{ minHeight: '100vh', background: 'var(--bg-dark)', padding: '2rem 1.5rem' }}>
       <div style={{ maxWidth: 1100, margin: '0 auto' }}>
         <Link href="/" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: 'var(--text-secondary)', textDecoration: 'none', fontSize: 14, marginBottom: '2rem' }}>
-          <ArrowLeft size={16}/> Retour
+          <ArrowLeft size={16}/> Back
         </Link>
 
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
           <div>
             <h1 style={{ fontSize: '1.75rem', fontWeight: 900, display: 'flex', alignItems: 'center', gap: 10 }}>
-              <BookmarkCheck size={24} style={{ color: '#f59e0b' }}/> Mes offres <span className="gradient-text">favorites</span>
+              <BookmarkCheck size={24} style={{ color: '#f59e0b' }}/> My <span className="gradient-text">saved offers</span>
             </h1>
             <p style={{ color: 'var(--text-secondary)', fontSize: 14, marginTop: 4 }}>
-              {savedOffers.length} offres sauvegardées
+              {savedOffers.length} saved offer{savedOffers.length !== 1 ? 's' : ''}
             </p>
           </div>
 
@@ -64,7 +64,7 @@ export default function SavedOffersPage() {
               href={`/compare?ids=${compareList.join(',')}`}
               style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '0.6rem 1.25rem', borderRadius: 10, background: 'linear-gradient(135deg, #4f7fff, #7c3aed)', color: 'white', textDecoration: 'none', fontSize: 13, fontWeight: 700 }}
             >
-              <BarChart3 size={14}/> Comparer {compareList.length} offres
+              <BarChart3 size={14}/> Compare {compareList.length} offer{compareList.length !== 1 ? 's' : ''}
             </Link>
           )}
         </div>
@@ -80,12 +80,12 @@ export default function SavedOffersPage() {
         ) : savedOffers.length === 0 ? (
           <div className="glass" style={{ borderRadius: 20, padding: '4rem', textAlign: 'center' }}>
             <Bookmark size={48} style={{ opacity: 0.2, marginBottom: '1rem' }}/>
-            <h2 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: 8 }}>Aucune offre sauvegardée</h2>
+            <h2 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: 8 }}>No saved offers yet</h2>
             <p style={{ color: 'var(--text-secondary)', fontSize: 14, marginBottom: '1.5rem' }}>
-              Cliquez sur l'icône 🔖 sur n'importe quelle offre pour la sauvegarder ici
+              Click the bookmark icon 🔖 on any offer to save it here
             </p>
             <Link href="/" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '0.7rem 1.5rem', borderRadius: 10, background: 'linear-gradient(135deg, #4f7fff, #7c3aed)', color: 'white', textDecoration: 'none', fontWeight: 700, fontSize: 14 }}>
-              <Zap size={14}/> Explorer les offres
+              <Zap size={14}/> Browse offers
             </Link>
           </div>
         ) : (
@@ -133,9 +133,9 @@ export default function SavedOffersPage() {
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, marginBottom: '1rem' }}>
                       {[
                         { icon: <Wifi size={12}/>, label: 'Data', value: formatData(offer.dataGB) },
-                        { icon: <Phone size={12}/>, label: 'Appels', value: formatMinutes(offer.voiceMinutes) },
-                        { icon: <Calendar size={12}/>, label: 'Validité', value: formatValidity(offer.validityDays) },
-                        { icon: <Zap size={12}/>, label: 'Réseau', value: offer.network },
+                        { icon: <Phone size={12}/>, label: 'Calls', value: formatMinutes(offer.voiceMinutes) },
+                        { icon: <Calendar size={12}/>, label: 'Validity', value: formatValidity(offer.validityDays) },
+                        { icon: <Zap size={12}/>, label: 'Network', value: offer.network },
                       ].map(s => (
                         <div key={s.label} style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'rgba(255,255,255,0.04)', borderRadius: 7, padding: '0.45rem 0.5rem' }}>
                           <span style={{ color: 'var(--text-secondary)', flexShrink: 0 }}>{s.icon}</span>
@@ -153,11 +153,11 @@ export default function SavedOffersPage() {
                         onClick={() => toggleCompare(offer.id)}
                         style={{ flex: 1, padding: '0.6rem', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer', background: isInCompare ? 'rgba(79,127,255,0.2)' : 'rgba(255,255,255,0.05)', border: `1px solid ${isInCompare ? 'rgba(79,127,255,0.4)' : 'var(--border)'}`, color: isInCompare ? '#6b93ff' : 'var(--text-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}
                       >
-                        <BarChart3 size={12}/> {isInCompare ? 'Sélectionné' : 'Comparer'}
+                        <BarChart3 size={12}/> {isInCompare ? 'Selected' : 'Compare'}
                       </button>
                       <button
                         onClick={() => removeSave(offer.id)}
-                        title="Retirer des favoris"
+                        title="Remove from saved"
                         style={{ padding: '0.6rem 0.75rem', borderRadius: 8, cursor: 'pointer', background: 'rgba(248,113,113,0.08)', border: '1px solid rgba(248,113,113,0.2)', color: '#f87171', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                       >
                         <BookmarkCheck size={13}/>

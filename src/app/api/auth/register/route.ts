@@ -4,9 +4,9 @@ import { db } from '@/lib/db'
 import { z } from 'zod'
 
 const registerSchema = z.object({
-  name: z.string().min(2, 'Le nom doit avoir au moins 2 caractères'),
-  email: z.string().email('Adresse email invalide'),
-  password: z.string().min(8, 'Le mot de passe doit avoir au moins 8 caractères'),
+  name: z.string().min(2, 'Name must be at least 2 characters'),
+  email: z.string().email('Invalid email address'),
+  password: z.string().min(8, 'Password must be at least 8 characters'),
 })
 
 export async function POST(req: NextRequest) {
@@ -16,7 +16,7 @@ export async function POST(req: NextRequest) {
 
     if (!validated.success) {
       return NextResponse.json(
-        { error: validated.error.errors[0].message },
+        { error: validated.error.issues[0].message },
         { status: 400 }
       )
     }
@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
     const existingUser = await db.user.findUnique({ where: { email } })
     if (existingUser) {
       return NextResponse.json(
-        { error: 'Cet email est déjà utilisé' },
+        { error: 'This email address is already in use' },
         { status: 400 }
       )
     }

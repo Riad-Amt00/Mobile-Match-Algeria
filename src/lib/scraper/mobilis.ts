@@ -23,7 +23,7 @@ export async function scrapeMobilis(): Promise<ScrapedOffer[]> {
   const context = await browser.newContext({
     userAgent:
       'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/122.0.0.0 Safari/537.36',
-    locale: 'fr-DZ',
+    locale: 'en-US',
   })
   const page = await context.newPage()
   const offers: ScrapedOffer[] = []
@@ -106,100 +106,100 @@ function getMobilisFallbackOffers(): ScrapedOffer[] {
       name: 'Tawali 50',
       type: OfferType.PREPAID, priceDA: 50, dataGB: 0.3, voiceMinutes: 20,
       smsCount: 10, validityDays: 1, network: '4G',
-      features: ['Appels Mobilis illimités'], sourceUrl: 'https://mobilis.dz/',
+      features: ['Unlimited Mobilis calls'], sourceUrl: 'https://mobilis.dz/',
     },
     {
       name: 'Tawali 100',
       type: OfferType.PREPAID, priceDA: 100, dataGB: 0.8, voiceMinutes: 40,
       smsCount: 20, validityDays: 1, network: '4G',
-      features: ['Appels Mobilis illimités', 'Credit 100 DA'], sourceUrl: 'https://mobilis.dz/',
+      features: ['Unlimited Mobilis calls', '100 DA credit'], sourceUrl: 'https://mobilis.dz/',
     },
     {
       name: 'Tawali 200',
       type: OfferType.PREPAID, priceDA: 200, dataGB: 2, voiceMinutes: 80,
       smsCount: 30, validityDays: 7, network: '4G',
-      features: ['Appels Mobilis illimités', 'Facebook offert'], sourceUrl: 'https://mobilis.dz/',
+      features: ['Unlimited Mobilis calls', 'Free Facebook'], sourceUrl: 'https://mobilis.dz/',
     },
     // ── PREPAID - IDOOM (Monthly) ──
     {
       name: 'Idoom 500',
       type: OfferType.PREPAID, priceDA: 500, dataGB: 8, voiceMinutes: 100,
       smsCount: 50, validityDays: 30, network: '4G',
-      features: ['Appels Mobilis illimités', 'Bonus data nuit 5 GB'], sourceUrl: 'https://mobilis.dz/',
+      features: ['Unlimited Mobilis calls', '5 GB night bonus data'], sourceUrl: 'https://mobilis.dz/',
     },
     {
       name: 'Idoom 1000',
       type: OfferType.PREPAID, priceDA: 1000, dataGB: 20, voiceMinutes: 200,
       smsCount: 100, validityDays: 30, network: '4G',
-      features: ['Appels Mobilis illimités', 'Réseaux sociaux offerts', 'Bonus data nuit 10 GB'], sourceUrl: 'https://mobilis.dz/',
+      features: ['Unlimited Mobilis calls', 'Free social media', '10 GB night bonus'], sourceUrl: 'https://mobilis.dz/',
     },
     {
       name: 'Idoom 1500',
       type: OfferType.PREPAID, priceDA: 1500, dataGB: 35, voiceMinutes: -1,
       smsCount: 150, validityDays: 30, network: '4G',
-      features: ['Appels illimités toutes réseaux', 'Réseaux sociaux offerts', 'Bonus data nuit 15 GB'], sourceUrl: 'https://mobilis.dz/',
+      features: ['Unlimited calls all operators', 'Free social media', '15 GB night bonus'], sourceUrl: 'https://mobilis.dz/',
     },
     {
       name: 'Idoom 2000',
       type: OfferType.PREPAID, priceDA: 2000, dataGB: 60, voiceMinutes: -1,
       smsCount: 200, validityDays: 30, network: '4G',
-      features: ['Appels illimités toutes réseaux', 'Réseaux sociaux offerts', 'Bonus data nuit 20 GB', 'SMS illimités Mobilis'], sourceUrl: 'https://mobilis.dz/',
+      features: ['Unlimited calls all operators', 'Free social media', '20 GB night bonus', 'Unlimited Mobilis SMS'], sourceUrl: 'https://mobilis.dz/',
     },
     {
       name: 'Idoom 2500',
       type: OfferType.PREPAID, priceDA: 2500, dataGB: 100, voiceMinutes: -1,
       smsCount: -1, validityDays: 30, network: '4G/5G',
-      features: ['Appels illimités toutes réseaux', 'SMS illimités', 'Réseaux sociaux offerts', 'Bonus data nuit 30 GB'], sourceUrl: 'https://mobilis.dz/',
+      features: ['Unlimited calls all operators', 'Unlimited SMS', 'Free social media', '30 GB night bonus'], sourceUrl: 'https://mobilis.dz/',
     },
     {
       name: 'Idoom 4000',
       type: OfferType.PREPAID, priceDA: 4000, dataGB: 200, voiceMinutes: -1,
       smsCount: -1, validityDays: 30, network: '4G/5G',
-      features: ['Appels illimités toutes réseaux', 'SMS illimités', 'Streaming HD', 'Bonus data nuit 50 GB', '5G prioritaire'], sourceUrl: 'https://mobilis.dz/',
+      features: ['Unlimited calls all operators', 'Unlimited SMS', 'HD streaming', '50 GB night bonus', '5G priority'], sourceUrl: 'https://mobilis.dz/',
     },
     // ── POSTPAID - MOBILIS PRO ──
     {
       name: 'Pro 1500',
       type: OfferType.POSTPAID, priceDA: 1500, dataGB: 25, voiceMinutes: 200,
       smsCount: 100, validityDays: 30, network: '4G',
-      features: ['Facturation mensuelle', 'Appels Mobilis illimités', 'Support prioritaire'], sourceUrl: 'https://mobilis.dz/',
+      features: ['Monthly billing', 'Unlimited Mobilis calls', 'Priority support'], sourceUrl: 'https://mobilis.dz/',
     },
     {
       name: 'Pro 2500',
       type: OfferType.POSTPAID, priceDA: 2500, dataGB: 70, voiceMinutes: -1,
       smsCount: 200, validityDays: 30, network: '4G',
-      features: ['Facturation mensuelle', 'Appels illimités toutes réseaux', 'Roaming Afrique inclus'], sourceUrl: 'https://mobilis.dz/',
+      features: ['Monthly billing', 'Unlimited calls all operators', 'Africa roaming included'], sourceUrl: 'https://mobilis.dz/',
     },
     {
       name: 'Pro Elite 4000',
       type: OfferType.POSTPAID, priceDA: 4000, dataGB: 150, voiceMinutes: -1,
       smsCount: -1, validityDays: 30, network: '4G/5G',
-      features: ['Facturation mensuelle', 'Appels illimités toutes réseaux', 'SMS illimités', 'Roaming international', '5G dès disponibilité'], sourceUrl: 'https://mobilis.dz/',
+      features: ['Monthly billing', 'Unlimited calls all operators', 'Unlimited SMS', 'International roaming', '5G when available'], sourceUrl: 'https://mobilis.dz/',
     },
     {
       name: 'Pro Elite 6000',
       type: OfferType.POSTPAID, priceDA: 6000, dataGB: 300, voiceMinutes: -1,
       smsCount: -1, validityDays: 30, network: '4G/5G',
-      features: ['Facturation mensuelle', 'Appels illimités toutes réseaux', 'SMS illimités', 'Roaming international premium', '5G dès disponibilité', 'SIM double réseau'], sourceUrl: 'https://mobilis.dz/',
+      features: ['Monthly billing', 'Unlimited calls all operators', 'Unlimited SMS', 'Premium international roaming', '5G when available', 'Dual-network SIM'], sourceUrl: 'https://mobilis.dz/',
     },
-    // ── DATA ONLY - IDOOM FIBRE/4G ──
+    // ── DATA ONLY - IDOOM 4G ──
     {
       name: 'Idoom 4G 1000',
       type: OfferType.DATA_ONLY, priceDA: 1000, dataGB: 30, voiceMinutes: 0,
       smsCount: 0, validityDays: 30, network: '4G',
-      features: ['Data uniquement', 'Compatible box 4G', 'Bonus nuit 15 GB'], sourceUrl: 'https://mobilis.dz/',
+      features: ['Data only', '4G box compatible', '15 GB night bonus'], sourceUrl: 'https://mobilis.dz/',
     },
     {
       name: 'Idoom 4G 2000',
       type: OfferType.DATA_ONLY, priceDA: 2000, dataGB: 80, voiceMinutes: 0,
       smsCount: 0, validityDays: 30, network: '4G',
-      features: ['Data uniquement', 'Compatible box 4G', 'Bonus nuit 40 GB'], sourceUrl: 'https://mobilis.dz/',
+      features: ['Data only', '4G box compatible', '40 GB night bonus'], sourceUrl: 'https://mobilis.dz/',
     },
     {
       name: 'Idoom 4G 3500',
       type: OfferType.DATA_ONLY, priceDA: 3500, dataGB: 200, voiceMinutes: 0,
       smsCount: 0, validityDays: 30, network: '4G/5G',
-      features: ['Internet domestique', 'Compatible box 4G/5G', 'Débit prioritaire'], sourceUrl: 'https://mobilis.dz/',
+      features: ['Home internet', '4G/5G box compatible', 'Priority bandwidth'], sourceUrl: 'https://mobilis.dz/',
     },
   ]
 }

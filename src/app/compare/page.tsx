@@ -31,10 +31,10 @@ function buildRadarData(offers: any[]) {
 
   const metrics = [
     { label: 'Data',     keyFn: (o: any) => normalize(o.dataGB, maxData) },
-    { label: 'Appels',   keyFn: (o: any) => normalize(o.voiceMinutes === -1 ? 9999 : o.voiceMinutes, maxVoice) },
+    { label: 'Calls',   keyFn: (o: any) => normalize(o.voiceMinutes === -1 ? 9999 : o.voiceMinutes, maxVoice) },
     { label: 'SMS',      keyFn: (o: any) => normalize(o.smsCount === -1 ? 9999 : o.smsCount, maxSms) },
-    { label: 'Validité', keyFn: (o: any) => normalize(o.validityDays, maxVal) },
-    { label: 'Prix',     keyFn: (o: any) => Math.round((minPrice / o.priceDA) * 100) },
+    { label: 'Validity', keyFn: (o: any) => normalize(o.validityDays, maxVal) },
+    { label: 'Value',    keyFn: (o: any) => Math.round((minPrice / o.priceDA) * 100) },
   ]
 
   return metrics.map(m => {
@@ -98,13 +98,13 @@ function CompareContent() {
 
   /* spec rows */
   const specs = [
-    { key: 'priceDA',      label: '💰 Prix',     format: (v: any) => formatDA(v),         best: 'min' as const },
-    { key: 'dataGB',       label: '📶 Data',     format: (v: any) => formatData(v),       best: 'max' as const },
-    { key: 'voiceMinutes', label: '📞 Appels',   format: (v: any) => formatMinutes(v),    best: 'max' as const },
-    { key: 'smsCount',     label: '💬 SMS',      format: (v: any) => formatSms(v),        best: 'max' as const },
-    { key: 'validityDays', label: '📅 Validité', format: (v: any) => formatValidity(v),  best: 'max' as const },
-    { key: 'network',      label: '🌐 Réseau',   format: (v: any) => v,                  best: null },
-    { key: 'type',         label: '📋 Type',     format: (v: any) => ({ PREPAID: 'Prépayé', POSTPAID: 'Postpayé', DATA_ONLY: 'Internet' }[v as string] || v), best: null },
+    { key: 'priceDA',      label: '💰 Price',    format: (v: any) => formatDA(v),        best: 'min' as const },
+    { key: 'dataGB',       label: '📶 Data',     format: (v: any) => formatData(v),      best: 'max' as const },
+    { key: 'voiceMinutes', label: '📞 Calls',    format: (v: any) => formatMinutes(v),   best: 'max' as const },
+    { key: 'smsCount',     label: '💬 SMS',      format: (v: any) => formatSms(v),       best: 'max' as const },
+    { key: 'validityDays', label: '📅 Validity', format: (v: any) => formatValidity(v), best: 'max' as const },
+    { key: 'network',      label: '🌐 Network',  format: (v: any) => v,                 best: null },
+    { key: 'type',         label: '📋 Type',     format: (v: any) => ({ PREPAID: 'Prepaid', POSTPAID: 'Postpaid', DATA_ONLY: 'Data only' }[v as string] || v), best: null },
   ]
 
   const getBestIdx = (spec: typeof specs[0]): number => {
@@ -128,25 +128,25 @@ function CompareContent() {
 
         {/* Back */}
         <Link href="/" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: 'var(--text-secondary)', textDecoration: 'none', fontSize: 14, marginBottom: '2rem' }}>
-          <ArrowLeft size={16}/> Retour
+          <ArrowLeft size={16}/> Back
         </Link>
 
         {/* Page header */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
           <div>
             <h1 style={{ fontSize: '1.75rem', fontWeight: 900, marginBottom: 4 }}>
-              Comparaison <span className="gradient-text">côte à côte</span>
+              Side-by-side <span className="gradient-text">comparison</span>
             </h1>
             <p style={{ color: 'var(--text-secondary)', fontSize: 14 }}>
-              Comparez jusqu'à 3 offres — tableau + graphiques interactifs
+              Compare up to 3 plans — table + interactive charts
             </p>
           </div>
 
           {/* View toggle */}
           <div style={{ display: 'flex', gap: 4, background: 'rgba(255,255,255,0.05)', borderRadius: 10, padding: 4 }}>
             {[
-              { id: 'table', icon: <Table2 size={14}/>, label: 'Tableau' },
-              { id: 'chart', icon: <BarChart2 size={14}/>, label: 'Graphiques' },
+              { id: 'table', icon: <Table2 size={14}/>, label: 'Table' },
+              { id: 'chart', icon: <BarChart2 size={14}/>, label: 'Charts' },
             ].map(v => (
               <button
                 key={v.id}
@@ -168,7 +168,7 @@ function CompareContent() {
         {loading ? (
           <div style={{ textAlign: 'center', padding: '5rem', color: 'var(--text-secondary)' }}>
             <div style={{ width: 36, height: 36, border: '3px solid rgba(79,127,255,0.3)', borderTopColor: '#4f7fff', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 1rem' }}/>
-            Chargement des offres...
+            Loading plans...
           </div>
         ) : (
           <>
@@ -201,12 +201,12 @@ function CompareContent() {
                   ) : (
                     <div className="glass" style={{ borderRadius: 16, padding: '1rem', border: '1px dashed rgba(255,255,255,0.12)', minHeight: 100, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
                       <Star size={18} style={{ opacity: 0.3 }}/>
-                      <div style={{ color: 'var(--text-secondary)', fontSize: 12 }}>Ajouter une offre</div>
+                      <div style={{ color: 'var(--text-secondary)', fontSize: 12 }}>Add a plan</div>
                       <select
                         onChange={e => { if (e.target.value) addOffer(e.target.value); e.target.value = '' }}
                         style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid var(--border)', borderRadius: 6, color: 'var(--text-primary)', fontSize: 11, padding: '0.3rem 0.5rem', width: '100%', outline: 'none', cursor: 'pointer', fontFamily: 'inherit' }}
                       >
-                        <option value="">Choisir...</option>
+                        <option value="">Choose...</option>
                         {allOffers.filter(o => !offers.find(s => s.id === o.id)).map(o => (
                           <option key={o.id} value={o.id}>{o.operator.name} — {o.name} ({formatDA(o.priceDA)})</option>
                         ))}
@@ -255,7 +255,7 @@ function CompareContent() {
                     {/* Features */}
                     <tr>
                       <td style={{ padding: '0.625rem 0.75rem', fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)', verticalAlign: 'top' }}>
-                        ✨ Avantages
+                        🎨 Features
                       </td>
                       {Array.from({ length: 3 }).map((_, ci) => (
                         <td key={ci} style={{ padding: '0.25rem 0.5rem' }}>
@@ -290,7 +290,7 @@ function CompareContent() {
                                 color: 'white', textDecoration: 'none', fontSize: 13, fontWeight: 700,
                               }}
                             >
-                              <ExternalLink size={13}/> Voir chez {offers[ci].operator.name}
+                              <ExternalLink size={13}/> View at {offers[ci].operator.name}
                             </a>
                           )}
                         </td>
@@ -308,7 +308,7 @@ function CompareContent() {
                 {/* Radar chart */}
                 <div className="glass" style={{ borderRadius: 16, padding: '1.5rem' }}>
                   <h3 style={{ fontSize: '0.9375rem', fontWeight: 700, marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <BarChart2 size={16} style={{ color: '#6b93ff' }}/> Score multi-critères (sur 100)
+                    <BarChart2 size={16} style={{ color: '#6b93ff' }}/> Multi-criteria score (out of 100)
                   </h3>
                   <ResponsiveContainer width="100%" height={280}>
                     <RadarChart data={radarData} margin={{ top: 10, right: 30, bottom: 10, left: 30 }}>
@@ -335,7 +335,7 @@ function CompareContent() {
                 {/* Price bar chart */}
                 <div className="glass" style={{ borderRadius: 16, padding: '1.5rem' }}>
                   <h3 style={{ fontSize: '0.9375rem', fontWeight: 700, marginBottom: '1.25rem' }}>
-                    💰 Prix et Data comparés
+                    💰 Price &amp; Data comparison
                   </h3>
                   <ResponsiveContainer width="100%" height={220}>
                     <BarChart data={[
@@ -366,16 +366,16 @@ function CompareContent() {
                         <div style={{ fontSize: '0.875rem', fontWeight: 700, marginBottom: '0.875rem' }}>{o.name}</div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12 }}>
-                            <span style={{ color: 'var(--text-secondary)' }}>MB / DA</span>
-                            <span style={{ fontWeight: 700, color: '#4ade80' }}>{gbPerDA} MB</span>
+                             <span style={{ color: 'var(--text-secondary)' }}>MB / DA</span>
+                             <span style={{ fontWeight: 700, color: '#4ade80' }}>{gbPerDA} MB</span>
                           </div>
                           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12 }}>
-                            <span style={{ color: 'var(--text-secondary)' }}>Prix / jour</span>
-                            <span style={{ fontWeight: 700 }}>{Math.round(o.priceDA / o.validityDays)} DA</span>
+                             <span style={{ color: 'var(--text-secondary)' }}>Price / day</span>
+                             <span style={{ fontWeight: 700 }}>{Math.round(o.priceDA / o.validityDays)} DA</span>
                           </div>
                           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12 }}>
-                            <span style={{ color: 'var(--text-secondary)' }}>Réseau</span>
-                            <span style={{ fontWeight: 700, color: o.network.includes('5G') ? '#a78bfa' : 'var(--text-primary)' }}>{o.network}</span>
+                             <span style={{ color: 'var(--text-secondary)' }}>Network</span>
+                             <span style={{ fontWeight: 700, color: o.network.includes('5G') ? '#a78bfa' : 'var(--text-primary)' }}>{o.network}</span>
                           </div>
                         </div>
                       </div>
@@ -388,7 +388,7 @@ function CompareContent() {
             {view === 'chart' && offers.length < 2 && (
               <div className="glass" style={{ borderRadius: 16, padding: '3rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
                 <BarChart2 size={36} style={{ opacity: 0.3, marginBottom: '0.75rem' }}/>
-                <p>Ajoutez au moins 2 offres pour afficher les graphiques</p>
+                <p>Add at least 2 plans to display charts</p>
               </div>
             )}
           </>

@@ -46,10 +46,10 @@ function scoreOffer(offer: any, needs: UserNeeds): ScoredOffer {
     const budgetRatio = offer.priceDA / needs.budget
     if (budgetRatio <= 0.7) {
       score += 30
-      matchReasons.push(`Bien dans votre budget (${offer.priceDA} DA / ${needs.budget} DA)`)
+      matchReasons.push(`Well within your budget (${offer.priceDA} DA / ${needs.budget} DA)`)
     } else if (budgetRatio <= 0.9) {
       score += 25
-      matchReasons.push(`Dans votre budget`)
+      matchReasons.push(`Within your budget`)
     } else {
       score += 15
     }
@@ -57,9 +57,9 @@ function scoreOffer(offer: any, needs: UserNeeds): ScoredOffer {
     const overage = ((offer.priceDA - needs.budget) / needs.budget) * 100
     if (overage <= 10) {
       score += 5
-      mismatches.push(`Légèrement au-dessus du budget (+${overage.toFixed(0)}%)`)
+      mismatches.push(`Slightly over budget (+${overage.toFixed(0)}%)`)
     } else {
-      mismatches.push(`Au-dessus du budget de ${offer.priceDA - needs.budget} DA`)
+      mismatches.push(`Over budget by ${offer.priceDA - needs.budget} DA`)
     }
   }
 
@@ -69,16 +69,16 @@ function scoreOffer(offer: any, needs: UserNeeds): ScoredOffer {
     const dataRatio = needs.dataGB > 0 ? offer.dataGB / needs.dataGB : 1
     if (dataRatio >= 1.5) {
       score += 35
-      matchReasons.push(`Excellent volume data (${offer.dataGB === 0 ? 'Illimité' : offer.dataGB + ' GB'})`)
+      matchReasons.push(`Excellent data allowance (${offer.dataGB === 0 ? 'Unlimited' : offer.dataGB + ' GB'})`)
     } else if (dataRatio >= 1) {
       score += 28
-      matchReasons.push(`Volume data adapté à vos besoins`)
+      matchReasons.push(`Data matches your needs`)
     } else {
       score += 15
     }
   } else {
     const shortage = needs.dataGB - offer.dataGB
-    mismatches.push(`Data insuffisante (manque ${shortage} GB)`)
+    mismatches.push(`Insufficient data (${shortage} GB short)`)
   }
 
   // ─── Voice Score (20 pts) ────────────────────────────────────────
@@ -87,23 +87,23 @@ function scoreOffer(offer: any, needs: UserNeeds): ScoredOffer {
     // User needs unlimited
     if (offer.voiceMinutes === -1) {
       score += 20
-      matchReasons.push('Appels illimités inclus ✓')
+      matchReasons.push('Unlimited calls included ✓')
     } else {
-      mismatches.push("Appels illimités non inclus")
+      mismatches.push('Unlimited calls not included')
     }
   } else if (offerMinutes >= needs.voiceMinutes) {
     score += needs.voiceMinutes > 0 ? 20 : 10
-    if (needs.voiceMinutes > 0) matchReasons.push(`Minutes suffisantes (${offer.voiceMinutes === -1 ? 'Illimité' : offer.voiceMinutes + ' min'})`)
+    if (needs.voiceMinutes > 0) matchReasons.push(`Sufficient call minutes (${offer.voiceMinutes === -1 ? 'Unlimited' : offer.voiceMinutes + ' min'})`)
   } else if (needs.voiceMinutes > 0) {
-    mismatches.push(`Minutes insuffisantes (${offer.voiceMinutes} / ${needs.voiceMinutes} min)`)
+    mismatches.push(`Insufficient minutes (${offer.voiceMinutes} / ${needs.voiceMinutes} min)`)
   }
 
   // ─── Offer Type Score (10 pts) ───────────────────────────────────
   if (!needs.type || needs.type === 'any' || offer.type === needs.type) {
     score += 10
-    if (needs.type && needs.type !== 'any') matchReasons.push(`Type d'offre correspondant (${needs.type})`)
+    if (needs.type && needs.type !== 'any') matchReasons.push(`Matching offer type (${needs.type})`)
   } else {
-    mismatches.push(`Type d'offre différent (${offer.type} vs ${needs.type} demandé)`)
+    mismatches.push(`Different offer type (${offer.type} vs ${needs.type} requested)`)
   }
 
   // ─── Network Score (5 pts) ───────────────────────────────────────
@@ -111,9 +111,9 @@ function scoreOffer(offer: any, needs: UserNeeds): ScoredOffer {
     score += 5
   } else if (offer.network.includes(needs.network)) {
     score += 5
-    matchReasons.push(`Compatible ${needs.network}`)
+    matchReasons.push(`${needs.network} compatible`)
   } else {
-    mismatches.push(`Réseau ${needs.network} non garanti`)
+    mismatches.push(`${needs.network} network not guaranteed`)
   }
 
   return { offer, score: Math.min(100, score), savings: 0, matchReasons, mismatches }

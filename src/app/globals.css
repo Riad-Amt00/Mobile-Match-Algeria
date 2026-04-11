@@ -353,3 +353,37 @@ body {
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
+
+/* ── Fade-in animation ───────────────────────────────────────────── */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.fade-in-up {
+  animation: fadeInUp 0.4s ease both;
+}
+
+/* ── Text selection ──────────────────────────────────────────────── */
+::selection {
+  background: rgba(79, 127, 255, 0.3);
+  color: #fff;
+}
+
+/* ── Focus-visible ring ──────────────────────────────────────────── */
+:focus-visible {
+  outline: 2px solid rgba(79, 127, 255, 0.7);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+/* ── Tooltip helper ──────────────────────────────────────────────── */
+[title] { cursor: help; }
+button[title], a[title] { cursor: pointer; }
+
+/* ── Print styles ────────────────────────────────────────────────── */
+@media print {
+  nav, footer, button, .filter-panel { display: none !important; }
+  body { background: white !important; color: black !important; }
+  .glass { border: 1px solid #ccc !important; background: white !important; }
+}

@@ -4,21 +4,21 @@ import { SessionProviderWrapper } from '@/components/session-provider'
 import { Navbar } from '@/components/navbar'
 
 export const metadata: Metadata = {
-  title: 'Mobile Match Algeria — Comparateur d\'offres mobiles',
-  description: 'Comparez et trouvez la meilleure offre mobile en Algérie parmi Mobilis, Djezzy et Ooredoo. Forfaits Prépayés, Postpayés, Internet. Recommandations personnalisées.',
-  keywords: 'comparateur offres mobiles algérie, Mobilis, Djezzy, Ooredoo, forfaits prépayés, forfaits postpayés, internet algérie',
+  title: 'Mobile Match Algeria — Compare Mobile Plans',
+  description: 'Compare and find the best mobile plan in Algeria from Mobilis, Djezzy, and Ooredoo. Prepaid, Postpaid, Data-only plans. Personalized AI recommendations.',
+  keywords: 'Algeria mobile plan comparison, Mobilis, Djezzy, Ooredoo, prepaid, postpaid, internet Algeria',
   openGraph: {
     title: 'Mobile Match Algeria',
-    description: 'Le meilleur comparateur d\'offres mobiles en Algérie',
+    description: "Algeria's best mobile plan comparator",
     siteName: 'Mobile Match Algeria',
-    locale: 'fr_DZ',
+    locale: 'en_US',
     type: 'website',
   },
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="fr">
+    <html lang="en">
       <body>
         <SessionProviderWrapper>
           <Navbar />

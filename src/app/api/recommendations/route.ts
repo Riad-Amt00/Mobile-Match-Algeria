@@ -8,7 +8,7 @@ export async function POST(req: NextRequest) {
     const { budget, dataGB, voiceMinutes, smsCount, type, network } = body
 
     if (!budget || budget <= 0) {
-      return NextResponse.json({ error: 'Budget invalide' }, { status: 400 })
+      return NextResponse.json({ error: 'Invalid budget value' }, { status: 400 })
     }
 
     const allOffers = await db.offer.findMany({
