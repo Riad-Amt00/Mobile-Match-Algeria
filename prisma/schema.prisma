@@ -1,0 +1,183 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["driverAdapters"]
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+// ─── AUTH / USERS ────────────────────────────────────────────────────────────
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+  passwordHash  String?
+  role          Role      @default(USER)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  accounts      Account[]
+  sessions      Session[]
+  savedOffers   SavedOffer[]
+  profile       UserProfile?
+  notifications Notification[]
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ─── USER PROFILE (for recommendation engine) ────────────────────────────────
+model UserProfile {
+  id             String  @id @default(cuid())
+  userId         String  @unique
+  monthlyBudget  Float?
+  dataUsageGB    Float?
+  voiceMinutes   Int?
+  smsCount       Int?
+  preferredType  String? // "prepaid" | "postpaid"
+  preferredNet   String? // "4G" | "5G"
+  user           User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// ─── OPERATORS ───────────────────────────────────────────────────────────────
+model Operator {
+  id          String   @id @default(cuid())
+  name        String   @unique // "Mobilis" | "Djezzy" | "Ooredoo"
+  slug        String   @unique // "mobilis" | "djezzy" | "ooredoo"
+  logoUrl     String?
+  websiteUrl  String
+  primaryColor String
+  createdAt   DateTime @default(now())
+
+  offers      Offer[]
+  scrapeLogs  ScrapeLog[]
+}
+
+// ─── OFFERS ──────────────────────────────────────────────────────────────────
+model Offer {
+  id             String      @id @default(cuid())
+  operatorId     String
+  name           String
+  slug           String
+  type           OfferType   // PREPAID | POSTPAID | DATA_ONLY
+  priceDA        Float       // Price in Algerian Dinars
+  dataGB         Float       // Data in GB (0 = unlimited)
+  voiceMinutes   Int?        // Voice minutes (-1 = unlimited)
+  smsCount       Int?        // SMS count (-1 = unlimited)
+  validityDays   Int         // Validity in days
+  network        String      // "4G" | "5G" | "4G/5G"
+  features       String      // JSON string of bonus features array
+  isActive       Boolean     @default(true)
+  isFeatured     Boolean     @default(false)
+  sourceUrl      String?
+  scrapedAt      DateTime?
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+
+  operator       Operator    @relation(fields: [operatorId], references: [id])
+  savedBy        SavedOffer[]
+  compares       CompareHistory[]
+
+  @@unique([operatorId, slug])
+}
+
+enum OfferType {
+  PREPAID
+  POSTPAID
+  DATA_ONLY
+}
+
+// ─── SAVED OFFERS ────────────────────────────────────────────────────────────
+model SavedOffer {
+  id        String   @id @default(cuid())
+  userId    String
+  offerId   String
+  savedAt   DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  offer     Offer    @relation(fields: [offerId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, offerId])
+}
+
+// ─── COMPARE HISTORY ─────────────────────────────────────────────────────────
+model CompareHistory {
+  id        String   @id @default(cuid())
+  offerId   String
+  sessionId String?
+  createdAt DateTime @default(now())
+  offer     Offer    @relation(fields: [offerId], references: [id], onDelete: Cascade)
+}
+
+// ─── SCRAPE LOGS ─────────────────────────────────────────────────────────────
+model ScrapeLog {
+  id           String      @id @default(cuid())
+  operatorId   String
+  status       ScrapeStatus
+  offersFound  Int         @default(0)
+  offersAdded  Int         @default(0)
+  offersUpdated Int        @default(0)
+  errorMessage String?
+  duration     Int?        // ms
+  startedAt    DateTime    @default(now())
+  completedAt  DateTime?
+  operator     Operator    @relation(fields: [operatorId], references: [id])
+}
+
+enum ScrapeStatus {
+  RUNNING
+  SUCCESS
+  FAILED
+  PARTIAL
+}
+
+// ─── NOTIFICATIONS ────────────────────────────────────────────────────────────
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  title     String
+  message   String
+  type      String   // "new_offer" | "price_drop" | "promo"
+  isRead    Boolean  @default(false)
+  offerId   String?
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
