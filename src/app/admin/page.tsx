@@ -193,6 +193,136 @@ export default function AdminPage() {
         <div style={{ marginTop: '1.5rem', padding: '1rem 1.25rem', borderRadius: 12, background: 'rgba(79,127,255,0.07)', border: '1px solid rgba(79,127,255,0.2)', fontSize: 13, color: 'var(--text-secondary)' }}>
           <strong style={{ color: '#6b93ff' }}>ℹ️ Automated scraping:</strong> The system is configured to update offers every day at 3:00 AM. You can also trigger a manual scrape above.
         </div>
+
+        {/* ── Offer Management ── */}
+        <OfferManager />
+      </div>
+    </div>
+  )
+}
+
+/* ─────────────────────────────────────────────────────────────────── */
+function OfferManager() {
+  const [offers, setOffers] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+  const [search, setSearch] = useState('')
+  const [toggling, setToggling] = useState<string | null>(null)
+
+  useEffect(() => { fetchOffers() }, [])
+
+  async function fetchOffers() {
+    setLoading(true)
+    try {
+      const res = await fetch('/api/offers?type=all')
+      const data = await res.json()
+      setOffers(data.offers || [])
+    } catch {
+      setOffers([])
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function toggleField(id: string, field: 'isActive' | 'isFeatured', current: boolean) {
+    setToggling(id + field)
+    try {
+      await fetch(`/api/offers/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ [field]: !current }),
+      })
+      setOffers(prev => prev.map(o => o.id === id ? { ...o, [field]: !current } : o))
+    } finally {
+      setToggling(null)
+    }
+  }
+
+  const filtered = offers.filter(o =>
+    !search ||
+    o.name.toLowerCase().includes(search.toLowerCase()) ||
+    o.operator.name.toLowerCase().includes(search.toLowerCase())
+  )
+
+  return (
+    <div style={{ marginTop: '2.5rem' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.75rem' }}>
+        <h2 style={{ fontSize: '1.125rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: 8 }}>
+          <Cpu size={18} style={{ color: '#6b93ff' }}/> Offer Management
+          <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)', background: 'rgba(255,255,255,0.06)', padding: '2px 8px', borderRadius: 50 }}>
+            {offers.length} total · {offers.filter(o => o.isActive).length} active
+          </span>
+        </h2>
+        <input
+          type="text"
+          placeholder="Search offers..."
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid var(--border)', borderRadius: 10, padding: '0.5rem 0.875rem', color: 'var(--text-primary)', fontSize: 13, outline: 'none', fontFamily: 'inherit', width: 220 }}
+        />
+      </div>
+
+      <div className="glass" style={{ borderRadius: 16, overflow: 'hidden' }}>
+        {loading ? (
+          <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
+            <div style={{ width: 32, height: 32, border: '3px solid rgba(79,127,255,0.3)', borderTopColor: '#4f7fff', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 1rem' }}/>
+            Loading offers...
+          </div>
+        ) : (
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead>
+                <tr style={{ borderBottom: '1px solid var(--border)' }}>
+                  {['Offer', 'Operator', 'Type', 'Price', 'Data', 'Active', 'Featured'].map(h => (
+                    <th key={h} style={{ padding: '0.875rem 1rem', fontSize: 11, fontWeight: 700, color: 'var(--text-secondary)', textAlign: 'left', whiteSpace: 'nowrap', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+                      {h}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map((offer, i) => (
+                  <tr key={offer.id} style={{ borderBottom: i < filtered.length - 1 ? '1px solid var(--border)' : 'none', opacity: offer.isActive ? 1 : 0.45, transition: 'opacity .2s' }}>
+                    <td style={{ padding: '0.75rem 1rem', fontSize: 13, fontWeight: 700, maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {offer.name}
+                    </td>
+                    <td style={{ padding: '0.75rem 1rem' }}>
+                      <span style={{ fontSize: 12, padding: '2px 8px', borderRadius: 50, background: `${offer.operator.primaryColor}20`, color: offer.operator.primaryColor, fontWeight: 700 }}>
+                        {offer.operator.name}
+                      </span>
+                    </td>
+                    <td style={{ padding: '0.75rem 1rem', fontSize: 12, color: 'var(--text-secondary)' }}>
+                      {{ PREPAID: 'Prepaid', POSTPAID: 'Postpaid', DATA_ONLY: 'Data only' }[offer.type as string] || offer.type}
+                    </td>
+                    <td style={{ padding: '0.75rem 1rem', fontSize: 13, fontWeight: 700, color: '#6b93ff' }}>
+                      {offer.priceDA.toLocaleString()} DA
+                    </td>
+                    <td style={{ padding: '0.75rem 1rem', fontSize: 13, color: 'var(--text-secondary)' }}>
+                      {offer.dataGB === -1 ? '∞' : `${offer.dataGB} GB`}
+                    </td>
+                    <td style={{ padding: '0.75rem 1rem' }}>
+                      <button
+                        onClick={() => toggleField(offer.id, 'isActive', offer.isActive)}
+                        disabled={toggling === offer.id + 'isActive'}
+                        style={{ padding: '4px 12px', borderRadius: 50, fontSize: 12, fontWeight: 700, cursor: 'pointer', border: 'none', background: offer.isActive ? 'rgba(74,222,128,0.15)' : 'rgba(248,113,113,0.1)', color: offer.isActive ? '#4ade80' : '#f87171', transition: 'all .2s' }}
+                      >
+                        {offer.isActive ? '● Active' : '○ Hidden'}
+                      </button>
+                    </td>
+                    <td style={{ padding: '0.75rem 1rem' }}>
+                      <button
+                        onClick={() => toggleField(offer.id, 'isFeatured', offer.isFeatured)}
+                        disabled={toggling === offer.id + 'isFeatured'}
+                        style={{ padding: '4px 12px', borderRadius: 50, fontSize: 12, fontWeight: 700, cursor: 'pointer', border: 'none', background: offer.isFeatured ? 'rgba(245,158,11,0.15)' : 'rgba(255,255,255,0.06)', color: offer.isFeatured ? '#f59e0b' : 'var(--text-secondary)', transition: 'all .2s' }}
+                      >
+                        {offer.isFeatured ? '★ Featured' : '☆ Normal'}
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
     </div>
   )

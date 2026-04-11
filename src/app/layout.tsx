@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import './globals.css'
 import { SessionProviderWrapper } from '@/components/session-provider'
 import { Navbar } from '@/components/navbar'
+import { ToastProvider } from '@/components/toast'
 
 export const metadata: Metadata = {
   title: 'Mobile Match Algeria — Compare Mobile Plans',
@@ -21,8 +22,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en">
       <body>
         <SessionProviderWrapper>
-          <Navbar />
-          <main>{children}</main>
+          <ToastProvider>
+            <Navbar />
+            <main>{children}</main>
+          </ToastProvider>
         </SessionProviderWrapper>
       </body>
     </html>

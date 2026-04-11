@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import Link from 'next/link'
 import { 
   Search, Filter, ChevronDown, Wifi, Phone, MessageSquare, 
@@ -8,6 +8,7 @@ import {
   CheckCircle, X, BarChart3, Cpu,
 } from 'lucide-react'
 import { useSession } from 'next-auth/react'
+import { useToast } from '@/components/toast'
 import { formatDA, formatData, formatMinutes, formatSms, formatValidity, getOperatorColor, parseFeatures, getPricePerGB } from '@/lib/utils'
 
 interface Offer {
@@ -39,6 +40,7 @@ export default function HomePage() {
   const [offers, setOffers] = useState<Offer[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
+  const [debouncedSearch, setDebouncedSearch] = useState('')
   const [activeType, setActiveType] = useState('all')
   const [activeOperator, setActiveOperator] = useState('all')
   const [maxPrice, setMaxPrice] = useState(10000)
@@ -50,6 +52,15 @@ export default function HomePage() {
   const [sortBy, setSortBy]           = useState<'price'|'data'|'value'>('price')
   const [heroVisible, setHeroVisible] = useState(false)
   const { data: session } = useSession()
+  const { success, error: toastError, warning, info } = useToast()
+  const debounceTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+
+  // Debounce search input (400ms)
+  useEffect(() => {
+    clearTimeout(debounceTimer.current)
+    debounceTimer.current = setTimeout(() => setDebouncedSearch(search), 400)
+    return () => clearTimeout(debounceTimer.current)
+  }, [search])
 
   useEffect(() => {
     setHeroVisible(true)
@@ -60,15 +71,29 @@ export default function HomePage() {
     }).catch(() => {})
   }, [])
 
-  const toggleSave = async (offerId: string) => {
-    if (!session?.user) { window.location.href = '/login'; return }
-    const res = await fetch('/api/saved-offers', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ offerId }) })
-    const data = await res.json()
-    setSavedIds(prev => {
-      const next = new Set(prev)
-      if (data.saved) next.add(offerId); else next.delete(offerId)
-      return next
-    })
+  const toggleSave = async (offerId: string, offerName?: string) => {
+    if (!session?.user) {
+      info('Sign in to save offers')
+      setTimeout(() => window.location.href = '/login', 1200)
+      return
+    }
+    try {
+      const res = await fetch('/api/saved-offers', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ offerId }) })
+      const data = await res.json()
+      setSavedIds(prev => {
+        const next = new Set(prev)
+        if (data.saved) {
+          next.add(offerId)
+          success(`${offerName ?? 'Offer'} saved 🔖`)
+        } else {
+          next.delete(offerId)
+          info(`${offerName ?? 'Offer'} removed from saved`)
+        }
+        return next
+      })
+    } catch {
+      toastError('Failed to update saved offers')
+    }
   }
 
   const fetchOffers = useCallback(async (overrides?: Record<string,string>) => {
@@ -80,7 +105,7 @@ export default function HomePage() {
       if (maxPrice < 10000) params.set('maxPrice', String(maxPrice))
       if (minData > 0) params.set('minData', String(minData))
       if (activeNetwork !== 'all') params.set('network', activeNetwork)
-      if (search) params.set('search', search)
+      if (debouncedSearch) params.set('search', debouncedSearch)
       if (overrides) Object.entries(overrides).forEach(([k,v]) => params.set(k,v))
       
       const res = await fetch(`/api/offers?${params}`)
@@ -88,10 +113,11 @@ export default function HomePage() {
       setOffers(data.offers || [])
     } catch {
       setOffers([])
+      toastError('Failed to load offers')
     } finally {
       setLoading(false)
     }
-  }, [activeType, activeOperator, maxPrice, minData, activeNetwork, search])
+  }, [activeType, activeOperator, maxPrice, minData, activeNetwork, debouncedSearch])
 
   useEffect(() => { fetchOffers() }, [fetchOffers])
 
@@ -102,10 +128,16 @@ export default function HomePage() {
     return 0
   })
 
-  const toggleCompare = (id: string) => {
-    setCompareList(prev =>
-      prev.includes(id) ? prev.filter(x => x !== id) : prev.length < 3 ? [...prev, id] : prev
-    )
+  const toggleCompare = (id: string, name?: string) => {
+    setCompareList(prev => {
+      if (prev.includes(id)) return prev.filter(x => x !== id)
+      if (prev.length >= 3) {
+        warning('You can compare up to 3 plans at a time')
+        return prev
+      }
+      info(`${name ?? 'Plan'} added to comparison`)
+      return [...prev, id]
+    })
   }
 
   const stats = {
@@ -460,9 +492,9 @@ function OfferCard({ offer, index, isSelected, onToggleCompare, isSaved, onToggl
   offer: Offer
   index: number
   isSelected: boolean
-  onToggleCompare: (id: string) => void
+  onToggleCompare: (id: string, name?: string) => void
   isSaved: boolean
-  onToggleSave: (id: string) => void
+  onToggleSave: (id: string, name?: string) => void
 }) {
   const features = parseFeatures(offer.features)
   const pricePerGB = getPricePerGB(offer.priceDA, offer.dataGB)
@@ -602,7 +634,7 @@ function OfferCard({ offer, index, isSelected, onToggleCompare, isSaved, onToggl
         {/* Actions */}
         <div style={{display:'flex', gap:8}}>
           <button
-            onClick={() => onToggleCompare(offer.id)}
+            onClick={() => onToggleCompare(offer.id, offer.name)}
             style={{
               flex:1, padding:'0.625rem', borderRadius:8, fontSize:13, fontWeight:600,
               cursor:'pointer', transition:'all 0.2s',
@@ -616,7 +648,7 @@ function OfferCard({ offer, index, isSelected, onToggleCompare, isSaved, onToggl
             {isSelected ? 'Selected' : 'Compare'}
           </button>
           <button
-            onClick={() => onToggleSave(offer.id)}
+            onClick={() => onToggleSave(offer.id, offer.name)}
             title={isSaved ? 'Remove from saved' : 'Save offer'}
             style={{
               padding:'0.625rem 0.75rem', borderRadius:8, fontSize:13, fontWeight:600,
@@ -629,11 +661,8 @@ function OfferCard({ offer, index, isSelected, onToggleCompare, isSaved, onToggl
           >
             {isSaved ? <BookmarkCheck size={14}/> : <Bookmark size={14}/>}
           </button>
-          <a
-            href={offer.operator.slug === 'djezzy' ? 'https://www.djezzy5g.dz/#Offer'
-              : offer.operator.slug === 'ooredoo' ? 'https://www.ooredoo.dz/'
-              : 'https://mobilis.dz/'}
-            target="_blank" rel="noopener noreferrer"
+          <Link
+            href={`/offers/${offer.id}`}
             style={{
               flex:1, padding:'0.625rem', borderRadius:8, fontSize:13, fontWeight:600,
               cursor:'pointer', textDecoration:'none', textAlign:'center',
@@ -643,8 +672,8 @@ function OfferCard({ offer, index, isSelected, onToggleCompare, isSaved, onToggl
               transition:'all 0.2s',
             }}
           >
-            View offer ↗
-          </a>
+            View details →
+          </Link>
         </div>
       </div>
     </div>
