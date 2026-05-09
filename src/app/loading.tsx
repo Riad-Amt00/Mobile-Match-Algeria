@@ -7,8 +7,8 @@ export default function Loading() {
       <div style={{ textAlign: 'center' }}>
         <div style={{
           width: 48, height: 48, margin: '0 auto 1rem',
-          border: '3px solid rgba(79,127,255,0.2)',
-          borderTopColor: '#4f7fff',
+          border: '3px solid rgba(139,92,246,0.2)',
+          borderTopColor: '#8B5CF6',
           borderRadius: '50%',
           animation: 'spin 0.8s linear infinite',
         }}/>

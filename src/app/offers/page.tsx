@@ -1,0 +1,342 @@
+'use client'
+
+import { useState, useEffect, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
+import Link from 'next/link'
+import { motion, type Variants } from 'framer-motion'
+import {
+  Filter, ChevronDown, Zap, BarChart3, SearchX, LayoutGrid,
+} from 'lucide-react'
+import { useSession } from 'next-auth/react'
+import { useToast } from '@/components/toast'
+import { OfferCard, type Offer } from '@/components/offer-card'
+import { formatDA, formatData } from '@/lib/utils'
+import { useLang } from '@/lib/lang-context'
+
+const gridVariants: Variants = {
+  hidden: {},
+  visible: { transition: { staggerChildren: 0.05 } },
+}
+
+const itemVariants: Variants = {
+  hidden: { opacity: 0, y: 16 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.3, ease: 'easeOut' } },
+}
+
+const OPERATORS = [
+  { slug: 'all',     name: 'All' },
+  { slug: 'djezzy',  name: 'Djezzy' },
+  { slug: 'ooredoo', name: 'Ooredoo' },
+  { slug: 'mobilis', name: 'Mobilis' },
+]
+
+export default function OffersPage() {
+  const [offers, setOffers] = useState<Offer[]>([])
+  const [loading, setLoading] = useState(true)
+  const [activeType, setActiveType] = useState('all')
+  const [activeOperator, setActiveOperator] = useState('all')
+  const [maxPrice, setMaxPrice] = useState(10000)
+  const [minData, setMinData] = useState(0)
+  const [activeNetwork, setActiveNetwork] = useState('all')
+  const [compareList, setCompareList] = useState<string[]>([])
+  const [savedIds, setSavedIds] = useState<Set<string>>(new Set())
+  const [recommendedIds, setRecommendedIds] = useState<Set<string>>(new Set())
+  const [showFilters, setShowFilters] = useState(false)
+  const [savingId, setSavingId] = useState<string | null>(null)
+  const { t } = useLang()
+  const { data: session, status } = useSession()
+  const { success, error: toastError, warning, info } = useToast()
+  const router = useRouter()
+
+  useEffect(() => {
+    if (status === 'authenticated') {
+      fetch('/api/saved-offers')
+        .then(r => r.json())
+        .then(d => { if (d.savedIds) setSavedIds(new Set(d.savedIds)) })
+        .catch(() => {})
+
+      fetch('/api/profile')
+        .then(r => r.json())
+        .then(({ profile }) => {
+          if (!profile?.monthlyBudget) return
+          return fetch('/api/recommendations', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              budget: profile.monthlyBudget,
+              dataGB: profile.dataUsageGB ?? 0,
+              voiceMinutes: profile.voiceMinutes ?? 0,
+              smsCount: profile.smsCount ?? 0,
+              type: profile.preferredType ?? 'any',
+              network: profile.preferredNet ?? 'any',
+            }),
+          }).then(r => r.json())
+        })
+        .then(data => {
+          if (data?.recommendations) {
+            setRecommendedIds(new Set(data.recommendations.map((r: any) => r.id)))
+          }
+        })
+        .catch(() => {})
+    } else if (status === 'unauthenticated') {
+      setSavedIds(new Set())
+      setRecommendedIds(new Set())
+    }
+  }, [status])
+
+  const toggleSave = useCallback(async (offerId: string, offerName?: string) => {
+    if (!session?.user) {
+      router.push('/login')
+      return
+    }
+    setSavingId(offerId)
+    try {
+      const res = await fetch('/api/saved-offers', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ offerId }),
+      })
+      const data = await res.json()
+      if (data.error) { toastError(data.error); return }
+      setSavedIds(prev => {
+        const next = new Set(prev)
+        data.saved ? next.add(offerId) : next.delete(offerId)
+        return next
+      })
+      data.saved ? success(`${offerName ?? 'Offer'} saved!`) : info('Removed from saved')
+    } catch {
+      toastError('Failed — try again')
+    } finally {
+      setSavingId(null)
+    }
+  }, [session, router, success, toastError, info])
+
+  const toggleCompare = useCallback((id: string, name?: string) => {
+    if (compareList.includes(id)) {
+      setCompareList(compareList.filter(x => x !== id))
+      info(`${name ?? 'Plan'} removed from comparison`)
+    } else if (compareList.length >= 3) {
+      warning('You can compare up to 3 plans')
+    } else {
+      setCompareList([...compareList, id])
+      success(`${name ?? 'Plan'} added to comparison`)
+    }
+  }, [compareList, warning, info, success])
+
+  const fetchOffers = useCallback(async () => {
+    setLoading(true)
+    try {
+      const params = new URLSearchParams()
+      if (activeType !== 'all') params.set('type', activeType)
+      if (activeOperator !== 'all') params.set('operator', activeOperator)
+      if (maxPrice < 10000) params.set('maxPrice', String(maxPrice))
+      if (minData > 0) params.set('minData', String(minData))
+      if (activeNetwork !== 'all') params.set('network', activeNetwork)
+      const res = await fetch(`/api/offers?${params}`)
+      const data = await res.json()
+      setOffers(data.offers || [])
+    } catch {
+      setOffers([])
+    } finally {
+      setLoading(false)
+    }
+  }, [activeType, activeOperator, maxPrice, minData, activeNetwork])
+
+  useEffect(() => { fetchOffers() }, [fetchOffers])
+
+  return (
+    <div style={{ minHeight: '100vh', background: 'var(--bg-page)' }}>
+
+      {/* Operator filter */}
+      <section style={{ padding: '2.5rem 1.5rem 1.5rem' }}>
+        <div style={{ maxWidth: 1280, margin: '0 auto', display: 'flex', justifyContent: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+          {OPERATORS.map(op => (
+            <button
+              key={op.slug}
+              onClick={() => setActiveOperator(op.slug)}
+              className={`filter-pill${activeOperator === op.slug ? ' active' : ''}`}
+              style={{ padding: '0.5rem 1.125rem', fontSize: 14, gap: 8 }}
+            >
+              {op.slug === 'all' ? <LayoutGrid size={14} /> : null}
+              {op.name}
+            </button>
+          ))}
+        </div>
+      </section>
+
+      {/* Main content */}
+      <main style={{ padding: compareList.length > 0 ? '0 1.5rem 7rem' : '0 1.5rem 4rem', maxWidth: 1280, margin: '0 auto' }}>
+
+        {/* Filter bar */}
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
+          {[
+            { id: 'all',       label: t('filter.all') },
+            { id: 'PREPAID',   label: t('filter.prepaid') },
+            { id: 'POSTPAID',  label: t('filter.postpaid') },
+            { id: 'DATA_ONLY', label: t('filter.dataOnly') },
+          ].map(tp => (
+            <button key={tp.id} onClick={() => setActiveType(tp.id)} className={`filter-pill ${activeType === tp.id ? 'active' : ''}`}>
+              {tp.label}
+            </button>
+          ))}
+          <div style={{ flex: 1 }} />
+          <button className={`filter-pill ${showFilters ? 'active' : ''}`} onClick={() => setShowFilters(!showFilters)} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <Filter size={13} /> {t('filter.filters')}
+            <ChevronDown size={13} style={{ transform: showFilters ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
+          </button>
+        </div>
+
+        {/* Advanced filters */}
+        {showFilters && (
+          <div className="card" style={{ padding: '1.25rem', marginBottom: '1.5rem', display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(200px,1fr))', gap: '1rem' }}>
+            <div>
+              <label style={{ fontSize: 12, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>
+                {t('filter.maxBudget')}: <strong style={{ color: 'var(--text-primary)' }}>{formatDA(maxPrice)}</strong>
+              </label>
+              <input type="range" min={100} max={10000} step={100} value={maxPrice} onChange={e => setMaxPrice(+e.target.value)}
+                style={{ width: '100%', '--fill': `${((maxPrice - 100) / (10000 - 100) * 100).toFixed(1)}%` } as React.CSSProperties} />
+            </div>
+            <div>
+              <label style={{ fontSize: 12, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>
+                {t('filter.minData')}: <strong style={{ color: 'var(--text-primary)' }}>{minData} GB</strong>
+              </label>
+              <input type="range" min={0} max={200} step={1} value={minData} onChange={e => setMinData(+e.target.value)}
+                style={{ width: '100%', '--fill': `${(minData / 200 * 100).toFixed(1)}%` } as React.CSSProperties} />
+            </div>
+            <div>
+              <label style={{ fontSize: 12, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>{t('filter.network')}</label>
+              <div style={{ display: 'flex', gap: 6 }}>
+                {['all', '4G', '5G'].map(n => (
+                  <button key={n} onClick={() => setActiveNetwork(n)} className={`filter-pill ${activeNetwork === n ? 'active' : ''}`} style={{ fontSize: 12 }}>
+                    {n === 'all' ? t('filter.all') : n}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+
+        {/* Offers grid */}
+        {loading ? (
+          <div className="offers-grid">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="skeleton" style={{ borderRadius: 'var(--radius-lg)', height: 340 }} />
+            ))}
+          </div>
+        ) : offers.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '5rem 1rem' }}>
+            <SearchX size={40} style={{ color: 'var(--text-muted)', margin: '0 auto 1rem', display: 'block' }} />
+            <h3 style={{ color: 'var(--text-secondary)', fontSize: '1.125rem', marginBottom: '0.5rem' }}>
+              {t('filter.noResults')}
+            </h3>
+            <p style={{ color: 'var(--text-muted)', fontSize: 14, marginBottom: '1.25rem' }}>
+              {t('filter.noResultsHint')}
+            </p>
+            <button
+              onClick={() => { setActiveType('all'); setActiveOperator('all'); setMaxPrice(10000); setMinData(0) }}
+              className="btn-primary"
+            >
+              {t('filter.reset')}
+            </button>
+          </div>
+        ) : (
+          <motion.div
+            className="offers-grid"
+            variants={gridVariants}
+            initial="hidden"
+            animate="visible"
+          >
+            {offers.map(offer => (
+              <motion.div key={offer.id} variants={itemVariants}>
+                <OfferCard
+                  offer={offer}
+                  isSelected={compareList.includes(offer.id)}
+                  onToggleCompare={toggleCompare}
+                  isSaved={savedIds.has(offer.id)}
+                  onToggleSave={toggleSave}
+                  isSaving={savingId === offer.id}
+                  isRecommended={recommendedIds.has(offer.id)}
+                  isLoggedIn={status === 'authenticated'}
+                />
+              </motion.div>
+            ))}
+          </motion.div>
+        )}
+      </main>
+
+      {/* Footer */}
+      <footer style={{ borderTop: '1px solid var(--border-subtle)', padding: '2.5rem 1.5rem', color: 'var(--text-secondary)', fontSize: 13 }}>
+        <div style={{ maxWidth: 1280, margin: '0 auto', display: 'flex', flexWrap: 'wrap', gap: '2.5rem', justifyContent: 'space-between' }}>
+          <div style={{ minWidth: 200, maxWidth: 300 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: '0.75rem' }}>
+              <div style={{ width: 28, height: 28, borderRadius: 8, background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Zap size={14} color="white" />
+              </div>
+              <span style={{ fontWeight: 800, fontSize: '0.9375rem', color: 'var(--text-primary)' }}>
+                Mobile<span style={{ color: 'var(--accent)' }}>Match</span> Algeria
+              </span>
+            </div>
+            <p style={{ fontSize: 12, lineHeight: 1.7 }}>Algeria's independent mobile plan comparator.</p>
+          </div>
+          <div>
+            <div style={{ fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.75rem', fontSize: 13 }}>Platform</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {[
+                { href: '/offers', label: 'Browse plans' },
+                { href: '/compare', label: 'Compare' },
+                { href: '/recommend', label: 'Recommendations' },
+              ].map(l => (
+                <Link key={l.href} href={l.href} style={{ color: 'var(--text-secondary)', textDecoration: 'none', fontSize: 13 }}>{l.label}</Link>
+              ))}
+            </div>
+          </div>
+          <div>
+            <div style={{ fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.75rem', fontSize: 13 }}>Operators</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {[
+                { href: 'https://mobilis.dz/', label: 'Mobilis' },
+                { href: 'https://www.djezzy5g.dz/#Offer', label: 'Djezzy' },
+                { href: 'https://www.ooredoo.dz/', label: 'Ooredoo' },
+              ].map(l => (
+                <a key={l.label} href={l.href} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--text-secondary)', textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>{l.label} ↗</a>
+              ))}
+            </div>
+          </div>
+        </div>
+        <div style={{ maxWidth: 1280, margin: '1.5rem auto 0', borderTop: '1px solid var(--border-subtle)', paddingTop: '1.25rem', display: 'flex', flexWrap: 'wrap', gap: '0.5rem', justifyContent: 'space-between', alignItems: 'center' }}>
+          <p>© 2026 Mobile Match Algeria</p>
+          <p style={{ fontSize: 12, opacity: 0.5 }}>{t('footer.disclaimer')}</p>
+        </div>
+      </footer>
+
+      {compareList.length > 0 && (
+        <div style={{
+          position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 50,
+          background: 'var(--bg-card)',
+          borderTop: '2px solid var(--accent)',
+          boxShadow: '0 -4px 24px rgba(15,23,42,0.12)',
+          padding: '0.875rem 1.5rem',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '1rem', flexWrap: 'wrap',
+        }}>
+          <span style={{ fontSize: 14, color: 'var(--text-secondary)', fontWeight: 500 }}>
+            {compareList.length} offer{compareList.length !== 1 ? 's' : ''} selected
+          </span>
+          <Link
+            href={`/compare?ids=${compareList.join(',')}`}
+            className="btn-primary"
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '0.625rem 1.5rem', textDecoration: 'none', fontSize: 14, fontWeight: 700 }}
+          >
+            <BarChart3 size={15} /> {t('recommend.compareSideBySide')}
+          </Link>
+          <button
+            onClick={() => setCompareList([])}
+            style={{ background: 'none', border: '1px solid var(--border-base)', borderRadius: 7, color: 'var(--text-muted)', cursor: 'pointer', fontSize: 13, fontFamily: 'inherit', padding: '0.4rem 0.75rem' }}
+          >
+            ✕ Clear
+          </button>
+        </div>
+      )}
+    </div>
+  )
+}

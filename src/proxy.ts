@@ -3,8 +3,14 @@ import type { NextRequest } from 'next/server'
 import { getToken } from 'next-auth/jwt'
 
 /**
- * Lightweight proxy — uses next-auth/jwt getToken to decrypt the JWT session.
+ * Proxy — uses next-auth/jwt getToken to decrypt the JWT session.
  * Prisma is NOT used here (Edge runtime incompatible).
+ *
+ * Route protection:
+ *  - /admin/*   → ADMIN role only
+ *  - /profile   → authenticated users
+ *  - /saved     → authenticated users
+ *  - /login, /register → redirect if already logged in
  */
 export async function proxy(req: NextRequest) {
   const { nextUrl } = req
@@ -34,8 +40,8 @@ export async function proxy(req: NextRequest) {
     }
   }
 
-  // /profile – must be logged in
-  if (path.startsWith('/profile')) {
+  // /profile, /saved – must be logged in
+  if (path.startsWith('/profile') || path.startsWith('/saved')) {
     if (!isLoggedIn) {
       return NextResponse.redirect(new URL('/login', nextUrl))
     }
@@ -50,5 +56,5 @@ export async function proxy(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/admin/:path*', '/profile/:path*', '/login', '/register'],
+  matcher: ['/admin/:path*', '/profile/:path*', '/saved/:path*', '/login', '/register'],
 }

@@ -41,3 +41,17 @@ yarn-error.log*
 next-env.d.ts
 
 /src/generated/prisma
+
+# Database (contains user data — do not commit)
+prisma/dev.db
+prisma/dev.db-journal
+prisma/dev.db-shm
+prisma/dev.db-wal
+
+# Thesis PDF (large binary — not needed in source repo)
+memoire/main.pdf
+memoire/*.pdf
+
+# Logs
+dev-server.log
+dev-server-audit.log

@@ -1,15 +1,22 @@
 /**
- * Daily scrape cron job — runs at 03:00 every day
- * Usage: node --loader ts-node/esm src/lib/cron.ts
- * Or call runAllScrapers() from an API route/Vercel cron
+ * STANDALONE cron runner (optional fallback).
+ *
+ * Since we now use `src/instrumentation.ts`, the cron job starts
+ * automatically with `next dev` / `next start`. This file is only
+ * needed if you want to run the scraper as a **separate** process:
+ *
+ *   npx ts-node --compiler-options '{"module":"CommonJS"}' src/lib/cron.ts
+ *
+ * In production, prefer the instrumentation approach or the API route
+ * (`POST /api/cron?secret=...`) triggered by an external scheduler.
  */
 import cron from 'node-cron'
 import { runAllScrapers } from './scraper'
 
-console.log('⏰ Cron job scheduler started')
+console.log('⏰ Standalone cron scheduler started')
 
 // Run every day at 03:00 AM Algeria time (UTC+1)
-cron.schedule('0 2 * * *', async () => {
+cron.schedule('0 3 * * *', async () => {
   console.log(`[${new Date().toISOString()}] 🕐 Daily scrape triggered`)
   try {
     const results = await runAllScrapers()
@@ -21,7 +28,7 @@ cron.schedule('0 2 * * *', async () => {
     console.error('❌ Daily scrape failed:', err)
   }
 }, {
-  timezone: 'Africa/Algiers'
+  timezone: 'Africa/Algiers',
 })
 
 // Keep process alive

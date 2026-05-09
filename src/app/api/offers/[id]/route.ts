@@ -2,6 +2,42 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { db } from '@/lib/db'
 
+export const dynamic = 'force-dynamic'
+
+export async function GET(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params
+
+    const offer = await db.offer.findUnique({
+      where: { id },
+      include: { operator: true },
+    })
+
+    if (!offer) {
+      return NextResponse.json({ error: 'Offer not found' }, { status: 404 })
+    }
+
+    // Get similar offers from the same operator (excluding this one)
+    const similar = await db.offer.findMany({
+      where: {
+        operatorId: offer.operatorId,
+        id: { not: id },
+        isActive: true,
+      },
+      include: { operator: true },
+      orderBy: { priceDA: 'asc' },
+      take: 4,
+    })
+
+    return NextResponse.json({ offer, similar })
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 })
+  }
+}
+
 export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }

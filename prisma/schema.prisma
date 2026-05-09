@@ -156,6 +156,7 @@ model ScrapeLog {
   offersAdded  Int         @default(0)
   offersUpdated Int        @default(0)
   errorMessage String?
+  details      String?     // JSON array of {ts,level,msg} log entries
   duration     Int?        // ms
   startedAt    DateTime    @default(now())
   completedAt  DateTime?

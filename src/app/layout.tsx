@@ -3,6 +3,7 @@ import './globals.css'
 import { SessionProviderWrapper } from '@/components/session-provider'
 import { Navbar } from '@/components/navbar'
 import { ToastProvider } from '@/components/toast'
+import { LangProvider } from '@/lib/lang-context'
 
 export const metadata: Metadata = {
   title: 'Mobile Match Algeria — Compare Mobile Plans',
@@ -19,14 +20,20 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        {/* Prevent light/dark mode flash by applying saved theme before paint */}
+        <script dangerouslySetInnerHTML={{ __html: `(function(){var t=localStorage.getItem('theme');if(t)document.documentElement.setAttribute('data-theme',t)})()` }} />
+      </head>
       <body>
-        <SessionProviderWrapper>
-          <ToastProvider>
-            <Navbar />
-            <main>{children}</main>
-          </ToastProvider>
-        </SessionProviderWrapper>
+        <LangProvider>
+          <SessionProviderWrapper>
+            <ToastProvider>
+              <Navbar />
+              <main>{children}</main>
+            </ToastProvider>
+          </SessionProviderWrapper>
+        </LangProvider>
       </body>
     </html>
   )

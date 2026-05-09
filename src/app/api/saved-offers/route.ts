@@ -23,11 +23,11 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   const session = await auth()
   if (!session?.user?.id) {
-    return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
+    return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
   }
 
   const { offerId } = await req.json()
-  if (!offerId) return NextResponse.json({ error: 'offerId requis' }, { status: 400 })
+  if (!offerId) return NextResponse.json({ error: 'offerId is required' }, { status: 400 })
 
   const existing = await db.savedOffer.findUnique({
     where: { userId_offerId: { userId: session.user.id, offerId } },

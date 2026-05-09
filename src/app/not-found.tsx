@@ -9,14 +9,14 @@ export default function NotFound() {
       padding: '2rem 1.5rem', position: 'relative', overflow: 'hidden',
     }}>
       {/* Background glow */}
-      <div style={{ position: 'absolute', top: '20%', left: '30%', width: 500, height: 500, borderRadius: '50%', background: 'radial-gradient(circle, rgba(79,127,255,0.06) 0%, transparent 70%)', pointerEvents: 'none' }}/>
+      <div style={{ position: 'absolute', top: '20%', left: '30%', width: 500, height: 500, borderRadius: '50%', background: 'radial-gradient(circle, rgba(139,92,246,0.06) 0%, transparent 70%)', pointerEvents: 'none' }}/>
       <div style={{ position: 'absolute', bottom: '10%', right: '20%', width: 400, height: 400, borderRadius: '50%', background: 'radial-gradient(circle, rgba(124,58,237,0.05) 0%, transparent 70%)', pointerEvents: 'none' }}/>
 
       <div style={{ textAlign: 'center', position: 'relative', maxWidth: 520 }}>
         {/* 404 number */}
         <div style={{
           fontSize: 'clamp(6rem, 20vw, 10rem)', fontWeight: 900, lineHeight: 1,
-          background: 'linear-gradient(135deg, #4f7fff 0%, #7c3aed 50%, #4f7fff 100%)',
+          background: 'linear-gradient(135deg, #8B5CF6 0%, #7c3aed 50%, #8B5CF6 100%)',
           backgroundClip: 'text', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
           marginBottom: '1rem',
         }}>
@@ -35,7 +35,7 @@ export default function NotFound() {
           <Link href="/" style={{
             display: 'inline-flex', alignItems: 'center', gap: 8,
             padding: '0.75rem 1.5rem', borderRadius: 12,
-            background: 'linear-gradient(135deg, #4f7fff, #7c3aed)',
+            background: 'linear-gradient(135deg, #8B5CF6, #7c3aed)',
             color: 'white', textDecoration: 'none', fontWeight: 700, fontSize: 14,
           }}>
             <Home size={15}/> Back to home
@@ -62,7 +62,7 @@ export default function NotFound() {
         <div style={{ marginTop: '2.5rem', padding: '1rem 1.25rem', borderRadius: 12, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}>
           <p style={{ color: 'var(--text-secondary)', fontSize: 13, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
             <Search size={13}/> Looking for a specific plan? Try the{' '}
-            <Link href="/" style={{ color: '#6b93ff', textDecoration: 'none', fontWeight: 600 }}>search on our homepage</Link>
+            <Link href="/" style={{ color: '#A78BFA', textDecoration: 'none', fontWeight: 600 }}>search on our homepage</Link>
           </p>
         </div>
       </div>

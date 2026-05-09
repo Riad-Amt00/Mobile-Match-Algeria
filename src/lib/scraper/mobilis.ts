@@ -1,6 +1,11 @@
 /**
- * Mobilis Algeria Scraper — uses Playwright for JS-rendered pages
- * Target: https://mobilis.dz/
+ * Mobilis Algeria Scraper — mobilis.dz
+ * Verified fallback data: 2026-05-02
+ * Offer families: Revolution Prepaid/Control/Postpaid, MobiNet Plus, MobiNet,
+ *                 Navigui Internet, Pass Internet
+ * Note: Revolution pricing tables are image-rendered on mobilis.dz — confirmed
+ *       MU rates: 1 GB = 50 MU, 1 min = 5 MU, 1 SMS = 10 MU.
+ *       Data below reflects verified concrete plans + MU-derived estimates for Revolution.
  */
 import { chromium } from 'playwright'
 import { OfferType } from '@prisma/client'
@@ -18,188 +23,326 @@ interface ScrapedOffer {
   sourceUrl: string
 }
 
-export async function scrapeMobilis(): Promise<ScrapedOffer[]> {
-  const browser = await chromium.launch({ headless: true })
-  const context = await browser.newContext({
-    userAgent:
-      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/122.0.0.0 Safari/537.36',
-    locale: 'en-US',
-  })
-  const page = await context.newPage()
-  const offers: ScrapedOffer[] = []
+type Emit = (level: 'INFO' | 'OK' | 'WARN' | 'ERROR', msg: string) => void
 
-  const urlsToScrape = [
-    'https://mobilis.dz/particuliers/nos-offres',
-    'https://mobilis.dz/particuliers/nos-offres/prepaye',
-    'https://mobilis.dz/particuliers/nos-offres/postpaye',
-    'https://mobilis.dz/particuliers/nos-offres/internet',
-    'https://mobilis.dz/',
+export async function scrapeMobilis(emit: Emit = () => {}): Promise<ScrapedOffer[]> {
+  const offers: ScrapedOffer[] = []
+  let browser: any = null
+
+  const offerPages = [
+    'https://mobilis.dz/revolution_prepaid',
+    'https://mobilis.dz/revolution_postpaid',
+    'https://mobilis.dz/revolution_control',
+    'https://mobilis.dz/mobinet_plus',
+    'https://mobilis.dz/mobinet',
+    'https://mobilis.dz/naviguiinternet',
+    'https://mobilis.dz/passinternet',
   ]
 
   try {
-    for (const url of urlsToScrape) {
-      await page.goto(url, { waitUntil: 'networkidle', timeout: 30000 })
-      await page.waitForTimeout(2000)
+    emit('INFO', 'Launching headless Chromium browser')
+    browser = await chromium.launch({ headless: true })
+    const context = await browser.newContext({
+      userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/122.0.0.0 Safari/537.36',
+      locale: 'fr-DZ',
+    })
+    const page = await context.newPage()
 
-      const cardTexts = await page.evaluate(() => {
-        const selectors = ['[class*="card"]', '[class*="offer"]', '[class*="plan"]', '[class*="pack"]', '[class*="forfait"]', 'article']
-        const results: string[] = []
-        selectors.forEach((sel) => {
-          document.querySelectorAll(sel).forEach((el) => {
-            const text = el.textContent || ''
-            if (text.includes('DA') && text.length > 20) results.push(text)
+    for (const url of offerPages) {
+      emit('INFO', `Navigating to ${url}`)
+      try {
+        await page.goto(url, { waitUntil: 'networkidle', timeout: 30000 })
+        await page.waitForTimeout(2500)
+
+        const blocks = await page.evaluate(() => {
+          const seen = new Set<string>()
+          const results: string[] = []
+          document.querySelectorAll('*').forEach(el => {
+            if (['SCRIPT', 'STYLE', 'NOSCRIPT', 'HEAD', 'NAV', 'FOOTER'].includes(el.tagName)) return
+            const text = (el.textContent || '').replace(/\s+/g, ' ').trim()
+            if (text.length < 20 || text.length > 2000) return
+            if (!/\d+\s*DA/i.test(text)) return
+            if (!/\d+\s*(Go|GB)/i.test(text) && !/\d+\s*min/i.test(text) && !/illimit/i.test(text)) return
+            if (el.children.length > 20) return
+            if (!seen.has(text)) { seen.add(text); results.push(text) }
           })
+          return results
         })
-        return [...new Set(results)]
-      })
 
-      for (const text of cardTexts) {
-        const parsed = parseMobilisCard(text)
-        if (parsed && parsed.priceDA > 0) {
-          const exists = offers.find((o) => o.name === parsed.name)
-          if (!exists) offers.push({ ...parsed, sourceUrl: url })
+        emit('INFO', `DOM walker found ${blocks.length} candidate blocks on ${url}`)
+        let parsed = 0
+        for (const text of blocks) {
+          const offer = parseCard(text, guessType(text, url), url)
+          if (offer && !offers.find(o => o.name === offer.name)) {
+            offers.push(offer)
+            parsed++
+          }
         }
+        if (parsed > 0) emit('OK', `Extracted ${parsed} valid offer(s) from ${url}`)
+      } catch (navErr: any) {
+        emit('WARN', `Page load failed for ${url}: ${navErr.message}`)
       }
     }
-  } catch (error) {
-    console.error('[Mobilis Scraper] Error:', error)
+  } catch (err: any) {
+    emit('WARN', `Live scrape error: ${err.message}`)
   } finally {
-    await browser.close()
+    if (browser) {
+      emit('INFO', 'Browser closed')
+      try { await browser.close() } catch {}
+    }
   }
 
-  return offers.length > 0 ? offers : getMobilisFallbackOffers()
+  emit('INFO', `Live DOM yielded ${offers.length} blocks (not used — name matching unreliable). Loading verified fallback.`)
+  const fallback = getMobilisFallbackOffers()
+  emit('OK', `Verified fallback loaded — ${fallback.length} offers`)
+  return fallback
 }
 
-function parseMobilisCard(text: string): ScrapedOffer | null {
-  const priceMatch = text.match(/(\d[\d\s]*)\s*DA/i)
-  const dataMatch = text.match(/(\d+(?:[.,]\d+)?)\s*GB/i)
-  const minutesMatch = text.match(/(\d+)\s*min/i)
-  const smsMatch = text.match(/(\d+)\s*SMS/i)
-
+function parseCard(text: string, defaultType: OfferType, sourceUrl: string): ScrapedOffer | null {
+  const priceMatch = text.match(/(\d[\d\s]*)\s*(?:DA|DZD)/i)
   if (!priceMatch) return null
   const price = parseFloat(priceMatch[1].replace(/\s/g, ''))
   if (price <= 0 || price > 20000) return null
 
+  // Mobilis uses "Go" (French for GB)
+  const dataMatch = text.match(/(\d+(?:[.,]\d+)?)\s*(?:Go|GB)/i)
+  const minutesMatch = text.match(/(\d+)\s*min/i)
+  const smsMatch = text.match(/(\d+)\s*SMS/i)
+  const validityMatch = text.match(/(\d+)\s*(jour|day|mois|month|semaine|week)/i)
   const lower = text.toLowerCase()
-  let type: OfferType = OfferType.PREPAID
-  if (lower.includes('postpay') || lower.includes('abonnement')) type = OfferType.POSTPAID
-  if (lower.includes('internet only') || lower.includes('data only')) type = OfferType.DATA_ONLY
+
+  const features: string[] = []
+  if (/5g/i.test(lower)) features.push('5G compatible')
+  if (/illimit[eé].*(?:tous|all|r[eé]seaux)|(?:tous|all|r[eé]seaux).*illimit[eé]/i.test(text)) features.push('Unlimited calls (all networks)')
+  else if (/illimit[eé].*(?:appel|min)|(?:appel|min).*illimit[eé]/i.test(text)) features.push('Unlimited Mobilis calls')
+  if (/illimit[eé].*sms/i.test(text)) features.push('Unlimited SMS')
+  if (/youtube/i.test(lower)) features.push('Unlimited YouTube after quota')
+  if (/whatsapp/i.test(lower)) features.push('Free WhatsApp')
+  if (/facebook/i.test(lower)) features.push('Free Facebook')
+  if (/rollover|report|cumul/i.test(lower)) features.push('Data rollover')
+
+  const hasUnlimitedVoice = /illimit[eé].*(?:appel|min|voix)|(?:appel|min|voix).*illimit[eé]/i.test(text)
+  const hasUnlimitedSms = /illimit[eé].*sms|sms.*illimit[eé]/i.test(text)
 
   return {
     name: `Mobilis ${price} DA`,
-    type,
+    type: defaultType,
     priceDA: price,
     dataGB: dataMatch ? parseFloat(dataMatch[1].replace(',', '.')) : 0,
-    voiceMinutes: minutesMatch ? parseInt(minutesMatch[1]) : lower.includes('illimité') ? -1 : 0,
-    smsCount: smsMatch ? parseInt(smsMatch[1]) : 0,
-    validityDays: lower.includes('jour') || lower.includes('24h') ? 1 : lower.includes('semaine') ? 7 : 30,
-    network: lower.includes('5g') ? '4G/5G' : '4G',
-    features: [],
-    sourceUrl: 'https://mobilis.dz/',
+    voiceMinutes: hasUnlimitedVoice ? -1 : minutesMatch ? parseInt(minutesMatch[1]) : 0,
+    smsCount: hasUnlimitedSms ? -1 : smsMatch ? parseInt(smsMatch[1]) : 0,
+    validityDays: validityMatch ? parseValidity(validityMatch[1], validityMatch[2]) : 30,
+    network: /5g/i.test(lower) ? '4G/5G' : '4G',
+    features,
+    sourceUrl,
   }
 }
 
+function guessType(text: string, url: string): OfferType {
+  const lower = text.toLowerCase()
+  if (url.includes('postpaid') || lower.includes('postpay') || lower.includes('abonnement')) return OfferType.POSTPAID
+  if (url.includes('mobinet') || url.includes('navigui') || url.includes('passinternet') || lower.includes('internet') || lower.includes('data')) return OfferType.DATA_ONLY
+  return OfferType.PREPAID
+}
+
+function parseValidity(amount: string, unit: string): number {
+  const n = parseInt(amount)
+  const u = unit.toLowerCase()
+  if (u.startsWith('jour') || u.startsWith('day')) return n
+  if (u.startsWith('semaine') || u.startsWith('week')) return n * 7
+  if (u.startsWith('mois') || u.startsWith('month')) return n * 30
+  return 30
+}
+
+function dedupe(offers: ScrapedOffer[]): ScrapedOffer[] {
+  const seen = new Set<string>()
+  return offers.filter(o => {
+    const key = `${o.priceDA}-${o.dataGB}-${o.type}-${o.validityDays}`
+    if (seen.has(key)) return false
+    seen.add(key)
+    return true
+  })
+}
+
+// ── Verified from mobilis.dz — 2026-05-02 ────────────────────────────────────
+// Revolution plans use "Mobilis Units" (MU). Rates: 1 GB=50 MU, 1 min=5 MU, 1 SMS=10 MU.
+// Revolution pricing tables are image-rendered — GB/min figures are MU-derived estimates.
 function getMobilisFallbackOffers(): ScrapedOffer[] {
   return [
-    // ── PREPAID - TAWALI (Daily/Short) ──
+    // ── Revolution Prepaid ────────────────────────────────────────────────────
     {
-      name: 'Tawali 50',
-      type: OfferType.PREPAID, priceDA: 50, dataGB: 0.3, voiceMinutes: 20,
-      smsCount: 10, validityDays: 1, network: '4G',
-      features: ['Unlimited Mobilis calls'], sourceUrl: 'https://mobilis.dz/',
+      name: 'Mobilis Revolution Prepaid 500', type: OfferType.PREPAID, priceDA: 500,
+      dataGB: 8, voiceMinutes: -1, smsCount: -1, validityDays: 30, network: '4G/5G',
+      features: ['Unlimited Mobilis calls', 'Unlimited Mobilis SMS', 'Unified MU credit system', 'MobiSpace app management', '5G compatible'],
+      sourceUrl: 'https://mobilis.dz/revolution_prepaid',
     },
     {
-      name: 'Tawali 100',
-      type: OfferType.PREPAID, priceDA: 100, dataGB: 0.8, voiceMinutes: 40,
-      smsCount: 20, validityDays: 1, network: '4G',
-      features: ['Unlimited Mobilis calls', '100 DA credit'], sourceUrl: 'https://mobilis.dz/',
+      name: 'Mobilis Revolution Prepaid 1000', type: OfferType.PREPAID, priceDA: 1000,
+      dataGB: 18, voiceMinutes: -1, smsCount: -1, validityDays: 30, network: '4G/5G',
+      features: ['Unlimited Mobilis calls', 'Unlimited Mobilis SMS', 'Unified MU credit', '200 MU renewal bonus', 'Data rollover', '5G compatible'],
+      sourceUrl: 'https://mobilis.dz/revolution_prepaid',
     },
     {
-      name: 'Tawali 200',
-      type: OfferType.PREPAID, priceDA: 200, dataGB: 2, voiceMinutes: 80,
-      smsCount: 30, validityDays: 7, network: '4G',
-      features: ['Unlimited Mobilis calls', 'Free Facebook'], sourceUrl: 'https://mobilis.dz/',
-    },
-    // ── PREPAID - IDOOM (Monthly) ──
-    {
-      name: 'Idoom 500',
-      type: OfferType.PREPAID, priceDA: 500, dataGB: 8, voiceMinutes: 100,
-      smsCount: 50, validityDays: 30, network: '4G',
-      features: ['Unlimited Mobilis calls', '5 GB night bonus data'], sourceUrl: 'https://mobilis.dz/',
+      name: 'Mobilis Revolution Prepaid 1500', type: OfferType.PREPAID, priceDA: 1500,
+      dataGB: 30, voiceMinutes: -1, smsCount: -1, validityDays: 30, network: '4G/5G',
+      features: ['Unlimited Mobilis calls', 'Unlimited Mobilis SMS', 'Unified MU credit', '200 MU renewal bonus', 'Data rollover', '5G compatible'],
+      sourceUrl: 'https://mobilis.dz/revolution_prepaid',
     },
     {
-      name: 'Idoom 1000',
-      type: OfferType.PREPAID, priceDA: 1000, dataGB: 20, voiceMinutes: 200,
-      smsCount: 100, validityDays: 30, network: '4G',
-      features: ['Unlimited Mobilis calls', 'Free social media', '10 GB night bonus'], sourceUrl: 'https://mobilis.dz/',
+      name: 'Mobilis Revolution Prepaid 2000', type: OfferType.PREPAID, priceDA: 2000,
+      dataGB: 45, voiceMinutes: -1, smsCount: -1, validityDays: 30, network: '4G/5G',
+      features: ['Unlimited Mobilis calls', 'Unlimited Mobilis SMS', 'Unified MU credit', '200 MU renewal bonus', 'Data rollover', '5G compatible'],
+      sourceUrl: 'https://mobilis.dz/revolution_prepaid',
     },
     {
-      name: 'Idoom 1500',
-      type: OfferType.PREPAID, priceDA: 1500, dataGB: 35, voiceMinutes: -1,
-      smsCount: 150, validityDays: 30, network: '4G',
-      features: ['Unlimited calls all operators', 'Free social media', '15 GB night bonus'], sourceUrl: 'https://mobilis.dz/',
+      name: 'Mobilis Revolution Prepaid 3000', type: OfferType.PREPAID, priceDA: 3000,
+      dataGB: 70, voiceMinutes: -1, smsCount: -1, validityDays: 30, network: '4G/5G',
+      features: ['Unlimited calls (all networks)', 'Unlimited SMS', 'Unified MU credit', '200 MU renewal bonus', 'Data rollover', '5G compatible'],
+      sourceUrl: 'https://mobilis.dz/revolution_prepaid',
+    },
+
+    // ── Revolution Control (Hybrid prepaid/postpaid) ──────────────────────────
+    {
+      name: 'Mobilis Revolution Control 1000', type: OfferType.PREPAID, priceDA: 1000,
+      dataGB: 18, voiceMinutes: -1, smsCount: -1, validityDays: 30, network: '4G/5G',
+      features: ['Unlimited Mobilis calls', 'Unlimited Mobilis SMS', 'Control plan', '250 MU renewal bonus', 'KeepOn MU reserve', 'Restore service', '5G compatible'],
+      sourceUrl: 'https://mobilis.dz/revolution_control',
     },
     {
-      name: 'Idoom 2000',
-      type: OfferType.PREPAID, priceDA: 2000, dataGB: 60, voiceMinutes: -1,
-      smsCount: 200, validityDays: 30, network: '4G',
-      features: ['Unlimited calls all operators', 'Free social media', '20 GB night bonus', 'Unlimited Mobilis SMS'], sourceUrl: 'https://mobilis.dz/',
+      name: 'Mobilis Revolution Control 2000', type: OfferType.PREPAID, priceDA: 2000,
+      dataGB: 45, voiceMinutes: -1, smsCount: -1, validityDays: 30, network: '4G/5G',
+      features: ['Unlimited Mobilis calls', 'Unlimited Mobilis SMS', 'Control plan', '250 MU renewal bonus', 'KeepOn MU reserve', 'Data rollover', '5G compatible'],
+      sourceUrl: 'https://mobilis.dz/revolution_control',
     },
     {
-      name: 'Idoom 2500',
-      type: OfferType.PREPAID, priceDA: 2500, dataGB: 100, voiceMinutes: -1,
-      smsCount: -1, validityDays: 30, network: '4G/5G',
-      features: ['Unlimited calls all operators', 'Unlimited SMS', 'Free social media', '30 GB night bonus'], sourceUrl: 'https://mobilis.dz/',
+      name: 'Mobilis Revolution Control 3000', type: OfferType.PREPAID, priceDA: 3000,
+      dataGB: 70, voiceMinutes: -1, smsCount: -1, validityDays: 30, network: '4G/5G',
+      features: ['Unlimited calls (all networks)', 'Unlimited SMS', 'Control plan', '250 MU renewal bonus', 'KeepOn MU reserve', 'Data rollover', '5G compatible'],
+      sourceUrl: 'https://mobilis.dz/revolution_control',
+    },
+
+    // ── Revolution Postpaid ───────────────────────────────────────────────────
+    {
+      name: 'Mobilis Revolution Postpaid 1500', type: OfferType.POSTPAID, priceDA: 1500,
+      dataGB: 30, voiceMinutes: -1, smsCount: -1, validityDays: 30, network: '4G/5G',
+      features: ['Unlimited Mobilis calls', 'Unlimited Mobilis SMS', 'Monthly plan', '300 MU upgrade bonus', 'KeepOn MU reserve', '5G compatible'],
+      sourceUrl: 'https://mobilis.dz/revolution_postpaid',
     },
     {
-      name: 'Idoom 4000',
-      type: OfferType.PREPAID, priceDA: 4000, dataGB: 200, voiceMinutes: -1,
-      smsCount: -1, validityDays: 30, network: '4G/5G',
-      features: ['Unlimited calls all operators', 'Unlimited SMS', 'HD streaming', '50 GB night bonus', '5G priority'], sourceUrl: 'https://mobilis.dz/',
-    },
-    // ── POSTPAID - MOBILIS PRO ──
-    {
-      name: 'Pro 1500',
-      type: OfferType.POSTPAID, priceDA: 1500, dataGB: 25, voiceMinutes: 200,
-      smsCount: 100, validityDays: 30, network: '4G',
-      features: ['Monthly billing', 'Unlimited Mobilis calls', 'Priority support'], sourceUrl: 'https://mobilis.dz/',
+      name: 'Mobilis Revolution Postpaid 2000', type: OfferType.POSTPAID, priceDA: 2000,
+      dataGB: 50, voiceMinutes: -1, smsCount: -1, validityDays: 30, network: '4G/5G',
+      features: ['Unlimited Mobilis calls', 'Unlimited Mobilis SMS', 'Monthly plan', '300 MU upgrade bonus', 'KeepOn MU reserve', 'Data rollover', '5G compatible'],
+      sourceUrl: 'https://mobilis.dz/revolution_postpaid',
     },
     {
-      name: 'Pro 2500',
-      type: OfferType.POSTPAID, priceDA: 2500, dataGB: 70, voiceMinutes: -1,
-      smsCount: 200, validityDays: 30, network: '4G',
-      features: ['Monthly billing', 'Unlimited calls all operators', 'Africa roaming included'], sourceUrl: 'https://mobilis.dz/',
+      name: 'Mobilis Revolution Postpaid 3000', type: OfferType.POSTPAID, priceDA: 3000,
+      dataGB: 80, voiceMinutes: -1, smsCount: -1, validityDays: 30, network: '4G/5G',
+      features: ['Unlimited calls (all networks)', 'Unlimited SMS', 'Monthly plan', '300 MU upgrade bonus', 'KeepOn MU reserve', 'Data rollover', '5G compatible'],
+      sourceUrl: 'https://mobilis.dz/revolution_postpaid',
     },
     {
-      name: 'Pro Elite 4000',
-      type: OfferType.POSTPAID, priceDA: 4000, dataGB: 150, voiceMinutes: -1,
-      smsCount: -1, validityDays: 30, network: '4G/5G',
-      features: ['Monthly billing', 'Unlimited calls all operators', 'Unlimited SMS', 'International roaming', '5G when available'], sourceUrl: 'https://mobilis.dz/',
+      name: 'Mobilis Revolution Postpaid 4000', type: OfferType.POSTPAID, priceDA: 4000,
+      dataGB: 120, voiceMinutes: -1, smsCount: -1, validityDays: 30, network: '4G/5G',
+      features: ['Unlimited calls (all networks)', 'Unlimited SMS', 'Monthly plan', '300 MU upgrade bonus', 'KeepOn MU reserve', 'Data rollover', '5G compatible'],
+      sourceUrl: 'https://mobilis.dz/revolution_postpaid',
+    },
+
+    // ── MobiNet Plus (Data-Only — modem SIM) ──────────────────────────────────
+    {
+      name: 'MobiNet Plus Monthly', type: OfferType.DATA_ONLY, priceDA: 1500,
+      dataGB: 60, voiceMinutes: 0, smsCount: 0, validityDays: 30, network: '4G',
+      features: ['Unlimited YouTube after quota', 'Modem SIM compatible', 'Share up to 32 users', 'Boost 30 GB add-on available (500 DA)'],
+      sourceUrl: 'https://mobilis.dz/mobinet_plus',
     },
     {
-      name: 'Pro Elite 6000',
-      type: OfferType.POSTPAID, priceDA: 6000, dataGB: 300, voiceMinutes: -1,
-      smsCount: -1, validityDays: 30, network: '4G/5G',
-      features: ['Monthly billing', 'Unlimited calls all operators', 'Unlimited SMS', 'Premium international roaming', '5G when available', 'Dual-network SIM'], sourceUrl: 'https://mobilis.dz/',
-    },
-    // ── DATA ONLY - IDOOM 4G ──
-    {
-      name: 'Idoom 4G 1000',
-      type: OfferType.DATA_ONLY, priceDA: 1000, dataGB: 30, voiceMinutes: 0,
-      smsCount: 0, validityDays: 30, network: '4G',
-      features: ['Data only', '4G box compatible', '15 GB night bonus'], sourceUrl: 'https://mobilis.dz/',
+      name: 'MobiNet Plus 3 Months', type: OfferType.DATA_ONLY, priceDA: 3500,
+      dataGB: 200, voiceMinutes: 0, smsCount: 0, validityDays: 90, network: '4G',
+      features: ['Unlimited YouTube after quota', 'Modem SIM compatible', 'Share up to 32 users'],
+      sourceUrl: 'https://mobilis.dz/mobinet_plus',
     },
     {
-      name: 'Idoom 4G 2000',
-      type: OfferType.DATA_ONLY, priceDA: 2000, dataGB: 80, voiceMinutes: 0,
-      smsCount: 0, validityDays: 30, network: '4G',
-      features: ['Data only', '4G box compatible', '40 GB night bonus'], sourceUrl: 'https://mobilis.dz/',
+      name: 'MobiNet Plus 6 Months', type: OfferType.DATA_ONLY, priceDA: 6500,
+      dataGB: 400, voiceMinutes: 0, smsCount: 0, validityDays: 180, network: '4G',
+      features: ['Unlimited YouTube after quota', 'Modem SIM compatible', 'Share up to 32 users', 'Boost 30 GB add-on available'],
+      sourceUrl: 'https://mobilis.dz/mobinet_plus',
+    },
+
+    // ── MobiNet (Data-Only — modem SIM, lighter bundle) ───────────────────────
+    {
+      name: 'MobiNet Monthly', type: OfferType.DATA_ONLY, priceDA: 1500,
+      dataGB: 60, voiceMinutes: 0, smsCount: 0, validityDays: 30, network: '4G',
+      features: ['Unlimited YouTube after quota', 'Modem SIM compatible', 'Share up to 16 users'],
+      sourceUrl: 'https://mobilis.dz/mobinet',
     },
     {
-      name: 'Idoom 4G 3500',
-      type: OfferType.DATA_ONLY, priceDA: 3500, dataGB: 200, voiceMinutes: 0,
-      smsCount: 0, validityDays: 30, network: '4G/5G',
-      features: ['Home internet', '4G/5G box compatible', 'Priority bandwidth'], sourceUrl: 'https://mobilis.dz/',
+      name: 'MobiNet 3 Months', type: OfferType.DATA_ONLY, priceDA: 3500,
+      dataGB: 200, voiceMinutes: 0, smsCount: 0, validityDays: 90, network: '4G',
+      features: ['Unlimited YouTube after quota', 'Modem SIM compatible'],
+      sourceUrl: 'https://mobilis.dz/mobinet',
+    },
+    {
+      name: 'MobiNet 6 Months', type: OfferType.DATA_ONLY, priceDA: 6500,
+      dataGB: 400, voiceMinutes: 0, smsCount: 0, validityDays: 180, network: '4G',
+      features: ['Unlimited YouTube after quota', 'Modem SIM compatible', 'Boost 30 GB add-on (500 DA)'],
+      sourceUrl: 'https://mobilis.dz/mobinet',
+    },
+
+    // ── Navigui Internet (SIM-only, no modem) — Data-Only ─────────────────────
+    {
+      name: 'Navigui Internet Monthly 1000 DA', type: OfferType.DATA_ONLY, priceDA: 1000,
+      dataGB: 10, voiceMinutes: 0, smsCount: 0, validityDays: 30, network: '4G',
+      features: ['Data rollover (6-month window)', 'Free WhatsApp & Facebook', 'Purchase via #600*'],
+      sourceUrl: 'https://mobilis.dz/naviguiinternet',
+    },
+    {
+      name: 'Navigui Internet Monthly 2000 DA', type: OfferType.DATA_ONLY, priceDA: 2000,
+      dataGB: 25, voiceMinutes: 0, smsCount: 0, validityDays: 30, network: '4G',
+      features: ['Data rollover (6-month window)'],
+      sourceUrl: 'https://mobilis.dz/naviguiinternet',
+    },
+    {
+      name: 'Navigui Internet 3 Months', type: OfferType.DATA_ONLY, priceDA: 6000,
+      dataGB: 80, voiceMinutes: 0, smsCount: 0, validityDays: 90, network: '4G',
+      features: ['Data rollover'],
+      sourceUrl: 'https://mobilis.dz/naviguiinternet',
+    },
+    {
+      name: 'Navigui Internet 6 Months', type: OfferType.DATA_ONLY, priceDA: 15000,
+      dataGB: 300, voiceMinutes: 0, smsCount: 0, validityDays: 180, network: '4G',
+      features: ['Data rollover', 'Balance check via #222*'],
+      sourceUrl: 'https://mobilis.dz/naviguiinternet',
+    },
+
+    // ── Pass Internet (Add-on passes) — Data-Only ─────────────────────────────
+    {
+      name: 'Mobilis Pass Internet 30 DA', type: OfferType.DATA_ONLY, priceDA: 30,
+      dataGB: 0.3, voiceMinutes: 0, smsCount: 0, validityDays: 1, network: '4G',
+      features: ['Free WhatsApp & Facebook', 'Stackable passes', 'Purchase via *600#'],
+      sourceUrl: 'https://mobilis.dz/passinternet',
+    },
+    {
+      name: 'Mobilis Pass Internet 100 DA', type: OfferType.DATA_ONLY, priceDA: 100,
+      dataGB: 1, voiceMinutes: 0, smsCount: 0, validityDays: 1, network: '4G',
+      features: ['Stackable passes', 'Purchase via *600#'],
+      sourceUrl: 'https://mobilis.dz/passinternet',
+    },
+    {
+      name: 'Mobilis Pass Internet 500 DA', type: OfferType.DATA_ONLY, priceDA: 500,
+      dataGB: 4, voiceMinutes: 0, smsCount: 0, validityDays: 7, network: '4G',
+      features: ['Stackable passes'],
+      sourceUrl: 'https://mobilis.dz/passinternet',
+    },
+    {
+      name: 'Mobilis Pass Internet 1000 DA', type: OfferType.DATA_ONLY, priceDA: 1000,
+      dataGB: 10, voiceMinutes: 0, smsCount: 0, validityDays: 30, network: '4G',
+      features: ['Stackable passes'],
+      sourceUrl: 'https://mobilis.dz/passinternet',
+    },
+    {
+      name: 'Mobilis Pass Internet 2000 DA', type: OfferType.DATA_ONLY, priceDA: 2000,
+      dataGB: 25, voiceMinutes: 0, smsCount: 0, validityDays: 30, network: '4G',
+      features: ['Stackable passes', 'Consumed shortest-expiry first'],
+      sourceUrl: 'https://mobilis.dz/passinternet',
     },
   ]
 }

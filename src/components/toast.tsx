@@ -47,10 +47,10 @@ function ToastItem({ toast, onDismiss }: { toast: Toast; onDismiss: (id: string)
   }, [toast.id, toast.duration, onDismiss])
 
   const config = {
-    success: { icon: <CheckCircle size={16}/>, bg: 'rgba(74,222,128,0.12)', border: 'rgba(74,222,128,0.3)', color: '#4ade80' },
-    error:   { icon: <XCircle size={16}/>,     bg: 'rgba(248,113,113,0.12)', border: 'rgba(248,113,113,0.3)', color: '#f87171' },
-    warning: { icon: <AlertTriangle size={16}/>,bg: 'rgba(245,158,11,0.12)', border: 'rgba(245,158,11,0.3)',  color: '#f59e0b' },
-    info:    { icon: <Info size={16}/>,         bg: 'rgba(79,127,255,0.12)', border: 'rgba(79,127,255,0.3)',  color: '#6b93ff' },
+    success: { icon: <CheckCircle size={16}/>, bg: 'var(--color-success-muted)', border: 'var(--color-success-border)', color: 'var(--color-success)' },
+    error:   { icon: <XCircle size={16}/>,     bg: 'var(--color-error-muted)',   border: 'var(--color-error-border)',   color: 'var(--color-error)' },
+    warning: { icon: <AlertTriangle size={16}/>,bg: 'var(--color-warning-muted)', border: 'var(--color-warning-border)', color: 'var(--color-warning)' },
+    info:    { icon: <Info size={16}/>,         bg: 'var(--accent-muted)',        border: 'var(--accent-border)',        color: 'var(--accent)' },
   }[toast.type]
 
   return (
@@ -60,8 +60,7 @@ function ToastItem({ toast, onDismiss }: { toast: Toast; onDismiss: (id: string)
         display: 'flex', alignItems: 'center', gap: 10,
         padding: '0.75rem 1rem', borderRadius: 12,
         background: config.bg, border: `1px solid ${config.border}`,
-        backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)',
-        boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
+        boxShadow: 'var(--shadow-lg)',
         minWidth: 260, maxWidth: 380,
         transform: visible ? 'translateX(0)' : 'translateX(120%)',
         opacity: visible ? 1 : 0,

@@ -9,6 +9,7 @@ import { scrapeOoredoo } from './ooredoo'
 import { scrapeMobilis } from './mobilis'
 import { OfferType, ScrapeStatus } from '@prisma/client'
 import { slugify } from '@/lib/utils'
+import { recommendOffers, UserNeeds } from '../recommendation'
 
 export interface ScrapeResult {
   operator: string
@@ -23,7 +24,11 @@ export interface ScrapeResult {
 export async function runAllScrapers(): Promise<ScrapeResult[]> {
   const results: ScrapeResult[] = []
 
-  const jobs = [
+  const jobs: Array<{
+    name: string
+    slug: string
+    fn: (emit: (level: 'INFO' | 'OK' | 'WARN' | 'ERROR', msg: string) => void) => Promise<any[]>
+  }> = [
     { name: 'Djezzy', slug: 'djezzy', fn: scrapeDjezzy },
     { name: 'Ooredoo', slug: 'ooredoo', fn: scrapeOoredoo },
     { name: 'Mobilis', slug: 'mobilis', fn: scrapeMobilis },
@@ -34,15 +39,117 @@ export async function runAllScrapers(): Promise<ScrapeResult[]> {
     results.push(result)
   }
 
+  // Generate daily personalised recommendations
+  try {
+    await notifyPersonalizedRecommendations()
+  } catch (err) {
+    console.error('Failed to generate recommendation notifications:', err)
+  }
+
+  // Notify admins of results (new offers and/or failures)
+  try {
+    const totalAdded = results.reduce((a, r) => a + r.offersAdded, 0)
+    const failed = results.filter(r => r.status === 'FAILED')
+    if (totalAdded > 0) await notifyAdmins(results, totalAdded)
+    if (failed.length > 0) await notifyAdminsFailure(failed)
+  } catch (err) {
+    console.error('Failed to send admin notifications:', err)
+  }
+
   return results
+}
+
+async function notifyAdminsFailure(failed: ScrapeResult[]) {
+  const admins = await db.user.findMany({ where: { role: 'ADMIN' } })
+  if (admins.length === 0) return
+
+  const summary = failed.map(r => `${r.operator}: ${r.errorMessage || 'unknown error'}`).join(' | ')
+
+  const notifications = admins.map(admin => ({
+    userId: admin.id,
+    title: `⚠ Scrape failed — ${failed.length} operator${failed.length > 1 ? 's' : ''}`,
+    message: summary,
+    type: 'scrape_failed',
+  }))
+
+  await db.notification.createMany({ data: notifications })
+}
+
+async function notifyAdmins(results: ScrapeResult[], totalAdded: number) {
+  const admins = await db.user.findMany({ where: { role: 'ADMIN' } })
+  if (admins.length === 0) return
+
+  const summary = results
+    .filter(r => r.offersAdded > 0)
+    .map(r => `${r.operator}: +${r.offersAdded} new`)
+    .join(', ')
+
+  const notifications = admins.map(admin => ({
+    userId: admin.id,
+    title: `Scrape complete — ${totalAdded} new offer${totalAdded !== 1 ? 's' : ''} added`,
+    message: summary || 'New offers were added to the database.',
+    type: 'new_offer' as const,
+  }))
+
+  await db.notification.createMany({ data: notifications })
+}
+
+async function notifyPersonalizedRecommendations() {
+  const usersWithProfiles = await db.user.findMany({
+    where: { profile: { isNot: null } },
+    include: { profile: true },
+  })
+  if (usersWithProfiles.length === 0) return
+
+  const allOffers = await db.offer.findMany({
+    where: { isActive: true },
+    include: { operator: true },
+  })
+
+  const notificationsToCreate = []
+
+  for (const user of usersWithProfiles) {
+    const p = user.profile!
+    const needs: UserNeeds = {
+      budget: p.monthlyBudget || 2000,
+      dataGB: p.dataUsageGB || 10,
+      voiceMinutes: p.voiceMinutes || 0,
+      smsCount: p.smsCount || 0,
+      type: (p.preferredType as any) || 'any',
+      network: (p.preferredNet as any) || 'any',
+    }
+
+    const matches = recommendOffers(allOffers, needs, 1)
+    if (matches.length > 0 && matches[0].score >= 75) {
+      const best = matches[0]
+      notificationsToCreate.push({
+        userId: user.id,
+        title: `Match found! (${best.score}%)`,
+        message: `${best.offer.operator.name} ${best.offer.name} is a strong match for your profile!`,
+        type: 'recommendation',
+        offerId: best.offer.id,
+      })
+    }
+  }
+
+  if (notificationsToCreate.length > 0) {
+    await db.notification.createMany({ data: notificationsToCreate })
+  }
 }
 
 async function runSingleScraper(
   operatorName: string,
   operatorSlug: string,
-  scraperFn: () => Promise<any[]>
+  scraperFn: (emit: (level: 'INFO' | 'OK' | 'WARN' | 'ERROR', msg: string) => void) => Promise<any[]>
 ): Promise<ScrapeResult> {
   const startedAt = new Date()
+
+  // Collect structured log entries for storage
+  const logBuffer: Array<{ ts: number; level: string; msg: string }> = []
+  const emit = (level: 'INFO' | 'OK' | 'WARN' | 'ERROR', msg: string) => {
+    logBuffer.push({ ts: Date.now(), level, msg })
+    console.log(`[${operatorName}][${level}] ${msg}`)
+  }
 
   // Find or create operator record
   const operator = await db.operator.upsert({
@@ -70,10 +177,19 @@ async function runSingleScraper(
   let errorMessage: string | undefined
 
   try {
-    const rawOffers = await scraperFn()
+    emit('INFO', `Starting ${operatorName} scrape`)
+    const rawOffers = await scraperFn(emit)
 
-    for (const rawOffer of rawOffers) {
+    // Reject offers with no useful data — price-only scrapes are useless
+    const validOffers = rawOffers.filter(o =>
+      o.dataGB > 0 || o.voiceMinutes !== 0 || o.smsCount !== 0
+    )
+
+    const scrapedSlugs: string[] = []
+
+    for (const rawOffer of validOffers) {
       const offerSlug = slugify(rawOffer.name)
+      scrapedSlugs.push(offerSlug)
 
       const existing = await db.offer.findUnique({
         where: { operatorId_slug: { operatorId: operator.id, slug: offerSlug } },
@@ -104,20 +220,45 @@ async function runSingleScraper(
         offersAdded++
 
         // Notify users about new offer
-        await notifyUsersNewOffer(rawOffer.name, operatorName)
+        await notifyUsersNewOffer(rawOffer, operatorName)
       }
     }
 
+    // Only deactivate if the scrape returned at least as many offers as are currently
+    // active in the DB. This prevents a partial/broken scrape from wiping good data.
+    const currentActiveCount = await db.offer.count({
+      where: { operatorId: operator.id, isActive: true },
+    })
+    let deactivatedCount = 0
+    if (validOffers.length >= currentActiveCount) {
+      const deactivated = await db.offer.updateMany({
+        where: {
+          operatorId: operator.id,
+          isActive: true,
+          slug: { notIn: scrapedSlugs },
+        },
+        data: { isActive: false },
+      })
+      deactivatedCount = deactivated.count
+      if (deactivatedCount > 0) {
+        emit('WARN', `Deactivated ${deactivatedCount} offer(s) no longer present on operator website`)
+      }
+    } else {
+      emit('INFO', `Skipped deactivation — scrape returned ${validOffers.length} offers vs ${currentActiveCount} active in DB (partial scrape guard)`)
+    }
+
     const duration = Date.now() - startedAt.getTime()
+    emit('INFO', `DB sync complete — +${offersAdded} added, ${offersUpdated} updated, ${deactivatedCount} deactivated in ${(duration / 1000).toFixed(1)}s`)
 
     await db.scrapeLog.update({
       where: { id: scrapeLog.id },
       data: {
         status: ScrapeStatus.SUCCESS,
-        offersFound: rawOffers.length,
+        offersFound: validOffers.length,
         offersAdded,
         offersUpdated,
         duration,
+        details: JSON.stringify(logBuffer),
         completedAt: new Date(),
       },
     })
@@ -132,6 +273,7 @@ async function runSingleScraper(
     }
   } catch (error: any) {
     errorMessage = error.message || 'Unknown error'
+    emit('ERROR', `Scrape failed: ${errorMessage}`)
     const duration = Date.now() - startedAt.getTime()
 
     await db.scrapeLog.update({
@@ -143,6 +285,7 @@ async function runSingleScraper(
         offersUpdated,
         errorMessage,
         duration,
+        details: JSON.stringify(logBuffer),
         completedAt: new Date(),
       },
     })
@@ -159,23 +302,36 @@ async function runSingleScraper(
   }
 }
 
-async function notifyUsersNewOffer(offerName: string, operatorName: string) {
-  const users = await db.user.findMany({ select: { id: true } })
+async function notifyUsersNewOffer(rawOffer: any, operatorName: string) {
+  const users = await db.user.findMany({ include: { profile: true } })
   if (users.length === 0) return
 
-  await db.notification.createMany({
-    data: users.map((user) => ({
+  const notificationsToCreate = []
+  
+  for (const user of users) {
+    // Skip if offer doesn't match strict user preferences
+    if (user.profile) {
+      const p = user.profile
+      if (p.preferredType && p.preferredType !== 'any' && p.preferredType !== rawOffer.type) continue
+      if (p.preferredNet && p.preferredNet !== 'any' && !rawOffer.network.includes(p.preferredNet)) continue
+    }
+
+    notificationsToCreate.push({
       userId: user.id,
-      title: `Nouvelle offre ${operatorName}!`,
-      message: `${operatorName} vient de lancer : ${offerName}. Comparez maintenant!`,
+      title: `New offer from ${operatorName}!`,
+      message: `${operatorName} just released: ${rawOffer.name}. Compare now!`,
       type: 'new_offer',
-    })),
-  })
+    })
+  }
+
+  if (notificationsToCreate.length > 0) {
+    await db.notification.createMany({ data: notificationsToCreate })
+  }
 }
 
 function getOperatorUrl(slug: string): string {
   const urls: Record<string, string> = {
-    djezzy: 'https://www.djezzy5g.dz/',
+    djezzy: 'https://www.djezzy.dz/',
     ooredoo: 'https://www.ooredoo.dz/',
     mobilis: 'https://mobilis.dz/',
   }

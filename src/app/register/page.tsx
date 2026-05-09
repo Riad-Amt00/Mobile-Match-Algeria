@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { ArrowLeft, Mail, Lock, User, Eye, EyeOff, Loader2, Zap } from 'lucide-react'
+import { ArrowLeft, Mail, Lock, User, Eye, EyeOff, Loader2, Smartphone } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 
 export default function RegisterPage() {
@@ -13,7 +13,6 @@ export default function RegisterPage() {
   const [showPass, setShowPass] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const [success, setSuccess] = useState(false)
 
   async function handleRegister(e: React.FormEvent) {
     e.preventDefault()
@@ -27,8 +26,13 @@ export default function RegisterPage() {
       })
       const data = await res.json()
       if (!res.ok) { setError(data.error || 'Registration failed. Please try again.'); return }
-      setSuccess(true)
-      setTimeout(() => router.push('/login'), 2000)
+
+      if (data.requiresVerification) {
+        router.push(`/verify-email?email=${encodeURIComponent(email)}&pw=${encodeURIComponent(password)}`)
+        return
+      }
+
+      router.push('/offers')
     } catch {
       setError('Network error. Please try again.')
     } finally {
@@ -38,105 +42,142 @@ export default function RegisterPage() {
 
   return (
     <div style={{
-      minHeight: '100vh', background: 'var(--bg-dark)',
+      minHeight: '100vh', background: 'var(--bg-page)',
       display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem 1.5rem',
-      position: 'relative', overflow: 'hidden',
     }}>
-      <div style={{
-        position: 'absolute', top: '20%', left: '50%', transform: 'translateX(-50%)',
-        width: 600, height: 600, borderRadius: '50%',
-        background: 'radial-gradient(circle, rgba(79,127,255,0.06) 0%, transparent 70%)',
-        pointerEvents: 'none',
-      }}/>
-
-      <div style={{ width: '100%', maxWidth: 440, position: 'relative' }}>
+      <div style={{ width: '100%', maxWidth: 440 }}>
         <Link href="/" style={{
           display: 'inline-flex', alignItems: 'center', gap: 6,
-          color: 'var(--text-secondary)', textDecoration: 'none', fontSize: 14, marginBottom: '2rem',
+          color: 'var(--text-muted)', textDecoration: 'none', fontSize: 13,
+          fontWeight: 500, marginBottom: '2rem',
         }}>
-          <ArrowLeft size={16}/> Back to home
+          <ArrowLeft size={15} /> Back to home
         </Link>
 
-        <div className="glass" style={{ borderRadius: 24, padding: '2.5rem' }}>
-          <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+        <div style={{
+          background: 'var(--bg-card)', borderRadius: 16,
+          border: '1px solid var(--border-base)',
+          boxShadow: '0 4px 20px rgba(15,23,42,0.08)',
+          padding: '2.25rem',
+        }}>
+          <div style={{ textAlign: 'center', marginBottom: '1.75rem' }}>
             <div style={{
-              width: 56, height: 56, borderRadius: 16, margin: '0 auto 1rem',
-              background: 'linear-gradient(135deg, #4f7fff, #7c3aed)',
+              width: 52, height: 52, borderRadius: 14, margin: '0 auto 1rem',
+              background: 'var(--accent)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
+              boxShadow: '0 4px 14px rgba(37,99,235,0.30)',
             }}>
-              <Zap size={24} color="white"/>
+              <Smartphone size={22} color="white" />
             </div>
-            <h1 style={{ fontSize: '1.625rem', fontWeight: 800, marginBottom: 6 }}>Create account</h1>
-            <p style={{ color: 'var(--text-secondary)', fontSize: 14 }}>Join Mobile Match Algeria</p>
+            <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: 6, letterSpacing: '-0.02em' }}>
+              Create account
+            </h1>
+            <p style={{ color: 'var(--text-secondary)', fontSize: 14 }}>
+              Join Mobile Match Algeria — it&apos;s free
+            </p>
           </div>
 
-          {success ? (
-            <div style={{
-              textAlign: 'center', padding: '1.5rem',
-              background: 'rgba(74,222,128,0.1)', border: '1px solid rgba(74,222,128,0.25)',
-              borderRadius: 12, color: '#4ade80',
-            }}>
-              ✅ Account created! Redirecting to sign in...
+          <form onSubmit={handleRegister} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <div>
+              <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', display: 'block', marginBottom: 6 }}>
+                Full name
+              </label>
+              <div style={{ position: 'relative' }}>
+                <User size={15} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+                <input
+                  type="text"
+                  placeholder="Your name"
+                  value={name}
+                  onChange={e => setName(e.target.value)}
+                  required
+                  className="input-field"
+                  style={{ paddingLeft: 40 }}
+                />
+              </div>
             </div>
-          ) : (
-            <form onSubmit={handleRegister} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              <div>
-                <label style={{ fontSize: 13, fontWeight: 600, display: 'block', marginBottom: 6 }}>Full name</label>
-                <div style={{ position: 'relative' }}>
-                  <User size={16} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }}/>
-                  <input type="text" placeholder="Your name" value={name}
-                    onChange={e => setName(e.target.value)} required
-                    className="input-field" style={{ paddingLeft: 40 }}
-                  />
-                </div>
+
+            <div>
+              <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', display: 'block', marginBottom: 6 }}>
+                Email address
+              </label>
+              <div style={{ position: 'relative' }}>
+                <Mail size={15} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+                <input
+                  type="email"
+                  placeholder="your@email.com"
+                  value={email}
+                  onChange={e => setEmail(e.target.value)}
+                  required
+                  className="input-field"
+                  style={{ paddingLeft: 40 }}
+                />
               </div>
+            </div>
 
-              <div>
-                <label style={{ fontSize: 13, fontWeight: 600, display: 'block', marginBottom: 6 }}>Email address</label>
-                <div style={{ position: 'relative' }}>
-                  <Mail size={16} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }}/>
-                  <input type="email" placeholder="your@email.com" value={email}
-                    onChange={e => setEmail(e.target.value)} required
-                    className="input-field" style={{ paddingLeft: 40 }}
-                  />
-                </div>
+            <div>
+              <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', display: 'block', marginBottom: 6 }}>
+                Password
+              </label>
+              <div style={{ position: 'relative' }}>
+                <Lock size={15} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+                <input
+                  type={showPass ? 'text' : 'password'}
+                  placeholder="8+ characters"
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                  required
+                  minLength={8}
+                  className="input-field"
+                  style={{ paddingLeft: 40, paddingRight: 40 }}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPass(!showPass)}
+                  style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex' }}>
+                  {showPass ? <EyeOff size={15} /> : <Eye size={15} />}
+                </button>
               </div>
+            </div>
 
-              <div>
-                <label style={{ fontSize: 13, fontWeight: 600, display: 'block', marginBottom: 6 }}>Password</label>
-                <div style={{ position: 'relative' }}>
-                  <Lock size={16} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }}/>
-                  <input type={showPass ? 'text' : 'password'} placeholder="8+ characters" value={password}
-                    onChange={e => setPassword(e.target.value)} required minLength={8}
-                    className="input-field" style={{ paddingLeft: 40, paddingRight: 40 }}
-                  />
-                  <button type="button" onClick={() => setShowPass(!showPass)}
-                    style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)', display: 'flex' }}>
-                    {showPass ? <EyeOff size={16}/> : <Eye size={16}/>}
-                  </button>
-                </div>
+            {error && (
+              <div style={{
+                padding: '0.75rem 1rem', borderRadius: 9, fontSize: 13,
+                background: 'rgba(239,68,68,0.07)', border: '1px solid rgba(239,68,68,0.25)',
+                color: '#DC2626',
+              }}>
+                ⚠ {error}
               </div>
+            )}
 
-              {error && (
-                <div style={{ padding: '0.75rem', borderRadius: 8, fontSize: 13, background: 'rgba(248,113,113,0.1)', border: '1px solid rgba(248,113,113,0.25)', color: '#f87171' }}>
-                  ⚠️ {error}
-                </div>
-              )}
+            <button
+              type="submit"
+              disabled={loading}
+              style={{
+                padding: '0.875rem', fontSize: 15, fontWeight: 700, borderRadius: 10,
+                marginTop: 4, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                background: 'var(--accent)', color: 'white', border: 'none',
+                cursor: loading ? 'wait' : 'pointer',
+                fontFamily: 'inherit', transition: 'background 0.15s',
+                boxShadow: '0 2px 8px rgba(37,99,235,0.25)',
+                opacity: loading ? 0.85 : 1,
+              }}>
+              {loading
+                ? <><Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> Creating account…</>
+                : 'Create my account'}
+            </button>
 
-              <button type="submit" disabled={loading} className="btn-primary"
-                style={{ padding: '0.875rem', fontSize: 15, borderRadius: 12, marginTop: 4, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-                {loading ? <><Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }}/> Creating account...</> : 'Create my account'}
-              </button>
-
-              <p style={{ textAlign: 'center', fontSize: 13, color: 'var(--text-secondary)' }}>
-                Already have an account?{' '}
-                <Link href="/login" style={{ color: '#6b93ff', textDecoration: 'none', fontWeight: 600 }}>
-                  Sign in
-                </Link>
-              </p>
-            </form>
-          )}
+            <p style={{ textAlign: 'center', fontSize: 13, color: 'var(--text-secondary)', margin: 0 }}>
+              Already have an account?{' '}
+              <Link href="/login" style={{ color: 'var(--accent)', textDecoration: 'none', fontWeight: 600 }}>
+                Sign in
+              </Link>
+            </p>
+          </form>
         </div>
+
+        <p style={{ textAlign: 'center', fontSize: 11.5, color: 'var(--text-muted)', marginTop: '1.25rem', lineHeight: 1.6 }}>
+          After registering you&apos;ll receive a 6-digit verification code by email.
+        </p>
       </div>
     </div>
   )

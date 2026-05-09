@@ -40,7 +40,7 @@ export default function GlobalError({
         <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
           <button
             onClick={reset}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '0.75rem 1.5rem', borderRadius: 12, background: 'linear-gradient(135deg, #4f7fff, #7c3aed)', color: 'white', border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: 14 }}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '0.75rem 1.5rem', borderRadius: 12, background: 'linear-gradient(135deg, #8B5CF6, #6D28D9)', color: 'white', border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: 14 }}
           >
             <RefreshCw size={14}/> Try again
           </button>

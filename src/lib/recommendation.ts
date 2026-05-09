@@ -1,125 +1,188 @@
 /**
- * Recommendation Engine
- * Scores each offer against user's profile and returns ranked top N matches.
+ * Recommendation Engine — Scores offers against a user profile.
+ *
+ * Score breakdown (100 total):
+ *   - Budget fit:     25 pts  (how well the price matches the budget)
+ *   - Data fit:       25 pts  (how well the data matches)
+ *   - Voice fit:      15 pts  (how well call minutes match)
+ *   - SMS fit:        10 pts  (how well SMS count matches)
+ *   - Value bonus:    10 pts  (cost-effectiveness: data-per-DA ratio)
+ *   - Feature bonus:   5 pts  (streaming, social media, night bonus, etc.)
+ *   - Validity fit:    5 pts  (monthly plans score higher)
+ *   - Type/Network:    5 pts  (filter match bonuses)
  */
 
 export interface UserNeeds {
-  budget: number        // DZD per month
-  dataGB: number        // GB needed per month
-  voiceMinutes: number  // minutes needed (0 = don't care, -1 = need unlimited)
-  smsCount: number      // SMS needed (0 = don't care)
-  type?: 'PREPAID' | 'POSTPAID' | 'DATA_ONLY' | 'any'
-  network?: '4G' | '5G' | 'any'
+  budget: number
+  dataGB: number
+  voiceMinutes: number
+  smsCount: number
+  type?: string   // 'any' | 'PREPAID' | 'POSTPAID' | 'DATA_ONLY'
+  network?: string // 'any' | '4G' | '5G'
 }
 
-export interface ScoredOffer {
+interface Recommendation {
   offer: any
-  score: number         // 0-100
-  savings: number       // DZD saved vs cheapest alternative for same data
+  score: number
+  savings: number
   matchReasons: string[]
   mismatches: string[]
 }
 
-export function recommendOffers(offers: any[], needs: UserNeeds, topN = 3): ScoredOffer[] {
-  const scored = offers.map((offer) => scoreOffer(offer, needs))
-  scored.sort((a, b) => b.score - a.score)
+export function recommendOffers(offers: any[], needs: UserNeeds, topN = 3): Recommendation[] {
+  const scored: Recommendation[] = offers
+    .filter(o => o.priceDA <= needs.budget * 1.15) // allow slight overshoot
+    .map(o => scoreOffer(o, needs))
+    .sort((a, b) => b.score - a.score)
 
-  // Calculate savings — baseline is average price among matching offers
-  const matchingPrices = scored.filter((s) => s.score > 30).map((s) => s.offer.priceDA)
-  const avgPrice = matchingPrices.length > 0
-    ? matchingPrices.reduce((a, b) => a + b, 0) / matchingPrices.length
-    : 0
+  // Diversity bonus — if top picks are all from same operator, swap #3 for another
+  if (scored.length >= 3) {
+    const topOps = scored.slice(0, 2).map(r => r.offer.operatorId)
+    if (topOps[0] === topOps[1] && scored[2].offer.operatorId === topOps[0]) {
+      // Find first result from a different operator
+      const differentIdx = scored.findIndex((r, i) => i > 2 && r.offer.operatorId !== topOps[0])
+      if (differentIdx > 0 && scored[differentIdx].score >= scored[2].score * 0.85) {
+        const swap = scored.splice(differentIdx, 1)[0]
+        scored.splice(2, 0, swap)
+      }
+    }
+  }
 
-  return scored.slice(0, topN).map((s) => ({
-    ...s,
-    savings: Math.max(0, avgPrice - s.offer.priceDA),
-  }))
+  return scored.slice(0, topN)
 }
 
-function scoreOffer(offer: any, needs: UserNeeds): ScoredOffer {
+function scoreOffer(offer: any, needs: UserNeeds): Recommendation {
   let score = 0
   const matchReasons: string[] = []
   const mismatches: string[] = []
 
-  // ─── Budget Score (30 pts) ────────────────────────────────────────
-  if (offer.priceDA <= needs.budget) {
-    const budgetRatio = offer.priceDA / needs.budget
-    if (budgetRatio <= 0.7) {
-      score += 30
-      matchReasons.push(`Well within your budget (${offer.priceDA} DA / ${needs.budget} DA)`)
-    } else if (budgetRatio <= 0.9) {
-      score += 25
-      matchReasons.push(`Within your budget`)
-    } else {
-      score += 15
-    }
-  } else {
-    const overage = ((offer.priceDA - needs.budget) / needs.budget) * 100
-    if (overage <= 10) {
-      score += 5
-      mismatches.push(`Slightly over budget (+${overage.toFixed(0)}%)`)
-    } else {
-      mismatches.push(`Over budget by ${offer.priceDA - needs.budget} DA`)
-    }
-  }
-
-  // ─── Data Score (35 pts) ─────────────────────────────────────────
-  const offerData = offer.dataGB === 0 ? 999 : offer.dataGB // 0 = unlimited
-  if (offerData >= needs.dataGB) {
-    const dataRatio = needs.dataGB > 0 ? offer.dataGB / needs.dataGB : 1
-    if (dataRatio >= 1.5) {
-      score += 35
-      matchReasons.push(`Excellent data allowance (${offer.dataGB === 0 ? 'Unlimited' : offer.dataGB + ' GB'})`)
-    } else if (dataRatio >= 1) {
-      score += 28
-      matchReasons.push(`Data matches your needs`)
-    } else {
-      score += 15
-    }
-  } else {
-    const shortage = needs.dataGB - offer.dataGB
-    mismatches.push(`Insufficient data (${shortage} GB short)`)
-  }
-
-  // ─── Voice Score (20 pts) ────────────────────────────────────────
-  const offerMinutes = offer.voiceMinutes === -1 ? 9999 : (offer.voiceMinutes ?? 0)
-  if (needs.voiceMinutes === -1) {
-    // User needs unlimited
-    if (offer.voiceMinutes === -1) {
-      score += 20
-      matchReasons.push('Unlimited calls included ✓')
-    } else {
-      mismatches.push('Unlimited calls not included')
-    }
-  } else if (offerMinutes >= needs.voiceMinutes) {
-    score += needs.voiceMinutes > 0 ? 20 : 10
-    if (needs.voiceMinutes > 0) matchReasons.push(`Sufficient call minutes (${offer.voiceMinutes === -1 ? 'Unlimited' : offer.voiceMinutes + ' min'})`)
-  } else if (needs.voiceMinutes > 0) {
-    mismatches.push(`Insufficient minutes (${offer.voiceMinutes} / ${needs.voiceMinutes} min)`)
-  }
-
-  // ─── Offer Type Score (10 pts) ───────────────────────────────────
-  if (!needs.type || needs.type === 'any' || offer.type === needs.type) {
+  // ── Budget fit (25 pts) ────────────────────────────────────────
+  const pricePct = offer.priceDA / needs.budget
+  if (pricePct <= 0.5) {
+    score += 25
+    matchReasons.push(`Well under budget (${Math.round((1 - pricePct) * 100)}% savings)`)
+  } else if (pricePct <= 0.8) {
+    score += 22
+    matchReasons.push(`Within budget with ${Math.round((1 - pricePct) * 100)}% to spare`)
+  } else if (pricePct <= 1.0) {
+    score += 18
+    matchReasons.push('Fits your budget')
+  } else if (pricePct <= 1.15) {
     score += 10
-    if (needs.type && needs.type !== 'any') matchReasons.push(`Matching offer type (${needs.type})`)
+    mismatches.push(`Slightly over budget (+${Math.round((pricePct - 1) * 100)}%)`)
   } else {
-    mismatches.push(`Different offer type (${offer.type} vs ${needs.type} requested)`)
+    score += 0
+    mismatches.push(`Over budget by ${Math.round((pricePct - 1) * 100)}%`)
   }
 
-  // ─── Network Score (5 pts) ───────────────────────────────────────
-  if (!needs.network || needs.network === 'any') {
-    score += 5
-  } else if (offer.network.includes(needs.network)) {
-    score += 5
-    matchReasons.push(`${needs.network} compatible`)
+  // ── Data fit (25 pts) ──────────────────────────────────────────
+  if (offer.dataGB === -1) {
+    score += 25
+    matchReasons.push('Unlimited data included')
+  } else if (needs.dataGB <= 0) {
+    score += 20 // user doesn't care about data
   } else {
-    mismatches.push(`${needs.network} network not guaranteed`)
+    const dataPct = offer.dataGB / needs.dataGB
+    if (dataPct >= 1.5) {
+      score += 25
+      matchReasons.push(`${Math.round(dataPct * 100 - 100)}% more data than needed`)
+    } else if (dataPct >= 1.0) {
+      score += 22
+      matchReasons.push('Covers your data needs')
+    } else if (dataPct >= 0.7) {
+      score += 15
+      mismatches.push(`Data slightly short (${offer.dataGB} vs ${needs.dataGB} GB needed)`)
+    } else {
+      score += 8
+      mismatches.push(`Insufficient data: ${offer.dataGB} GB vs ${needs.dataGB} GB needed`)
+    }
   }
 
-  return { offer, score: Math.min(100, score), savings: 0, matchReasons, mismatches }
-}
+  // ── Voice fit (15 pts) ─────────────────────────────────────────
+  if (offer.voiceMinutes === -1) {
+    score += 15
+    matchReasons.push('Unlimited calls')
+  } else if (needs.voiceMinutes <= 0) {
+    score += 12
+  } else {
+    const voicePct = offer.voiceMinutes / needs.voiceMinutes
+    if (voicePct >= 1.0) {
+      score += 15
+      if (voicePct >= 2) matchReasons.push('More than enough call minutes')
+    } else if (voicePct >= 0.7) {
+      score += 10
+      mismatches.push(`Call minutes slightly short (${offer.voiceMinutes} vs ${needs.voiceMinutes} min)`)
+    } else {
+      score += 5
+      mismatches.push(`Low call minutes: ${offer.voiceMinutes} vs ${needs.voiceMinutes} min needed`)
+    }
+  }
 
-export function calculateSavings(currentOffer: any, bestOffer: any, months = 12): number {
-  if (!currentOffer || !bestOffer) return 0
-  return Math.max(0, (currentOffer.priceDA - bestOffer.priceDA) * months)
+  // ── SMS fit (10 pts) ───────────────────────────────────────────
+  if (offer.smsCount === -1) {
+    score += 10
+    matchReasons.push('Unlimited SMS')
+  } else if (needs.smsCount <= 0) {
+    score += 8
+  } else {
+    const smsPct = offer.smsCount / needs.smsCount
+    if (smsPct >= 1.0) {
+      score += 10
+    } else if (smsPct >= 0.5) {
+      score += 6
+    } else {
+      score += 2
+      mismatches.push(`Low SMS count: ${offer.smsCount} vs ${needs.smsCount} needed`)
+    }
+  }
+
+  // ── Value bonus (10 pts) ───────────────────────────────────────
+  if (offer.dataGB > 0 && offer.priceDA > 0) {
+    const dataPerDA = (offer.dataGB / offer.priceDA) * 1000 // MB per DA
+    if (dataPerDA >= 50) score += 10       // excellent value
+    else if (dataPerDA >= 30) score += 8
+    else if (dataPerDA >= 15) score += 5
+    else score += 2
+  } else if (offer.dataGB === -1) {
+    score += 9 // unlimited data = great value
+  }
+
+  // ── Feature bonus (5 pts) ─────────────────────────────────────
+  try {
+    const features = typeof offer.features === 'string' ? JSON.parse(offer.features) : offer.features || []
+    const featureText = features.join(' ').toLowerCase()
+    if (featureText.includes('réseaux sociaux') || featureText.includes('facebook')) score += 1
+    if (featureText.includes('streaming') || featureText.includes('anaflix') || featureText.includes('shahid')) score += 1
+    if (featureText.includes('bonus nuit') || featureText.includes('nuit')) score += 1
+    if (featureText.includes('illimités toutes') || featureText.includes('illimités tous')) score += 1
+    if (featureText.includes('roaming')) score += 1
+  } catch {}
+
+  // ── Validity bonus (5 pts) ────────────────────────────────────
+  if (offer.validityDays >= 30) score += 5
+  else if (offer.validityDays >= 7) score += 3
+  else score += 1
+
+  // ── Type/Network filter match (5 pts) ─────────────────────────
+  if (needs.type && needs.type !== 'any') {
+    if (offer.type === needs.type) score += 3
+    else score -= 5
+  } else {
+    score += 2
+  }
+
+  if (needs.network && needs.network !== 'any') {
+    if (offer.network.includes(needs.network)) score += 2
+    else mismatches.push(`${needs.network} not available (${offer.network} only)`)
+  } else {
+    score += 1
+  }
+
+  // ── Calculate savings ─────────────────────────────────────────
+  const savings = Math.max(0, needs.budget - offer.priceDA)
+
+  // Clamp score 0-100
+  score = Math.max(0, Math.min(100, score))
+
+  return { offer, score, savings, matchReasons, mismatches }
 }

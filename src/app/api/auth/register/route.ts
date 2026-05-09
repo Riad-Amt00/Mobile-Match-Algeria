@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import bcrypt from 'bcryptjs'
 import { db } from '@/lib/db'
 import { z } from 'zod'
+import { sendVerificationEmail } from '@/lib/email'
+import { rateLimit, getRateLimitKey } from '@/lib/rate-limit'
 
 const registerSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
@@ -10,6 +12,10 @@ const registerSchema = z.object({
 })
 
 export async function POST(req: NextRequest) {
+  if (!rateLimit(getRateLimitKey(req, 'register'), 5, 15 * 60 * 1000)) {
+    return NextResponse.json({ error: 'Too many requests. Try again later.' }, { status: 429 })
+  }
+
   try {
     const body = await req.json()
     const validated = registerSchema.safeParse(body)
@@ -33,13 +39,25 @@ export async function POST(req: NextRequest) {
 
     const passwordHash = await bcrypt.hash(password, 12)
 
-    const user = await db.user.create({
-      data: { name, email, passwordHash, role: 'USER' },
-      select: { id: true, name: true, email: true, role: true },
+    await db.user.create({
+      data: { name, email, passwordHash, role: 'USER', emailVerified: null },
     })
 
-    return NextResponse.json({ user }, { status: 201 })
+    // Generate 6-digit OTP, store with 3-minute expiry
+    const code = Math.floor(100000 + Math.random() * 900000).toString()
+    const expires = new Date(Date.now() + 3 * 60 * 1000)
+
+    // Remove any existing token for this email first
+    await db.verificationToken.deleteMany({ where: { identifier: email } })
+    await db.verificationToken.create({
+      data: { identifier: email, token: code, expires },
+    })
+
+    await sendVerificationEmail(email, code)
+
+    return NextResponse.json({ requiresVerification: true }, { status: 201 })
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    console.error('Registration error:', error)
+    return NextResponse.json({ error: 'Registration failed. Please try again.' }, { status: 500 })
   }
 }
