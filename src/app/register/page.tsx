@@ -4,8 +4,11 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { ArrowLeft, Mail, Lock, User, Eye, EyeOff, Loader2, Smartphone } from 'lucide-react'
 import { useRouter } from 'next/navigation'
+import { signIn } from 'next-auth/react'
+import { useLang } from '@/lib/lang-context'
 
 export default function RegisterPage() {
+  const { t } = useLang()
   const router = useRouter()
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
@@ -25,16 +28,14 @@ export default function RegisterPage() {
         body: JSON.stringify({ name, email, password }),
       })
       const data = await res.json()
-      if (!res.ok) { setError(data.error || 'Registration failed. Please try again.'); return }
+      if (!res.ok) { setError(data.error || t('register.failedError')); return }
 
-      if (data.requiresVerification) {
-        router.push(`/verify-email?email=${encodeURIComponent(email)}&pw=${encodeURIComponent(password)}`)
-        return
-      }
-
+      const result = await signIn('credentials', { email, password, redirect: false })
+      if (result?.error) { router.push('/login?registered=1'); return }
       router.push('/offers')
+      router.refresh()
     } catch {
-      setError('Network error. Please try again.')
+      setError(t('login.errorNet'))
     } finally {
       setLoading(false)
     }
@@ -51,13 +52,13 @@ export default function RegisterPage() {
           color: 'var(--text-muted)', textDecoration: 'none', fontSize: 13,
           fontWeight: 500, marginBottom: '2rem',
         }}>
-          <ArrowLeft size={15} /> Back to home
+          <ArrowLeft size={15} /> {t('login.back')}
         </Link>
 
         <div style={{
           background: 'var(--bg-card)', borderRadius: 16,
           border: '1px solid var(--border-base)',
-          boxShadow: '0 4px 20px rgba(15,23,42,0.08)',
+          boxShadow: 'var(--shadow-elevated)',
           padding: '2.25rem',
         }}>
           <div style={{ textAlign: 'center', marginBottom: '1.75rem' }}>
@@ -65,28 +66,28 @@ export default function RegisterPage() {
               width: 52, height: 52, borderRadius: 14, margin: '0 auto 1rem',
               background: 'var(--accent)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              boxShadow: '0 4px 14px rgba(37,99,235,0.30)',
+              boxShadow: 'var(--shadow-accent)',
             }}>
               <Smartphone size={22} color="white" />
             </div>
             <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: 6, letterSpacing: '-0.02em' }}>
-              Create account
+              {t('register.title')}
             </h1>
             <p style={{ color: 'var(--text-secondary)', fontSize: 14 }}>
-              Join Mobile Match Algeria — it&apos;s free
+              {t('register.subtitle')}
             </p>
           </div>
 
           <form onSubmit={handleRegister} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             <div>
               <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', display: 'block', marginBottom: 6 }}>
-                Full name
+                {t('register.name')}
               </label>
               <div style={{ position: 'relative' }}>
                 <User size={15} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
                 <input
                   type="text"
-                  placeholder="Your name"
+                  placeholder={t('register.namePh')}
                   value={name}
                   onChange={e => setName(e.target.value)}
                   required
@@ -98,7 +99,7 @@ export default function RegisterPage() {
 
             <div>
               <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', display: 'block', marginBottom: 6 }}>
-                Email address
+                {t('login.email')}
               </label>
               <div style={{ position: 'relative' }}>
                 <Mail size={15} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
@@ -116,13 +117,13 @@ export default function RegisterPage() {
 
             <div>
               <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', display: 'block', marginBottom: 6 }}>
-                Password
+                {t('login.password')}
               </label>
               <div style={{ position: 'relative' }}>
                 <Lock size={15} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
                 <input
                   type={showPass ? 'text' : 'password'}
-                  placeholder="8+ characters"
+                  placeholder={t('register.pwPh')}
                   value={password}
                   onChange={e => setPassword(e.target.value)}
                   required
@@ -158,26 +159,22 @@ export default function RegisterPage() {
                 background: 'var(--accent)', color: 'white', border: 'none',
                 cursor: loading ? 'wait' : 'pointer',
                 fontFamily: 'inherit', transition: 'background 0.15s',
-                boxShadow: '0 2px 8px rgba(37,99,235,0.25)',
+                boxShadow: 'var(--btn-primary-shadow)',
                 opacity: loading ? 0.85 : 1,
               }}>
               {loading
-                ? <><Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> Creating account…</>
-                : 'Create my account'}
+                ? <><Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> {t('register.creating')}</>
+                : t('register.submit')}
             </button>
 
             <p style={{ textAlign: 'center', fontSize: 13, color: 'var(--text-secondary)', margin: 0 }}>
-              Already have an account?{' '}
+              {t('register.hasAccount')}{' '}
               <Link href="/login" style={{ color: 'var(--accent)', textDecoration: 'none', fontWeight: 600 }}>
-                Sign in
+                {t('register.signIn')}
               </Link>
             </p>
           </form>
         </div>
-
-        <p style={{ textAlign: 'center', fontSize: 11.5, color: 'var(--text-muted)', marginTop: '1.25rem', lineHeight: 1.6 }}>
-          After registering you&apos;ll receive a 6-digit verification code by email.
-        </p>
       </div>
     </div>
   )

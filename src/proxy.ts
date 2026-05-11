@@ -40,10 +40,12 @@ export async function proxy(req: NextRequest) {
     }
   }
 
-  // /profile, /saved – must be logged in
-  if (path.startsWith('/profile') || path.startsWith('/saved')) {
+  // /profile, /saved, /recommend – must be logged in
+  if (path.startsWith('/profile') || path.startsWith('/saved') || path.startsWith('/recommend')) {
     if (!isLoggedIn) {
-      return NextResponse.redirect(new URL('/login', nextUrl))
+      const loginUrl = new URL('/login', nextUrl)
+      loginUrl.searchParams.set('callbackUrl', path)
+      return NextResponse.redirect(loginUrl)
     }
   }
 
@@ -56,5 +58,5 @@ export async function proxy(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/admin/:path*', '/profile/:path*', '/saved/:path*', '/login', '/register'],
+  matcher: ['/admin/:path*', '/profile/:path*', '/saved/:path*', '/recommend/:path*', '/login', '/register'],
 }

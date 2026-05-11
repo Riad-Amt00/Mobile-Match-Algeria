@@ -17,6 +17,7 @@ export interface ScrapeResult {
   offersFound: number
   offersAdded: number
   offersUpdated: number
+  offersDeactivated: number
   errorMessage?: string
   duration: number
 }
@@ -213,38 +214,48 @@ async function runSingleScraper(
       }
 
       if (existing) {
+        const priceChanged = existing.priceDA !== rawOffer.priceDA
+        const priceDropped = rawOffer.priceDA < existing.priceDA
         await db.offer.update({ where: { id: existing.id }, data: offerData })
         offersUpdated++
+        if (priceChanged) {
+          await db.priceHistory.create({ data: { offerId: existing.id, priceDA: rawOffer.priceDA } })
+          if (priceDropped) {
+            await notifyUsersPriceDrop(existing, rawOffer.priceDA, operatorName)
+          }
+        }
       } else {
-        await db.offer.create({ data: offerData })
+        const created = await db.offer.create({ data: offerData })
         offersAdded++
-
+        // Log initial price in history
+        await db.priceHistory.create({ data: { offerId: created.id, priceDA: rawOffer.priceDA } })
         // Notify users about new offer
         await notifyUsersNewOffer(rawOffer, operatorName)
       }
     }
 
-    // Only deactivate if the scrape returned at least as many offers as are currently
-    // active in the DB. This prevents a partial/broken scrape from wiping good data.
-    const currentActiveCount = await db.offer.count({
-      where: { operatorId: operator.id, isActive: true },
-    })
+    // Per-family deactivation: group offers by sourceUrl (= one URL per plan family).
+    // For each family, if we got at least one offer this run, deactivate any DB
+    // entries from that URL whose slug is no longer in the scrape result.
+    // This detects operator plan removals precisely without a global count guard
+    // that would block all cleanup when the total scrape count differs from DB total.
+    const scrapedByUrl = new Map<string, string[]>()
+    for (const offer of validOffers) {
+      if (!scrapedByUrl.has(offer.sourceUrl)) scrapedByUrl.set(offer.sourceUrl, [])
+      scrapedByUrl.get(offer.sourceUrl)!.push(slugify(offer.name))
+    }
+
     let deactivatedCount = 0
-    if (validOffers.length >= currentActiveCount) {
+    for (const [sourceUrl, slugs] of scrapedByUrl) {
+      if (slugs.length === 0) continue
       const deactivated = await db.offer.updateMany({
-        where: {
-          operatorId: operator.id,
-          isActive: true,
-          slug: { notIn: scrapedSlugs },
-        },
+        where: { operatorId: operator.id, isActive: true, sourceUrl, slug: { notIn: slugs } },
         data: { isActive: false },
       })
-      deactivatedCount = deactivated.count
-      if (deactivatedCount > 0) {
-        emit('WARN', `Deactivated ${deactivatedCount} offer(s) no longer present on operator website`)
-      }
-    } else {
-      emit('INFO', `Skipped deactivation — scrape returned ${validOffers.length} offers vs ${currentActiveCount} active in DB (partial scrape guard)`)
+      deactivatedCount += deactivated.count
+    }
+    if (deactivatedCount > 0) {
+      emit('WARN', `Deactivated ${deactivatedCount} offer(s) no longer present on operator website`)
     }
 
     const duration = Date.now() - startedAt.getTime()
@@ -257,6 +268,7 @@ async function runSingleScraper(
         offersFound: validOffers.length,
         offersAdded,
         offersUpdated,
+        offersDeactivated: deactivatedCount,
         duration,
         details: JSON.stringify(logBuffer),
         completedAt: new Date(),
@@ -266,9 +278,10 @@ async function runSingleScraper(
     return {
       operator: operatorName,
       status: ScrapeStatus.SUCCESS,
-      offersFound: rawOffers.length,
+      offersFound: validOffers.length,
       offersAdded,
       offersUpdated,
+      offersDeactivated: deactivatedCount,
       duration,
     }
   } catch (error: any) {
@@ -296,6 +309,7 @@ async function runSingleScraper(
       offersFound: 0,
       offersAdded,
       offersUpdated,
+      offersDeactivated: 0,
       errorMessage,
       duration,
     }
@@ -321,6 +335,33 @@ async function notifyUsersNewOffer(rawOffer: any, operatorName: string) {
       title: `New offer from ${operatorName}!`,
       message: `${operatorName} just released: ${rawOffer.name}. Compare now!`,
       type: 'new_offer',
+    })
+  }
+
+  if (notificationsToCreate.length > 0) {
+    await db.notification.createMany({ data: notificationsToCreate })
+  }
+}
+
+async function notifyUsersPriceDrop(offer: any, newPrice: number, operatorName: string) {
+  const users = await db.user.findMany({ include: { profile: true } })
+  if (users.length === 0) return
+
+  const saving = Math.round(((offer.priceDA - newPrice) / offer.priceDA) * 100)
+  const notificationsToCreate = []
+
+  for (const user of users) {
+    if (user.profile) {
+      const p = user.profile
+      if (p.preferredType && p.preferredType !== 'any' && p.preferredType !== offer.type) continue
+      if (p.preferredNet && p.preferredNet !== 'any' && !offer.network.includes(p.preferredNet)) continue
+    }
+    notificationsToCreate.push({
+      userId: user.id,
+      offerId: offer.id,
+      title: `Price drop! ${offer.name}`,
+      message: `${operatorName}'s ${offer.name} dropped from ${offer.priceDA} DA to ${newPrice} DA (−${saving}%).`,
+      type: 'price_drop',
     })
   }
 

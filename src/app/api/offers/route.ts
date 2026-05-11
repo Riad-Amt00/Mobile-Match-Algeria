@@ -76,13 +76,22 @@ export async function GET(req: NextRequest) {
       where.OR = orConditions
     }
 
-    const offers = await db.offer.findMany({
-      where,
-      include: { operator: true },
-      orderBy: [{ isFeatured: 'desc' }, { priceDA: 'asc' }],
-    })
+    const page  = Math.max(1, parseInt(searchParams.get('page')  ?? '1'))
+    const limit = Math.min(48, parseInt(searchParams.get('limit') ?? '24'))
+    const skip  = (page - 1) * limit
 
-    return NextResponse.json({ offers, total: offers.length })
+    const [offers, total] = await Promise.all([
+      db.offer.findMany({
+        where,
+        include: { operator: true },
+        orderBy: [{ isFeatured: 'desc' }, { priceDA: 'asc' }],
+        skip,
+        take: limit,
+      }),
+      db.offer.count({ where }),
+    ])
+
+    return NextResponse.json({ offers, total, page, totalPages: Math.ceil(total / limit) })
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }

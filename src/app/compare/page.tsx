@@ -12,6 +12,7 @@ export default async function ComparePage({ searchParams }: Props) {
     <CompareContent
       initialIds={ids}
       fromRecommend={from === 'recommend'}
+      fromSaved={from === 'saved'}
     />
   )
 }

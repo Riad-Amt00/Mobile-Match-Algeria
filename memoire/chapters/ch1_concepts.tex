@@ -1,0 +1,144 @@
+% ─────────────────────────────────────────────────────────────────────────────
+% chapters/ch1_concepts.tex — Chapter 1: State of the Art and Core Concepts
+% ─────────────────────────────────────────────────────────────────────────────
+
+\chapter{State of the Art and Core Concepts}
+
+This chapter establishes the theoretical and technical foundation upon which the rest of the work rests. It examines the Algerian mobile telecommunications market, reviews existing comparison platforms at the international level, and surveys the key technical disciplines involved in building this project: web data aggregation, recommendation systems, and modern full-stack web development. The chapter concludes by positioning \textit{Mobile Match Algeria} within the landscape identified through this review.
+
+\section{The Algerian Mobile Telecommunications Market}
+
+\subsection{Market Overview and Key Figures}
+
+Algeria's mobile telecommunications sector is regulated by the Autorité de Régulation de la Poste et des Communications Électroniques (ARPCE). As of 2024, the country counts more than 47 million mobile subscribers, distributed across three licensed operators: Mobilis, owned by the state-controlled Algérie Télécom group; Djezzy, majority-owned by VEON; and Ooredoo, a subsidiary of the Qatari group Ooredoo \parencite{ARPCE2024, Statista2024}. Mobile penetration stands at approximately 106\,\%, reflecting a mature market where many users hold multiple SIM cards.
+
+The network infrastructure has evolved considerably over the past decade. Following the deployment of 4G LTE services in 2016, all three operators have expanded coverage progressively across the country. Djezzy launched commercially limited 5G trials in 2024, positioning itself as the first operator to test fifth-generation technology in Algeria \parencite{GSMA2024}. These developments have accelerated the diversification of plan offerings, as operators compete on price, data volume, and network quality.
+
+\subsection{Offer Complexity and the Consumer Decision Problem}
+
+Each operator publishes a catalogue of prepaid, postpaid, and data-only plans that is updated several times per year. Prices range from a few hundred to several thousand Algerian Dinars per month, depending on the included data volume (from 1~GB to over 200~GB), voice minutes (from limited bundles to unlimited calls), SMS allowances, and validity periods (daily, weekly, monthly, or longer). A consumer wishing to identify the most cost-effective plan for their specific usage profile must visit three separate websites, compare offerings across heterogeneous formats, and account for promotional periods that may alter the base price.
+
+Table~\ref{tab:operator-summary} summarises the main characteristics of each operator's catalogue as of the first quarter of 2026, illustrating the scope of the comparison challenge.
+
+\begin{table}[H]
+  \caption{Summary of operator plan catalogues (Q1 2026)}
+  \label{tab:operator-summary}
+  \centering\small
+  \resizebox{\textwidth}{!}{%
+  \begin{tabular}{|l|c|c|c|}
+    \hline
+    \textbf{Criterion}      & \textbf{Mobilis}        & \textbf{Djezzy}         & \textbf{Ooredoo}        \\
+    \hline
+    Plan types              & Prepaid, Postpaid, Data & Prepaid, Postpaid, Data & Prepaid, Postpaid, Data \\
+    \hline
+    Price range (DA/month)  & 500 – 4\,000            & 250 – 4\,000            & 500 – 4\,000            \\
+    \hline
+    Max data volume         & 400 GB                  & 350 GB                  & 300 GB                  \\
+    \hline
+    5G availability         & Yes (4G/5G)             & No                      & Yes (4G/5G)             \\
+    \hline
+    Public API              & None                    & None                    & None                    \\
+    \hline
+  \end{tabular}}
+\end{table}
+
+\section{Existing Comparison Platforms}
+
+\subsection{International Benchmarks}
+
+Several international platforms have successfully addressed the plan-comparison problem in their respective markets. An analysis of these systems reveals common features, architectural patterns, and limitations that inform the design of \textit{Mobile Match Algeria}.
+
+\textbf{MeilleurMobile} (France) is a leading French aggregator that covers all national operators and virtual operators (MVNOs). It provides a tabular comparison interface, a plan-finder questionnaire, and user reviews. The platform relies primarily on operator partnerships and manual data entry rather than automated scraping, which limits its real-time accuracy. It does not offer a personalisation engine beyond basic filtering \parencite{MeilleurMobile2024}.
+
+\textbf{WhistleOut} (Australia and the United Kingdom) operates a comparison marketplace that includes both mobile plans and broadband. It features a strong search and filter interface and integrates affiliate referral links. Its data is updated through a combination of operator feeds and editorial review. The platform targets English-speaking markets and its architecture is not publicly documented.
+
+\textbf{CompareTheMobile} (United Kingdom) offers a highly visual comparison interface with side-by-side plan cards and a compatibility checker for handsets. Like its counterparts, it depends on voluntary operator data submission and does not employ automated collection.
+
+\subsection{Gap Analysis for Algeria}
+
+None of the platforms identified above serve the Algerian market. The absence of a national comparison tool can be explained by several structural factors: the relatively small number of operators (three), the absence of virtual operators, and the lack of public APIs that would facilitate data integration. The international platforms reviewed rely on operator cooperation or affiliate relationships that do not exist in the Algerian context. Furthermore, all identified platforms are available in English or French only, without Arabic-language support, which is essential for reaching the full Algerian user base.
+
+Table~\ref{tab:platform-comparison} synthesises the key differences between existing platforms and the proposed solution.
+
+\begin{table}[H]
+  \caption{Comparison of existing platforms and Mobile Match Algeria}
+  \label{tab:platform-comparison}
+  \centering\small
+  \begin{tabular}{|l|c|c|c|c|}
+    \hline
+    \textbf{Feature} & \textbf{MeilleurMobile} & \textbf{WhistleOut} & \textbf{CompareTheMobile} & \textbf{This work} \\
+    \hline
+    Algeria coverage       & No & No & No & Yes \\
+    \hline
+    Automated scraping     & No & No & No & Yes \\
+    \hline
+    Recommendation engine  & No & No & No & Yes \\
+    \hline
+    Arabic interface       & No & No & No & Yes \\
+    \hline
+    Open-source            & No & No & No & Yes \\
+    \hline
+    Side-by-side comparison & No & No & No & Yes \\
+    \hline
+  \end{tabular}
+\end{table}
+
+\section{Web Data Aggregation}
+
+\subsection{Static vs. Dynamic Scraping}
+
+Web scraping is the automated extraction of data from web pages. Two principal approaches exist. Static scraping sends an HTTP request to a target URL and parses the returned HTML using a library such as \textit{BeautifulSoup} (Python) or \textit{Cheerio} (JavaScript/Node.js). This approach is fast, resource-light, and straightforward to implement, but fails when the target page renders its content through client-side JavaScript after the initial page load.
+
+Dynamic scraping uses a headless browser — typically \textit{Puppeteer} or \textit{Playwright} — to execute the full JavaScript runtime of the target page before extracting the rendered DOM. This method handles JavaScript-heavy single-page applications but incurs a significantly higher computational and memory cost, and is more fragile under rate-limiting or anti-bot measures \parencite{Mitchell2018}.
+
+For this project, all three operator websites were analysed by inspecting their raw HTTP responses prior to any JavaScript execution. In all cases — Djezzy, Ooredoo, and Mobilis — plan data was found to be present in the initial HTML document returned by the server, confirming that all three sites employ server-side rendering (SSR) for their public plan pages. Consequently, the static approach was selected: each scraper issues an HTTP GET request with a browser-compatible User-Agent header and parses the returned HTML using \textit{Cheerio}. This avoids the overhead and fragility of a headless browser and completes a full three-operator scrape in under 60 seconds.
+
+Three plan families could not be collected regardless of the parsing approach used. The Djezzy \textit{ZID} family refuses all automated HTTP connections at the network level (connection timeout on every attempt). The Djezzy \textit{IZZY!} family serves a marketing page with no machine-readable price structure. The Mobilis \textit{Revolution} family presents prices exclusively inside carousel image files (\texttt{.jpg}), leaving no parseable text in the HTML. For these three families, a verified fallback dataset was manually constructed by visiting the operator websites in a standard browser in May 2026 and transcribing the values into the codebase. This fallback data is served transparently and is visually distinguished from live-scraped data in the admin dashboard.
+
+\subsection{Data Normalisation}
+
+Because each operator presents plan information in a different format, a normalisation pipeline is required to map raw scraped values to a common schema. This pipeline handles unit conversion (e.g., MB to GB), removal of promotional suffixes from plan names, extraction of numeric values from strings containing units, and assignment of default values for fields not provided by a given operator. The normalised data is stored in a relational database, enabling uniform querying across all operators.
+
+\subsection{Legal and Ethical Considerations}
+
+Web scraping raises questions of legality and ethics that must be addressed. In Algeria, no specific legislation prohibits the automated reading of publicly accessible web pages for non-commercial informational purposes. The \textit{robots.txt} files of the three target operators do not explicitly disallow scraping of their public plan pages. The scraping module implemented in this project respects rate limits, introduces delays between requests, and does not collect any personally identifiable information. All data collected is publicly visible to any user visiting the operator websites directly.
+
+\section{Recommendation Systems}
+
+\subsection{Classification of Recommendation Approaches}
+
+Recommendation systems are a class of information filtering tools that predict a user's preference for items based on available data \parencite{Geron2022}. Three main paradigms are distinguished in the literature.
+
+\textbf{Content-based filtering} builds a profile of user preferences from attributes of items the user has previously rated or selected. Recommendations are generated by matching item attributes against the user profile. This approach works well with a clearly defined attribute space and does not require data from other users.
+
+\textbf{Collaborative filtering} identifies users with similar behaviour and recommends items that like-minded users have rated highly. It can surface unexpected recommendations but requires a large user base and suffers from the cold-start problem for new users.
+
+\textbf{Hybrid systems} combine both approaches to mitigate individual weaknesses. Many production recommendation systems, including those used by streaming services and e-commerce platforms, employ hybrid architectures \parencite{Geron2022}.
+
+\subsection{Scoring-Based Recommendation for Plan Selection}
+
+The plan recommendation problem in this project differs from typical recommendation scenarios in that the item catalogue is small (fewer than 200 plans), fully enumerable, and characterised by well-defined numerical attributes (price, data, voice, SMS). This makes a scoring-based content-based approach both appropriate and computationally efficient without requiring historical interaction data.
+
+The scoring model assigns each plan a composite score based on four dimensions: budget fit, data fit, voice fit, and network preference. Each dimension is computed as a function of the distance between the plan's attribute and the user's declared preference, with penalties applied for exceeding the budget. The top-scoring plans are returned as recommendations. This approach is described in detail in Chapter~3, Section~3.4.
+
+\section{Modern Web Stack Overview}
+
+\subsection{Next.js and the App Router}
+
+\textit{Next.js} is a React-based framework developed by Vercel that supports multiple rendering strategies including server-side rendering (SSR), static site generation, and client-side rendering. The \textit{App Router}, introduced in Next.js~13 and stabilised in subsequent versions, organises the application into a hierarchy of route segments defined by the file system. Each segment can export a page component, a layout, a loading state, and API route handlers. This architecture enables the back-end and front-end of the application to coexist in a single project with shared type definitions and utilities \parencite{NextJSDocs2024}.
+
+\subsection{Prisma ORM}
+
+\textit{Prisma} is a type-safe database toolkit for Node.js and TypeScript. It consists of a schema definition language for declaring the data model, a migration engine that generates and applies database schema changes, and a query builder that provides an auto-completed, type-safe API for database operations. The schema is defined once in a \texttt{.prisma} file, and Prisma generates TypeScript types that are used throughout the application, eliminating a class of runtime type errors that commonly arise with raw SQL queries \parencite{PrismaDocs2024}.
+
+\subsection{SQLite as the Data Store}
+
+\textit{SQLite} is a serverless, file-based relational database engine widely used in embedded and development contexts. For a single-server deployment with a moderate user base, SQLite provides adequate performance and zero operational overhead. Its file-based nature simplifies deployment, backup, and version control. The trade-off is limited horizontal scalability, which is acknowledged as a limitation of this version and addressed in the perspectives section of the general conclusion.
+
+\section{Positioning of This Work}
+
+The preceding review establishes that no existing tool serves Algerian consumers seeking to compare mobile plans. The combination of automated real-time data collection, a multi-criteria recommendation engine, a multi-language interface (English, French, Arabic), and a best-value side-by-side comparison table distinguishes \textit{Mobile Match Algeria} from all identified international platforms. The full-stack architecture built on \textit{Next.js} and \textit{Prisma} provides a solid and maintainable technical foundation. The following chapter translates the requirements identified in this review into a concrete system design.
+
+\section*{Chapter Summary}
+
+This chapter has surveyed the Algerian telecom market, reviewed international comparison platforms, and introduced the key technical disciplines underpinning this project. The gap analysis confirms the absence of any equivalent tool for Algerian consumers. The review of scraping techniques, recommendation paradigms, and the chosen technology stack establishes the theoretical basis for the design and implementation work presented in the chapters that follow.

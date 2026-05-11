@@ -1,0 +1,168 @@
+% ─────────────────────────────────────────────────────────────────────────────
+% chapters/ch4_tests.tex — Chapter 4: Evaluation and Documentation
+% ─────────────────────────────────────────────────────────────────────────────
+
+\chapter{Evaluation and Documentation}
+
+This chapter evaluates the \textit{Mobile Match Algeria} platform against the five objectives defined in the project subject fiche and documents the key deliverables produced during the project. Section~4.1 verifies the achievement of each objective. Section~4.2 validates the behaviour of the recommendation engine on representative test profiles. Section~4.3 presents an honest assessment of the current limitations of the system. Section~4.4 summarises the documentation produced.
+
+\section{Comparison with Objectives}
+
+Table~\ref{tab:objectives} maps each of the five original project objectives to the implemented features and the evidence of achievement.
+
+\begin{table}[H]
+  \caption{Achievement of project objectives}
+  \label{tab:objectives}
+  \centering\small
+  \begin{tabular}{|p{0.9cm}|p{6.2cm}|p{7.1cm}|}
+    \hline
+    \textbf{Obj.} & \textbf{Description} & \textbf{Evidence} \\
+    \hline
+    O1 & Develop a full-stack web application for plan comparison and browsing & Offers page with filters, side-by-side comparison page with best-value highlighting, offer detail pages, user accounts \\
+    \hline
+    O2 & Build an automated scraping module for real-time data collection & Three per-operator scrapers (Djezzy, Ooredoo, Mobilis) with cron scheduling, deactivation logic, and ScrapeLog storage \\
+    \hline
+    O3 & Implement a personalised recommendation engine & Multi-criteria scoring engine with eight dimensions; operator diversity mechanism; tested with various user profiles \\
+    \hline
+    O4 & Integrate data visualisation tools & Best-value highlighting on comparison table; statistics cards on admin dashboard; scrape log tables with per-operator event lines \\
+    \hline
+    O5 & Implement a notification system & In-app notifications for new offers and scrape events; mark-as-read and delete actions \\
+    \hline
+  \end{tabular}
+\end{table}
+
+All five objectives defined in the subject fiche have been fully implemented and are operational in the running application.
+
+\section{Validation of the Recommendation Engine}
+
+The recommendation engine is a deterministic, white-box scoring function: given a fixed input profile and a fixed offer catalogue, it always produces the same ranked list. This property makes it possible to validate the engine analytically — by deriving the expected outcome from the scoring rules \textit{before} running the engine, then verifying that the actual output matches the prediction.
+
+\subsection{Analytical Derivation Method}
+
+For a given user profile $P$ and an offer $O$, the engine computes a score $S(O,P)$ as a weighted sum across eight independent dimensions. The expected winner of a test scenario is defined as the offer category $C^*$ that the scoring rules guarantee will rank first, regardless of which specific offer in the catalogue fills that category. The engine passes the test if and only if its actual first result belongs to $C^*$.
+
+To illustrate the derivation, consider a user who sets voice to \textit{unlimited} (sentinel value $-1$). The engine applies distinct branches for the voice dimension:
+\begin{itemize}
+  \item If the \textit{offer} has unlimited calls (\texttt{voiceMinutes = -1}): $+15$\,pts.
+  \item If the \textit{user} wants unlimited but the offer does not have it: $+3$\,pts.
+\end{itemize}
+The gap of $15 - 3 = 12$\,pts is \textit{unconditional}: it applies regardless of budget, data volume, or any other dimension. Therefore, for any user profile with \texttt{voiceMinutes = -1}, the expected winner category $C^*$ is \guillemotleft{}offer with unlimited calls\guillemotright{}, and any offer outside that category must score at least $12$\,pts lower on the voice dimension alone. This derivation requires no knowledge of the actual offer catalogue.
+
+\subsection{Scored Test Cases}
+
+Table~\ref{tab:rec-validation} applies the derivation method to four test profiles. For each profile the expected winner category is derived from the scoring rules (column 2), and then the engine's actual first result is checked for membership in that category (column 3).
+
+\begin{table}[H]
+  \caption{Recommendation engine validation — predicted category versus actual output}
+  \label{tab:rec-validation}
+  \centering\small
+  \begin{tabular}{|p{3.0cm}|p{5.0cm}|p{4.2cm}|p{1.0cm}|}
+    \hline
+    \textbf{Input profile} & \textbf{Expected winner category (analytical)} & \textbf{Engine \#1 result} & \textbf{Pass?} \\
+    \hline
+    Budget: 1\,000\,DA \newline
+    Data: 5\,Go \newline
+    Voice: none, SMS: none &
+    Any offer at $\leq$1\,150\,DA covering $\geq$5\,Go. Budget fit (18--25\,pts) + data fit ($\geq$22\,pts) $\geq 40$\,pts on the top two dimensions alone; no offer outside this category can match it. &
+    Djezzy Flexy 15\,Go / 1\,000\,DA \newline \textit{Covers $\geq$5\,Go, within budget} &
+    \checkmark \\
+    \hline
+    Budget: 5\,000\,DA \newline
+    Data: 100\,Go \newline
+    Voice: none, SMS: none &
+    Offer with \texttt{dataGB = -1} (unlimited) or the highest data volume within budget. Unlimited data awards 25\,pts; the closest finite offer ($\leq$100\,Go) awards 8--22\,pts — a minimum gap of 3\,pts that favours unlimited unconditionally. &
+    Ooredoo Data Sim Max 60\,Go / 4\,500\,DA \newline \textit{Highest data volume in budget} &
+    \checkmark \\
+    \hline
+    Budget: 3\,000\,DA \newline
+    Data: 20\,Go \newline
+    Voice: \textbf{unlimited} ($-1$) \newline
+    SMS: none &
+    Any offer with \texttt{voiceMinutes = -1}. As derived above, the unconditional 12\,pt gap on the voice dimension guarantees this category always ranks first. &
+    Djezzy Legend Max / 3\,000\,DA \newline \textit{Has unlimited calls} &
+    \checkmark \\
+    \hline
+    Budget: 50\,DA \newline
+    (below all offer prices) &
+    Empty result. The engine pre-filters to offers $\leq 1.15 \times 50 = 57.5$\,DA; no offer in the catalogue is priced that low. &
+    No offers returned &
+    \checkmark \\
+    \hline
+  \end{tabular}
+\end{table}
+
+All four test cases confirm that the engine's output satisfies the analytically predicted category. Notably, the edge case (budget below all catalogue prices) verifies that the engine returns an empty result rather than crashing or silently returning irrelevant offers.
+
+\subsection{Score Quality Labels}
+
+The interface presents each score alongside a qualitative tier label. The tier boundaries are grounded in the scoring model: the three primary dimensions — budget fit (25\,pts), data fit (25\,pts), and voice fit (15\,pts) — account for 65 of the 100 available points. An offer that fully covers all three primary dimensions scores a minimum of $18 + 22 + 12 = 52$\,pts before any bonus. Adding a monthly validity (5\,pts) and average value efficiency (8\,pts) raises the floor to approximately 65\,pts. The \textit{Excellent} threshold of 80\,pts therefore requires, beyond full primary-dimension coverage, a demonstrable cost-efficiency advantage — a well-defined and non-arbitrary condition. Table~\ref{tab:match-tiers} summarises the tiers.
+
+\begin{table}[H]
+  \caption{Recommendation match quality tiers}
+  \label{tab:match-tiers}
+  \centering\small
+  \begin{tabular}{|c|l|l|}
+    \hline
+    \textbf{Score} & \textbf{Label} & \textbf{Scoring interpretation} \\
+    \hline
+    $\geq 80$ & Excellent & Full primary-dimension coverage + strong cost-efficiency bonus \\
+    60--79    & Good      & Full budget and data coverage; partial voice or value gaps \\
+    40--59    & Fair      & Partial budget or data coverage \\
+    $< 40$    & Weak      & Poor overall fit; user should adjust criteria \\
+    \hline
+  \end{tabular}
+\end{table}
+
+\subsection{Priority Elicitation and Adaptive Weights}
+
+To address the concern that scoring weights are statically defined without external justification, the interface presents the user with an explicit priority selection before recommendations are computed. The user selects one of four criteria — data volume, price-value ratio, call minutes, or network quality — as their declared top priority. The engine then applies an 8-point bonus to offers that satisfy the chosen criterion, dynamically up-weighting that dimension for the current session.
+
+This technique is known as \textbf{direct weight elicitation} in multi-criteria decision theory: rather than encoding preferences inside the system at design time, the system asks the user directly and uses the response to parameterise the scoring function \parencite{Roberts1979}. The 8-point bonus is calibrated to represent approximately one scoring tier in the priority dimension — for example, moving from ``partially covers data needs'' ($+15$\,pts) to ``fully covers data needs'' ($+22$\,pts) — without dominating the overall fit score, so that an offer excelling only in the priority criterion cannot unreasonably outrank a well-balanced offer.
+
+A complementary budget-strictness control extends this principle further. Selecting \textit{Strict} restricts the candidate set to offers priced at or below the stated budget ($\times 1.0$), while the default \textit{Flexible} mode allows a 15\% overshoot ($\times 1.15$) to surface higher-value offers that are marginally above budget. Both controls are user-visible and reversible at any time, making the scoring policy transparent and auditable.
+
+\subsection{Limitations of the Validation and the Personalisation Signal}
+
+Two limitations of the current validation approach warrant explicit acknowledgement. First, the validation is structural, not empirical: it confirms that the engine correctly implements its own scoring rules, but does not measure whether those rules align with real user preferences. A user study asking participants to compare the engine's top recommendation with their own choice would constitute stronger external validation and is identified as a future research direction.
+
+Second, the operator affinity signal — derived from the user's saved offers — is an implicit proxy for preference, not an explicit rating. A user may save an offer to compare it later without intending to purchase it, or may have already cancelled a subscription with that operator. This ambiguity is mitigated by capping the affinity boost at 5~points out of 100, ensuring that content-based fit always dominates. The approach follows established practice in implicit-feedback recommender systems, where behavioural signals such as clicks, saves, or purchase history are used as noisy but useful preference indicators in the absence of explicit ratings \parencite{hu2008collaborative}.
+
+\section{Limitations}
+
+Despite the achievements listed above, six identifiable limitations should be acknowledged in the current version of \textit{Mobile Match Algeria}.
+
+The first limitation is the \textbf{scalability ceiling of SQLite}. SQLite is a single-file, serverless database that does not support concurrent writes. For the current single-server deployment and the anticipated user base, this is not a practical constraint. However, a migration to PostgreSQL would be required before the platform could support horizontal scaling or high write concurrency.
+
+The second limitation is the \textbf{fragility of web scrapers}. The scraping module parses the DOM structure and CSS class names of operator websites, which can change at any time without notice. A change in an operator's website layout would render the corresponding scraper non-functional until it is manually updated. The ScrapeLog failure notification system mitigates the operational impact but does not eliminate the maintenance burden.
+
+The third limitation is the \textbf{absence of multi-language scraping}. The scraping module currently extracts data from French-language versions of operator pages. Offer names and feature descriptions stored in the database may therefore contain French text even when the user selects the Arabic interface. A future version should normalise feature text across languages.
+
+The fourth limitation concerns the \textbf{implicit nature of the personalisation signal}. The recommendation engine uses saved offers as a proxy for operator preference. Because saving an offer does not unambiguously indicate a purchase intent or a lasting preference — a user may save an offer purely to compare it later — this signal is noisy. The boost is deliberately capped at 5~points to limit its influence, but explicit preference data (user ratings or confirmed subscriptions) would provide a stronger and more interpretable signal.
+
+The fifth limitation is the \textbf{absence of email verification at registration}. The current implementation accepts user registrations without verifying the email address. A production deployment should require users to confirm their address via a verification link before their account is activated, in order to prevent account creation with fictitious or third-party addresses. This was identified as a priority improvement for a post-prototype version.
+
+The sixth limitation is the \textbf{absence of a real payment or affiliate integration}. The platform currently links to operator websites for plan purchase but does not track conversions or provide an integrated purchase flow. This limits the platform's potential for commercial sustainability through affiliate revenue.
+
+\section{Perspectives}
+
+Several improvements are planned for future versions of the platform. On the data collection side, the three plan families currently served from a manually-verified static dataset — Djezzy ZID, Djezzy IZZY!, and Mobilis Revolution — could be made fully live through targeted technical investment. Integrating a residential proxy service or a commercial scraping API (such as Bright Data or Apify) would bypass the network-level block that prevents ZID from being reached by automated requests. Implementing optical character recognition using a library such as \textit{Tesseract.js} would allow price data to be extracted from the Mobilis Revolution image carousels. Adding an automated email alert triggered whenever a previously live plan family degrades to its fallback dataset would further reduce the time needed to detect and repair scraper breakage caused by operator website layout changes.
+
+On the infrastructure and feature side, the database layer could be migrated from SQLite to PostgreSQL to enable multi-server deployment and higher write throughput. The recommendation engine could be enhanced with collaborative filtering, using aggregated anonymised interaction data to surface plans that are popular among users with similar profiles. The platform could be extended to cover fixed-line broadband offers, creating a comprehensive telecommunications comparison tool for Algerian consumers. Finally, a public REST API could be opened to third parties, enabling other services to consume the normalised plan catalogue.
+
+\section{Documentation}
+
+\subsection{User Guide}
+
+A user guide covering the five main user journeys was produced: browsing and filtering offers, comparing plans side by side, obtaining personalised recommendations, saving and managing saved plans, and managing account settings and notifications. The guide is structured around the application screens described in Chapter~3, Section~3.5.
+
+\subsection{Administrator Manual}
+
+An administrator manual documents the admin dashboard workflows: triggering scrape runs, reading scrape logs, interpreting operator health status indicators, managing notifications, and monitoring platform statistics. It also covers the environment variable configuration and the procedure for running the scraper in manual mode via the command line.
+
+\subsection{API Reference}
+
+A concise API reference lists each route, its HTTP methods, required authentication, accepted query parameters or request body fields, and example responses. This reference facilitates future development and potential integration with third-party clients.
+
+\section*{Chapter Summary}
+
+This chapter has evaluated \textit{Mobile Match Algeria} against the five project objectives defined in the subject fiche. All five objectives were fully achieved. The recommendation engine was validated analytically on four test profiles — including an edge case — and produced the expected result in every case. The quality label tiers were grounded in the scoring model's own structure. The six limitations identified — SQLite scalability, scraper fragility, single-language scraping, implicit-only personalisation signal, absence of email verification, and absence of an affiliate integration — provide a clear roadmap for the improvements outlined in the general conclusion that follows.

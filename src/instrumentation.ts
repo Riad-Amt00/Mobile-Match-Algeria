@@ -19,7 +19,8 @@ export async function register() {
       try {
         const results = await runAllScrapers()
         results.forEach(r => {
-          console.log(`  ${r.operator}: ${r.status} — ${r.offersFound} found, ${r.offersAdded} added, ${r.offersUpdated} updated`)
+          const deactPart = r.offersDeactivated > 0 ? `, ${r.offersDeactivated} deactivated` : ''
+          console.log(`  ${r.operator}: ${r.status} — ${r.offersFound} found, ${r.offersAdded} added, ${r.offersUpdated} updated${deactPart}`)
         })
         console.log('✅ Daily scrape complete')
       } catch (err) {
@@ -58,7 +59,8 @@ export async function register() {
           console.log(`🔄 [Instrumentation] ${count === 0 ? 'No offers in DB' : `Last scrape was ${Math.round(hoursSinceLast)}h ago`} — running scrape now...`)
           const results = await runAllScrapers()
           results.forEach(r => {
-            console.log(`  ${r.operator}: ${r.status} — ${r.offersFound} found, ${r.offersAdded} added, ${r.offersUpdated} updated`)
+            const deactPart = r.offersDeactivated > 0 ? `, ${r.offersDeactivated} deactivated` : ''
+          console.log(`  ${r.operator}: ${r.status} — ${r.offersFound} found, ${r.offersAdded} added, ${r.offersUpdated} updated${deactPart}`)
           })
           console.log('✅ Startup scrape complete')
         } else {

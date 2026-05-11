@@ -1,0 +1,73 @@
+% ─────────────────────────────────────────────────────────────────────────────
+% front/abstract.tex — Three abstracts: French, English, Arabic
+% ─────────────────────────────────────────────────────────────────────────────
+
+% ── Résumé (French) ───────────────────────────────────────────────────────────
+\phantomsection
+\addcontentsline{toc}{chapter}{Résumé}
+\chapter*{Résumé}
+
+Le présent mémoire décrit la conception et le développement de \textit{Mobile Match Algérie}, une application web permettant aux consommateurs algériens de comparer les offres mobiles des trois principaux opérateurs~: Mobilis, Djezzy et Ooredoo. Face à la multiplicité et à la complexité croissante des forfaits proposés sur le marché national, les utilisateurs manquent d'un outil neutre et centralisé pour prendre des décisions éclairées. Ce travail répond à ce besoin en proposant une plateforme regroupant, en temps réel, l'ensemble des offres disponibles grâce à un module de collecte automatisée~; en offrant des outils de filtrage, de comparaison côte à côte et de visualisation graphique~; et en personnalisant les recommandations selon le profil budgétaire et d'usage de chaque utilisateur.
+
+L'application est développée avec le framework \textit{Next.js~16}, en utilisant \textit{Prisma~ORM} avec une base de données \textit{SQLite}, et déployée en tant qu'application full-stack. Un moteur de recommandation basé sur un algorithme de scoring multi-critères sélectionne les trois offres les mieux adaptées au profil de l'utilisateur. L'ensemble des fonctionnalités définies dans le cahier des charges a été implémenté et validé fonctionnellement.
+
+\bigskip
+\noindent\textbf{Mots-clés~:} comparaison d'offres mobiles, web scraping, système de recommandation, Next.js, Algérie.
+
+\newpage
+
+% ── Abstract (English) ───────────────────────────────────────────────────────
+\phantomsection
+\addcontentsline{toc}{chapter}{Abstract}
+\chapter*{Abstract}
+
+This thesis presents the design and development of \textit{Mobile Match Algeria}, a web application that enables Algerian consumers to compare mobile plans offered by the country's three main operators: Mobilis, Djezzy, and Ooredoo. The increasing number and complexity of available plans make it difficult for users to make informed choices without a neutral, centralised comparison tool. This work addresses that gap by delivering a platform that aggregates all current offers in real time through an automated scraping module, provides advanced filtering, side-by-side comparison, and graphical visualisation tools, and personalises plan recommendations according to each user's budget and usage profile.
+
+The application is built with the \textit{Next.js~16} framework using \textit{Prisma~ORM} backed by \textit{SQLite}, and is deployed as a full-stack web service. A recommendation engine based on a multi-criteria scoring algorithm selects the three best-matched plans for any given user profile. All functional requirements defined in the specification have been implemented and verified.
+
+\bigskip
+\noindent\textbf{Keywords:} mobile plan comparison, web scraping, recommendation system, Next.js, Algeria.
+
+\newpage
+
+% ── ملخص (Arabic) ────────────────────────────────────────────────────────────
+\clearpage
+\thispagestyle{plain}
+\phantomsection
+\addcontentsline{toc}{chapter}{\texorpdfstring{{\arabicfont ملخص}}{Mulakhkhas}}
+
+\begin{RTL}
+{\arabicfont\onehalfspacing
+
+\begin{center}
+  {\bfseries\fontsize{14}{17}\selectfont ملخص}\\[8pt]
+  {\large\bfseries Mobile Match Algérie}
+\end{center}
+
+\bigskip
+
+يُقدِّم هذا المذكرة تصميم وتطوير تطبيق ويب يُتيح للمستهلكين الجزائريين مقارنة
+عروض الهاتف المحمول التي تقدمها المشغلات الثلاثة الرئيسية: موبيليس وجيزي وأوريدو.
+يُعالج هذا العمل غياب أداة مقارنة محايدة ومركزية من خلال منصة تجمع جميع العروض
+الحالية في الوقت الفعلي، وتوفر أدوات تصفية متقدمة ومقارنة جانبية وتصوراً بيانياً،
+مع تخصيص التوصيات وفق الميزانية وملف استخدام كل مستخدم.
+
+\bigskip
+
+بُني التطبيق بإطار العمل Next.js 16 مع Prisma ORM وقاعدة بيانات SQLite،
+ونُشر بوصفه خدمة ويب متكاملة. يعتمد محرك التوصيات على خوارزمية تسجيل متعددة
+المعايير تختار أفضل ثلاثة عروض تناسب ملف المستخدم. وقد استُكملت جميع المتطلبات
+الوظيفية المحددة في دفتر الشروط وتم التحقق منها.
+
+\bigskip
+\noindent\textbf{الكلمات المفتاحية:}
+مقارنة عروض الهاتف المحمول،
+استخلاص البيانات من الويب،
+نظام التوصيات،
+Next.js،
+الجزائر.
+
+}
+\end{RTL}
+
+\newpage

@@ -16,6 +16,7 @@ export async function POST() {
     const totalFound = results.reduce((a, r) => a + r.offersFound, 0)
     const totalAdded = results.reduce((a, r) => a + r.offersAdded, 0)
     const totalUpdated = results.reduce((a, r) => a + r.offersUpdated, 0)
+    const totalDeactivated = results.reduce((a, r) => a + r.offersDeactivated, 0)
     const failed = results.filter(r => r.status === 'FAILED')
 
     return NextResponse.json({
@@ -24,6 +25,7 @@ export async function POST() {
       totalFound,
       totalAdded,
       totalUpdated,
+      totalDeactivated,
       failedCount: failed.length,
     })
   } catch (error: any) {

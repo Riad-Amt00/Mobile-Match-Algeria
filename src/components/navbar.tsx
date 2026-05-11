@@ -51,7 +51,14 @@ export function Navbar() {
   const [langOpen, setLangOpen] = useState(false)
   const [notifications, setNotifications] = useState<any[]>([])
   const [unreadCount, setUnreadCount] = useState(0)
-  const [theme, setTheme] = useState<'dark' | 'light'>('light')
+  const [theme, setTheme] = useState<'dark' | 'light'>('dark')
+  const [scrolled, setScrolled] = useState(false)
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 8)
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => window.removeEventListener('scroll', onScroll)
+  }, [])
 
   const userMenuRef = useRef<HTMLDivElement>(null)
   const notifRef = useRef<HTMLDivElement>(null)
@@ -59,7 +66,7 @@ export function Navbar() {
 
   useEffect(() => {
     const saved = localStorage.getItem('theme') as 'dark' | 'light' | null
-    const initial = saved || 'light'
+    const initial = saved || 'dark'
     setTheme(initial)
     document.documentElement.setAttribute('data-theme', initial)
   }, [])
@@ -162,8 +169,9 @@ export function Navbar() {
     <nav style={{
       position: 'sticky', top: 0, zIndex: 100,
       background: 'var(--bg-card)',
-      borderBottom: '1px solid var(--border-base)',
-      boxShadow: '0 1px 3px rgba(15,23,42,0.06)',
+      borderBottom: '1px solid var(--border-subtle)',
+      boxShadow: scrolled ? '0 4px 16px rgba(16,24,40,0.08)' : '0 1px 3px rgba(16,24,40,0.04)',
+      transition: 'box-shadow 0.25s ease',
     }}>
       <div style={{ maxWidth: 1280, margin: '0 auto', padding: '0 1.5rem', height: 60, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
 
@@ -187,16 +195,12 @@ export function Navbar() {
           <div className="desktop-nav" style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
             {navLinks.map(link => (
               <Link key={link.href} href={link.href}
-                className="nav-link"
+                className={`nav-link${isActive(link.href) ? ' active' : ''}`}
                 style={{
                   display: 'flex', alignItems: 'center', gap: 5,
-                  padding: '0.4rem 0.875rem',
-                  textDecoration: 'none', fontSize: 13.5, fontWeight: 500,
+                  textDecoration: 'none', fontSize: 13.5, fontWeight: isActive(link.href) ? 600 : 500,
                   color: isActive(link.href) ? 'var(--accent)' : 'var(--text-secondary)',
                   background: isActive(link.href) ? 'var(--accent-muted)' : 'transparent',
-                  borderRadius: 8,
-                  borderBottom: isActive(link.href) ? '2px solid var(--accent)' : '2px solid transparent',
-                  transition: 'color 0.15s, background 0.15s, border-color 0.15s',
                 }}>
                 {link.icon} {link.label}
               </Link>
@@ -305,17 +309,17 @@ export function Navbar() {
                     }}
                   >
                     <div style={{ padding: '0.875rem 1rem', borderBottom: '1px solid var(--border-base)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={{ fontWeight: 700, fontSize: 14, color: 'var(--text-primary)' }}>Notifications</span>
+                      <span style={{ fontWeight: 700, fontSize: 14, color: 'var(--text-primary)' }}>{t('profile.notifications')}</span>
                       {unreadCount > 0 && (
                         <button onClick={markAllRead} style={{ background: 'none', border: 'none', color: 'var(--accent)', fontSize: 12, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, fontFamily: 'inherit' }}>
-                          <Check size={11} /> Mark all read
+                          <Check size={11} /> {t('profile.markAllRead')}
                         </button>
                       )}
                     </div>
                     {notifications.length === 0 ? (
                       <div style={{ padding: '2.5rem 1rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: 13 }}>
                         <Bell size={24} style={{ opacity: 0.3, marginBottom: 8, display: 'block', margin: '0 auto 8px' }} />
-                        No notifications yet
+                        {t('profile.noNotif')}
                       </div>
                     ) : (
                       notifications.slice(0, 8).map(n => {
@@ -354,7 +358,7 @@ export function Navbar() {
                     {notifications.length > 8 && (
                       <Link href="/profile" onClick={() => setNotifOpen(false)}
                         style={{ display: 'block', textAlign: 'center', padding: '0.75rem', color: 'var(--accent)', fontSize: 13, fontWeight: 600, textDecoration: 'none', borderTop: '1px solid var(--border-base)' }}>
-                        View all notifications →
+                        {t('profile.viewAll')}
                       </Link>
                     )}
                   </motion.div>
@@ -512,13 +516,13 @@ export function Navbar() {
                     color: 'var(--text-secondary)', border: '1px solid var(--border-base)',
                     textDecoration: 'none', textAlign: 'center',
                   }}>
-                    Sign in
+                    {t('nav.signIn')}
                   </Link>
                   <Link href="/register" style={{
                     flex: 1, padding: '0.75rem', borderRadius: 10, fontSize: 14, fontWeight: 700,
                     background: 'var(--accent)', color: 'white', textDecoration: 'none', textAlign: 'center',
                   }}>
-                    Register
+                    {t('nav.register')}
                   </Link>
                 </div>
               )}

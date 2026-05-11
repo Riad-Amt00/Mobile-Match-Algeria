@@ -103,6 +103,20 @@ export const OPERATOR_LOGOS: Record<string, string> = {
   mobilis: '/logos/mobilis.svg',
 }
 
+export const COVERAGE_URLS: Record<string, string> = {
+  djezzy:  'https://www.djezzy.dz/couverture-reseau/',
+  ooredoo: 'https://www.ooredoo.dz/particuliers/assistance/carte-de-couverture/',
+  mobilis: 'https://www.mobilis.dz/couverture/',
+}
+
+export const FEATURE_ICONS: Record<string, string> = {
+  streaming: 'play', anaflix: 'play', shahid: 'play', youtube: 'play',
+  'réseaux sociaux': 'share', facebook: 'share', tiktok: 'share', instagram: 'share', social: 'share',
+  nuit: 'moon', 'bonus nuit': 'moon',
+  roaming: 'globe',
+  'illimité': 'infinity',
+}
+
 export const RANK_COLORS = ['#F59E0B', '#94A3B8', '#CD7C3E']
 export const RANK_GRADIENTS = [
   'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)',

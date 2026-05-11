@@ -79,6 +79,7 @@ export async function GET() {
         offersFound: l.offersFound,
         offersAdded: l.offersAdded,
         offersUpdated: l.offersUpdated,
+        offersDeactivated: l.offersDeactivated,
         duration: l.duration,
         startedAt: l.startedAt,
         errorMessage: l.errorMessage,

@@ -13,9 +13,11 @@ export async function GET() {
     orderBy: { savedAt: 'desc' },
   })
 
+  const activeSaved = saved.filter(s => s.offer?.isActive !== false)
+
   return NextResponse.json({
-    savedIds: saved.map(s => s.offerId),
-    savedOffers: saved.map(s => s.offer),
+    savedIds: activeSaved.map(s => s.offerId),
+    savedOffers: activeSaved.map(s => s.offer),
   })
 }
 
@@ -28,6 +30,9 @@ export async function POST(req: NextRequest) {
 
   const { offerId } = await req.json()
   if (!offerId) return NextResponse.json({ error: 'offerId is required' }, { status: 400 })
+
+  const offerExists = await db.offer.findUnique({ where: { id: offerId }, select: { id: true } })
+  if (!offerExists) return NextResponse.json({ error: 'Offer not found' }, { status: 404 })
 
   const existing = await db.savedOffer.findUnique({
     where: { userId_offerId: { userId: session.user.id, offerId } },

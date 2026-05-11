@@ -6,6 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
+    "test": "vitest run",
     "lint": "eslint",
     "postinstall": "prisma generate",
     "db:migrate": "prisma migrate dev",
@@ -37,7 +38,6 @@
     "next": "16.2.3",
     "next-auth": "^5.0.0-beta.30",
     "node-cron": "^4.2.1",
-    "playwright": "^1.59.1",
     "prisma": "^7.7.0",
     "react": "19.2.4",
     "react-dom": "19.2.4",
@@ -58,6 +58,7 @@
     "eslint-config-next": "16.2.3",
     "tailwindcss": "^4",
     "ts-node": "^10.9.2",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^4.1.5"
   }
 }

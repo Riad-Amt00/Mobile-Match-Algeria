@@ -5,12 +5,13 @@ import Link from 'next/link'
 import { signIn } from 'next-auth/react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { ArrowLeft, Mail, Lock, Eye, EyeOff, Loader2, Smartphone, CheckCircle } from 'lucide-react'
+import { useLang } from '@/lib/lang-context'
 
 export default function LoginPage() {
+  const { t } = useLang()
   const router = useRouter()
   const params = useSearchParams()
-  const verified = params.get('verified') === '1'
-  const promoted = params.get('promoted') === '1'
+  const registered = params.get('registered') === '1'
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -25,17 +26,13 @@ export default function LoginPage() {
     try {
       const res = await signIn('credentials', { email, password, redirect: false })
       if (res?.error) {
-        if (res.error === 'UNVERIFIED') {
-          setError('Please verify your email before logging in.')
-        } else {
-          setError('Incorrect email or password.')
-        }
+        setError(t('login.errorCreds'))
         return
       }
       router.push('/offers')
       router.refresh()
     } catch {
-      setError('Network error. Please try again.')
+      setError(t('login.errorNet'))
     } finally {
       setLoading(false)
     }
@@ -53,13 +50,13 @@ export default function LoginPage() {
           fontWeight: 500, marginBottom: '2rem',
           transition: 'color 0.15s',
         }}>
-          <ArrowLeft size={15} /> Back to home
+          <ArrowLeft size={15} /> {t('login.back')}
         </Link>
 
         <div style={{
           background: 'var(--bg-card)', borderRadius: 16,
           border: '1px solid var(--border-base)',
-          boxShadow: '0 4px 20px rgba(15,23,42,0.08)',
+          boxShadow: 'var(--shadow-elevated)',
           padding: '2.25rem',
         }}>
           {/* Logo */}
@@ -68,34 +65,28 @@ export default function LoginPage() {
               width: 52, height: 52, borderRadius: 14, margin: '0 auto 1rem',
               background: 'var(--accent)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              boxShadow: '0 4px 14px rgba(37,99,235,0.30)',
+              boxShadow: 'var(--shadow-accent)',
             }}>
               <Smartphone size={22} color="white" />
             </div>
             <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: 6, letterSpacing: '-0.02em' }}>
-              Welcome back
+              {t('login.title')}
             </h1>
             <p style={{ color: 'var(--text-secondary)', fontSize: 14 }}>
-              Sign in to your MobileMatch account
+              {t('login.subtitle')}
             </p>
           </div>
 
-          {/* Success notices */}
-          {verified && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '0.75rem 1rem', borderRadius: 10, background: 'rgba(34,197,94,0.07)', border: '1px solid rgba(34,197,94,0.25)', color: '#15803D', fontSize: 13, fontWeight: 600, marginBottom: '1.25rem' }}>
-              <CheckCircle size={15} /> Email verified! You can now sign in.
-            </div>
-          )}
-          {promoted && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '0.75rem 1rem', borderRadius: 10, background: 'rgba(37,99,235,0.07)', border: '1px solid rgba(37,99,235,0.25)', color: 'var(--accent)', fontSize: 13, fontWeight: 600, marginBottom: '1.25rem' }}>
-              <CheckCircle size={15} /> Admin access granted! Please sign in again.
+          {registered && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '0.75rem 1rem', borderRadius: 10, background: 'var(--color-success-muted)', border: '1px solid var(--color-success-border)', color: 'var(--color-success)', fontSize: 13, fontWeight: 600, marginBottom: '1.25rem' }}>
+              <CheckCircle size={15} /> {t('login.registered')}
             </div>
           )}
 
           <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             <div>
               <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', display: 'block', marginBottom: 6 }}>
-                Email address
+                {t('login.email')}
               </label>
               <div style={{ position: 'relative' }}>
                 <Mail size={15} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
@@ -113,7 +104,7 @@ export default function LoginPage() {
 
             <div>
               <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', display: 'block', marginBottom: 6 }}>
-                Password
+                {t('login.password')}
               </label>
               <div style={{ position: 'relative' }}>
                 <Lock size={15} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
@@ -154,15 +145,15 @@ export default function LoginPage() {
                 background: loading ? 'var(--accent-hover)' : 'var(--accent)',
                 color: 'white', border: 'none', cursor: loading ? 'wait' : 'pointer',
                 fontFamily: 'inherit', transition: 'background 0.15s',
-                boxShadow: '0 2px 8px rgba(37,99,235,0.25)',
+                boxShadow: 'var(--btn-primary-shadow)',
               }}>
-              {loading ? <><Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> Signing in…</> : 'Sign in'}
+              {loading ? <><Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> {t('login.signingIn')}</> : t('login.submit')}
             </button>
 
             <p style={{ textAlign: 'center', fontSize: 13, color: 'var(--text-secondary)', margin: 0 }}>
-              Don&apos;t have an account?{' '}
+              {t('login.noAccount')}{' '}
               <Link href="/register" style={{ color: 'var(--accent)', textDecoration: 'none', fontWeight: 600 }}>
-                Create one free
+                {t('login.createFree')}
               </Link>
             </p>
           </form>

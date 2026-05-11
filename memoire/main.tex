@@ -1,0 +1,53 @@
+% ─────────────────────────────────────────────────────────────────────────────
+% main.tex — Root file for the Mémoire de Fin d'Études
+% Engine: XeLaTeX
+% Compile sequence:  xelatex → biber → xelatex → xelatex
+% ─────────────────────────────────────────────────────────────────────────────
+
+\documentclass[12pt,a4paper]{report}
+
+\input{preamble}
+\usepackage{pdfpages}
+
+\begin{document}
+
+%% ── PRELIMINARY PAGES (Roman numerals) ──────────────────────────────────────
+\pagenumbering{roman}
+
+% Official IFAG cover page — page 2 of the converted Word template (page 1 is the section label)
+\includepdf[pages=2,noautoscale=false,fitpaper=true]{page_de_garde}
+\thispagestyle{empty}
+\input{front/dedication}       % Dedication
+\input{front/acknowledgments}  % Acknowledgments
+\input{front/abstract}         % Résumé (FR) + Abstract (EN) + ملخص (AR)
+
+\tableofcontents
+
+\clearpage
+\phantomsection
+\addcontentsline{toc}{chapter}{\listfigurename}
+\listoffigures
+
+\clearpage
+\phantomsection
+\addcontentsline{toc}{chapter}{\listtablename}
+\listoftables
+
+\input{lists/abbreviations}
+
+%% ── MAIN BODY (Arabic numerals from Introduction onward) ────────────────────
+\pagenumbering{arabic}
+
+\input{chapters/introduction}        % Unnumbered general introduction
+\input{chapters/ch1_concepts}        % Chapter 1 — State of the Art
+\input{chapters/ch2_analysis}        % Chapter 2 — Analysis and Design
+\input{chapters/ch3_implementation}  % Chapter 3 — Implementation
+\input{chapters/ch4_tests}           % Chapter 4 — Evaluation and Documentation
+\input{chapters/conclusion}          % Unnumbered general conclusion
+
+%% ── BACK MATTER ──────────────────────────────────────────────────────────────
+\printbibliography[heading=bibintoc, title={Bibliographic References}]
+
+\input{back/annexes}
+
+\end{document}

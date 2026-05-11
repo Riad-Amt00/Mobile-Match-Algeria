@@ -107,7 +107,7 @@ export default function SavedOffersPage() {
               <Bookmark size={20} style={{ color: 'var(--text-muted)' }} /> {t('saved.title')}
             </h1>
             <p style={{ color: 'var(--text-muted)', fontSize: 13 }}>
-              {savedOffers.length} saved offer{savedOffers.length !== 1 ? 's' : ''}
+              {savedOffers.length} {t('saved.countLabel')}
             </p>
           </div>
           <button onClick={loadSaved} className="btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '0.5rem 0.875rem', fontSize: 13 }}>
@@ -178,7 +178,7 @@ export default function SavedOffersPage() {
                         <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
                           <span className="price-hero">{offer.priceDA?.toLocaleString('fr-DZ')}</span>
                           <span style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', fontWeight: 600 }}>DA</span>
-                          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginLeft: 4 }}>/ {formatValidity(offer.validityDays)}</span>
+                          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginLeft: 4 }}>/ {formatValidity(offer.validityDays, t)}</span>
                         </div>
                         {pricePerGB > 0 && (
                           <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>≈ {pricePerGB} DA/GB</div>
@@ -255,10 +255,10 @@ export default function SavedOffersPage() {
           display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '1rem', flexWrap: 'wrap',
         }}>
           <span style={{ fontSize: 14, color: 'var(--text-secondary)', fontWeight: 500 }}>
-            {compareList.length} offer{compareList.length !== 1 ? 's' : ''} selected
+            {compareList.length} {t('compare.selectedOffers')}
           </span>
           <Link
-            href={`/compare?ids=${compareList.join(',')}`}
+            href={`/compare?ids=${compareList.join(',')}&from=saved`}
             className="btn-primary"
             style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '0.625rem 1.5rem', textDecoration: 'none', fontSize: 14, fontWeight: 700 }}
           >
@@ -268,7 +268,7 @@ export default function SavedOffersPage() {
             onClick={() => setCompareList([])}
             style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: 13, fontFamily: 'inherit', padding: '0.25rem 0.5rem' }}
           >
-            ✕ Clear
+            ✕ {t('compare.clear')}
           </button>
         </div>
       )}

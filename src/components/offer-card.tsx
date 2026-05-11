@@ -1,8 +1,8 @@
 'use client'
 
 import Link from 'next/link'
-import { Signal, Wifi, Phone, MessageSquare, Calendar, Zap, Sparkles, Bookmark, BookmarkCheck, CheckCircle, BarChart3, Loader2 } from 'lucide-react'
-import { formatDA, formatData, formatMinutes, formatSms, formatValidity, getPricePerGB, getNetworkStyle, OPERATOR_LOGOS, cleanOfferName } from '@/lib/utils'
+import { Signal, Wifi, Phone, MessageSquare, Calendar, Zap, Sparkles, Bookmark, BookmarkCheck, CheckCircle2, BarChart3, Loader2 } from 'lucide-react'
+import { formatData, formatMinutes, formatSms, formatValidity, getPricePerGB, getNetworkStyle, OPERATOR_LOGOS, cleanOfferName } from '@/lib/utils'
 import { useLang } from '@/lib/lang-context'
 
 export interface Offer {
@@ -17,11 +17,7 @@ export interface Offer {
   network: string
   features: string
   isFeatured: boolean
-  operator: {
-    name: string
-    slug: string
-    primaryColor: string
-  }
+  operator: { name: string; slug: string; primaryColor: string }
 }
 
 interface OfferCardProps {
@@ -35,6 +31,7 @@ interface OfferCardProps {
   isLoggedIn?: boolean
 }
 
+
 export function OfferCard({
   offer,
   isSelected = false,
@@ -47,162 +44,177 @@ export function OfferCard({
 }: OfferCardProps) {
   const { t } = useLang()
   const pricePerGB = getPricePerGB(offer.priceDA, offer.dataGB)
-  const typeLabel = { PREPAID: 'Prepaid', POSTPAID: 'Postpaid', DATA_ONLY: 'Data only' }[offer.type] || offer.type
   const networkStyle = getNetworkStyle(offer.network)
+  const color = offer.operator.primaryColor
+
+  const specs = [
+    { icon: <Wifi size={14} />,          label: t('offer.data'),     value: formatData(offer.dataGB, t) },
+    { icon: <Phone size={14} />,         label: t('offer.calls'),    value: formatMinutes(offer.voiceMinutes, t) },
+    { icon: <MessageSquare size={14} />, label: t('offer.sms'),      value: formatSms(offer.smsCount, t) },
+    { icon: <Calendar size={14} />,      label: t('offer.validity'), value: formatValidity(offer.validityDays, t) },
+  ]
 
   return (
     <div
+      className="offer-card"
       style={{
         display: 'flex',
         flexDirection: 'column',
-        background: 'var(--bg-card)',
-        borderRadius: 12,
-        border: isSelected ? '1.5px solid var(--accent)' : '1px solid var(--border-base)',
-        boxShadow: isSelected
-          ? '0 0 0 3px rgba(37,99,235,0.10), 0 2px 8px rgba(15,23,42,0.08)'
-          : '0 1px 4px rgba(15,23,42,0.06)',
-        overflow: 'hidden',
-        position: 'relative',
-        transition: 'box-shadow 0.18s, border-color 0.18s, transform 0.18s',
-      }}
-      onMouseEnter={e => {
-        if (!isSelected) {
-          e.currentTarget.style.boxShadow = '0 6px 20px rgba(15,23,42,0.12)'
-          e.currentTarget.style.transform = 'translateY(-2px)'
-        }
-      }}
-      onMouseLeave={e => {
-        e.currentTarget.style.boxShadow = isSelected
-          ? '0 0 0 3px rgba(37,99,235,0.10), 0 2px 8px rgba(15,23,42,0.08)'
-          : '0 1px 4px rgba(15,23,42,0.06)'
-        e.currentTarget.style.transform = 'translateY(0)'
+        border: isSelected ? '1.5px solid var(--accent)' : undefined,
+        boxShadow: isSelected ? '0 0 0 3px var(--accent-muted), var(--shadow-md)' : undefined,
       }}
     >
-      {/* Left operator color strip */}
-      <div style={{
-        position: 'absolute', left: 0, top: 0, bottom: 0, width: 4,
-        background: offer.operator.primaryColor,
-        borderRadius: '12px 0 0 12px',
-      }} />
+      {/* Operator colour bar — grows on hover via CSS */}
+      <div className="card-operator-bar" style={{ background: color }} />
 
       {/* Recommended badge */}
       {isRecommended && (
         <div style={{
-          position: 'absolute', top: 12, right: 12, zIndex: 2,
-          background: 'var(--accent)', color: '#ffffff',
-          fontSize: 11, fontWeight: 700, padding: '3px 9px',
-          borderRadius: 20,
+          position: 'absolute', top: 14, right: 14, zIndex: 2,
+          background: 'linear-gradient(135deg, #7C3AED, #2563EB)',
+          color: '#fff', fontSize: 11, fontWeight: 700,
+          padding: '3px 10px', borderRadius: 20,
           display: 'flex', alignItems: 'center', gap: 4,
+          boxShadow: '0 2px 8px rgba(124,58,237,0.40)',
+          animation: 'badge-pop 0.4s cubic-bezier(0.34,1.56,0.64,1) both',
         }}>
-          <Sparkles size={9} /> {t('offer.forYou')}
+          <Sparkles size={10} /> {t('offer.forYou')}
         </div>
       )}
 
-      <div style={{ padding: '1.125rem 1.125rem 1.125rem 1.375rem', display: 'flex', flexDirection: 'column', flex: 1 }}>
+      <div style={{ padding: '1.25rem 1.25rem 1rem', display: 'flex', flexDirection: 'column', flex: 1, gap: 0 }}>
 
-        {/* Header */}
-        <div style={{ display: 'flex', alignItems: 'start', gap: 10, marginBottom: '0.875rem' }}>
+        {/* ── Header ── */}
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: '1rem' }}>
+          {/* Logo */}
           <div style={{
-            width: 38, height: 38, borderRadius: 9, flexShrink: 0,
-            background: 'var(--bg-elevated)',
-            border: '1px solid var(--border-base)',
+            width: 44, height: 44, borderRadius: 12, flexShrink: 0,
+            background: `${color}12`,
+            border: `1.5px solid ${color}30`,
             display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
           }}>
             {OPERATOR_LOGOS[offer.operator.slug]
-              ? <img src={OPERATOR_LOGOS[offer.operator.slug]} alt={offer.operator.name} style={{ width: '72%', height: '72%', objectFit: 'contain' }} />
-              : <Signal size={16} color="var(--text-muted)" />}
+              ? <img src={OPERATOR_LOGOS[offer.operator.slug]} alt={offer.operator.name} style={{ width: '70%', height: '70%', objectFit: 'contain' }} />
+              : <Signal size={18} color={color} />}
           </div>
+
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap' }}>
+            {/* Operator + type badges */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginBottom: 5 }}>
               <span style={{
-                fontSize: 11, fontWeight: 700, padding: '2px 7px', borderRadius: 20,
-                color: offer.operator.primaryColor,
-                background: `${offer.operator.primaryColor}15`,
-                border: `1px solid ${offer.operator.primaryColor}30`,
-              }}>{offer.operator.name}</span>
+                fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 20,
+                background: `${color}12`, color: color, border: `1px solid ${color}25`,
+              }}>
+                {offer.operator.name}
+              </span>
               <span style={{
-                fontSize: 11, fontWeight: 500, padding: '2px 7px', borderRadius: 20,
+                fontSize: 11, fontWeight: 500, padding: '2px 8px', borderRadius: 20,
                 background: 'var(--bg-elevated)', color: 'var(--text-muted)',
-                border: '1px solid var(--border-base)',
-              }}>{typeLabel}</span>
+                border: '1px solid var(--border-subtle)',
+              }}>
+                {({ PREPAID: t('type.prepaid'), POSTPAID: t('type.postpaid'), DATA_ONLY: t('type.dataOnly') } as Record<string, string>)[offer.type] ?? offer.type}
+              </span>
             </div>
+
+            {/* Offer name */}
             <Link href={`/offers/${offer.id}`} style={{ textDecoration: 'none' }}>
               <h3 style={{
-                fontSize: '0.9rem', fontWeight: 700, marginTop: 3,
+                fontSize: '0.9rem', fontWeight: 700, lineHeight: 1.3,
                 color: 'var(--text-primary)',
                 whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-                cursor: 'pointer', lineHeight: 1.3,
-              }}>{cleanOfferName(offer.name)}</h3>
+                cursor: 'pointer',
+                transition: 'color 0.15s',
+              }}
+                onMouseEnter={e => (e.currentTarget.style.color = color)}
+                onMouseLeave={e => (e.currentTarget.style.color = 'var(--text-primary)')}
+              >
+                {cleanOfferName(offer.name)}
+              </h3>
             </Link>
           </div>
         </div>
 
-        {/* Price */}
-        <div style={{ marginBottom: '1rem', paddingBottom: '1rem', borderBottom: '1px solid var(--border-subtle)' }}>
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
-            <span style={{ fontSize: '1.625rem', fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.02em', lineHeight: 1 }}>
+        {/* ── Price ── */}
+        <div style={{
+          padding: '0.875rem 1rem',
+          background: `${color}07`,
+          borderRadius: 12,
+          border: `1px solid ${color}15`,
+          marginBottom: '1rem',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 5 }}>
+            <span style={{
+              fontSize: '2rem', fontWeight: 900, color: 'var(--text-primary)',
+              letterSpacing: '-0.04em', lineHeight: 1,
+            }}>
               {offer.priceDA.toLocaleString('fr-DZ')}
             </span>
-            <span style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', fontWeight: 600 }}>DA</span>
-            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginLeft: 4 }}>
-              / {formatValidity(offer.validityDays)}
+            <span style={{ fontSize: 15, color: 'var(--text-secondary)', fontWeight: 700 }}>DA</span>
+            <span style={{ fontSize: 12, color: 'var(--text-muted)', marginLeft: 2 }}>
+              / {formatValidity(offer.validityDays, t)}
             </span>
           </div>
           {offer.dataGB > 0 && pricePerGB > 0 && (
-            <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 3 }}>
+            <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 4, fontWeight: 500 }}>
               ≈ {pricePerGB} DA/GB
             </div>
           )}
         </div>
 
-        {/* Specs grid */}
+        {/* ── Specs grid ── */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 7, marginBottom: '0.875rem' }}>
-          {([
-            { icon: <Wifi size={13} />, label: t('offer.data'), value: formatData(offer.dataGB, t) },
-            { icon: <Phone size={13} />, label: t('offer.calls'), value: formatMinutes(offer.voiceMinutes, t) },
-            { icon: <MessageSquare size={13} />, label: t('offer.sms'), value: formatSms(offer.smsCount, t) },
-            { icon: <Calendar size={13} />, label: t('offer.validity'), value: formatValidity(offer.validityDays, t) },
-          ] as const).map(spec => (
-            <div key={spec.label} style={{
-              background: 'var(--bg-elevated)', borderRadius: 8, padding: '6px 8px',
-              border: '1px solid var(--border-subtle)',
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 2 }}>
-                <span style={{ color: 'var(--text-muted)' }}>{spec.icon}</span>
-                <span style={{ fontSize: 10, color: 'var(--text-muted)', fontWeight: 500 }}>{spec.label}</span>
+          {specs.map(s => (
+            <div key={s.label} className="spec-chip">
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
+                <span style={{ color: 'var(--text-muted)' }}>{s.icon}</span>
+                <span style={{ fontSize: 10, color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{s.label}</span>
               </div>
-              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>{spec.value}</div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', textAlign: 'center' }}>{s.value}</div>
             </div>
           ))}
         </div>
 
-        {/* Network badge */}
-        <div style={{ marginBottom: '0.875rem' }}>
+        {/* ── Network tag + feature chips ── */}
+        <div style={{ marginBottom: '1rem' }}>
           <span style={{
             display: 'inline-flex', alignItems: 'center', gap: 4,
-            fontSize: 11, fontWeight: 600, padding: '3px 9px', borderRadius: 20,
+            fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 20,
+            letterSpacing: '0.03em',
             ...networkStyle,
           }}>
             <Zap size={10} /> {offer.network}
           </span>
         </div>
 
-        {/* Actions */}
-        <div style={{ display: 'flex', gap: 7, marginTop: 'auto' }}>
+        {/* ── Actions ── */}
+        <div style={{ display: 'flex', gap: 8, marginTop: 'auto' }}>
           {onToggleCompare && (
             <button
               type="button"
-              onClick={(e) => { e.stopPropagation(); onToggleCompare(offer.id, offer.name) }}
+              onClick={e => { e.stopPropagation(); onToggleCompare(offer.id, offer.name) }}
               style={{
-                flex: 1, padding: '0.55rem', fontSize: 12.5, fontWeight: 600,
+                flex: 1, padding: '0.6rem 0.5rem', fontSize: 12.5, fontWeight: 600,
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
-                borderRadius: 8, cursor: 'pointer', border: 'none', fontFamily: 'inherit',
+                borderRadius: 10, cursor: 'pointer', border: 'none', fontFamily: 'inherit',
                 background: isSelected ? 'var(--accent)' : 'var(--bg-elevated)',
-                color: isSelected ? 'white' : 'var(--text-secondary)',
-                transition: 'background 0.15s, color 0.15s',
+                color: isSelected ? '#fff' : 'var(--text-secondary)',
+                boxShadow: isSelected ? 'var(--shadow-accent)' : 'none',
+                transition: 'all 0.18s',
+              }}
+              onMouseEnter={e => {
+                if (!isSelected) {
+                  e.currentTarget.style.background = 'var(--accent-muted)'
+                  e.currentTarget.style.color = 'var(--accent)'
+                }
+              }}
+              onMouseLeave={e => {
+                if (!isSelected) {
+                  e.currentTarget.style.background = 'var(--bg-elevated)'
+                  e.currentTarget.style.color = 'var(--text-secondary)'
+                }
               }}
             >
-              {isSelected ? <CheckCircle size={13} /> : <BarChart3 size={13} />}
+              {isSelected ? <CheckCircle2 size={13} /> : <BarChart3 size={13} />}
               {isSelected ? t('offer.selected') : t('offer.compare')}
             </button>
           )}
@@ -210,17 +222,30 @@ export function OfferCard({
           {onToggleSave && (
             <button
               type="button"
-              onClick={(e) => { e.stopPropagation(); onToggleSave(offer.id, offer.name) }}
+              onClick={e => { e.stopPropagation(); onToggleSave(offer.id, offer.name) }}
               disabled={isSaving}
               style={{
-                flex: 1, padding: '0.55rem 0.75rem', fontSize: 12.5, fontWeight: 600,
+                flex: 1, padding: '0.6rem 0.5rem', fontSize: 12.5, fontWeight: 600,
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
-                borderRadius: 8, cursor: isSaving ? 'wait' : 'pointer',
+                borderRadius: 10, cursor: isSaving ? 'wait' : 'pointer',
                 opacity: isSaving ? 0.6 : 1,
                 border: 'none', fontFamily: 'inherit',
-                background: isSaved ? 'var(--accent-muted)' : 'var(--bg-elevated)',
+                background: isSaved ? 'rgba(37,99,235,0.10)' : 'var(--bg-elevated)',
                 color: isSaved ? 'var(--accent)' : 'var(--text-secondary)',
-                transition: 'background 0.15s, color 0.15s',
+                boxShadow: isSaved ? '0 2px 8px rgba(37,99,235,0.20)' : 'none',
+                transition: 'all 0.18s',
+              }}
+              onMouseEnter={e => {
+                if (!isSaved && !isSaving) {
+                  e.currentTarget.style.background = 'rgba(37,99,235,0.08)'
+                  e.currentTarget.style.color = 'var(--accent)'
+                }
+              }}
+              onMouseLeave={e => {
+                if (!isSaved && !isSaving) {
+                  e.currentTarget.style.background = 'var(--bg-elevated)'
+                  e.currentTarget.style.color = 'var(--text-secondary)'
+                }
               }}
             >
               {isSaving

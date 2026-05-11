@@ -5,7 +5,7 @@ const nextConfig: NextConfig = {
   // externalized by Next.js 15+ — no config needed.
   images: {
     remotePatterns: [
-      { protocol: 'https', hostname: 'www.djezzy5g.dz' },
+      { protocol: 'https', hostname: 'www.djezzy.dz' },
       { protocol: 'https', hostname: 'www.ooredoo.dz' },
       { protocol: 'https', hostname: 'mobilis.dz' },
     ],

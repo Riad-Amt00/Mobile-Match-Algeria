@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { motion, type Variants } from 'framer-motion'
 import {
-  Filter, ChevronDown, Zap, BarChart3, SearchX, LayoutGrid,
+  Filter, ChevronDown, Zap, BarChart3, SearchX, LayoutGrid, Info, ChevronLeft, ChevronRight,
 } from 'lucide-react'
 import { useSession } from 'next-auth/react'
 import { useToast } from '@/components/toast'
@@ -24,7 +24,7 @@ const itemVariants: Variants = {
 }
 
 const OPERATORS = [
-  { slug: 'all',     name: 'All' },
+  { slug: 'all' },
   { slug: 'djezzy',  name: 'Djezzy' },
   { slug: 'ooredoo', name: 'Ooredoo' },
   { slug: 'mobilis', name: 'Mobilis' },
@@ -43,10 +43,21 @@ export default function OffersPage() {
   const [recommendedIds, setRecommendedIds] = useState<Set<string>>(new Set())
   const [showFilters, setShowFilters] = useState(false)
   const [savingId, setSavingId] = useState<string | null>(null)
+  const [page, setPage] = useState(1)
+  const [totalOffers, setTotalOffers] = useState(0)
+  const [totalPages, setTotalPages] = useState(1)
+  const [lastVerified, setLastVerified] = useState<string | null>(null)
   const { t } = useLang()
   const { data: session, status } = useSession()
   const { success, error: toastError, warning, info } = useToast()
   const router = useRouter()
+
+  useEffect(() => {
+    fetch('/api/stats')
+      .then(r => r.json())
+      .then(d => { if (d.lastUpdated) setLastVerified(d.lastUpdated) })
+      .catch(() => {})
+  }, [])
 
   useEffect(() => {
     if (status === 'authenticated') {
@@ -74,7 +85,7 @@ export default function OffersPage() {
         })
         .then(data => {
           if (data?.recommendations) {
-            setRecommendedIds(new Set(data.recommendations.map((r: any) => r.id)))
+            setRecommendedIds(new Set(data.recommendations.map((r: any) => r.offer.id)))
           }
         })
         .catch(() => {})
@@ -103,9 +114,9 @@ export default function OffersPage() {
         data.saved ? next.add(offerId) : next.delete(offerId)
         return next
       })
-      data.saved ? success(`${offerName ?? 'Offer'} saved!`) : info('Removed from saved')
+      data.saved ? success(`${offerName ?? ''} ${t('toast.saved')}`) : info(t('toast.removedSaved'))
     } catch {
-      toastError('Failed — try again')
+      toastError(t('toast.saveError'))
     } finally {
       setSavingId(null)
     }
@@ -114,16 +125,16 @@ export default function OffersPage() {
   const toggleCompare = useCallback((id: string, name?: string) => {
     if (compareList.includes(id)) {
       setCompareList(compareList.filter(x => x !== id))
-      info(`${name ?? 'Plan'} removed from comparison`)
+      info(`${name ?? ''} ${t('toast.removedCmp')}`)
     } else if (compareList.length >= 3) {
-      warning('You can compare up to 3 plans')
+      warning(t('toast.maxPlans'))
     } else {
       setCompareList([...compareList, id])
-      success(`${name ?? 'Plan'} added to comparison`)
+      success(`${name ?? ''} ${t('toast.addedCompare')}`)
     }
   }, [compareList, warning, info, success])
 
-  const fetchOffers = useCallback(async () => {
+  const fetchOffers = useCallback(async (targetPage: number) => {
     setLoading(true)
     try {
       const params = new URLSearchParams()
@@ -132,9 +143,12 @@ export default function OffersPage() {
       if (maxPrice < 10000) params.set('maxPrice', String(maxPrice))
       if (minData > 0) params.set('minData', String(minData))
       if (activeNetwork !== 'all') params.set('network', activeNetwork)
+      params.set('page', String(targetPage))
       const res = await fetch(`/api/offers?${params}`)
       const data = await res.json()
       setOffers(data.offers || [])
+      setTotalOffers(data.total ?? 0)
+      setTotalPages(data.totalPages ?? 1)
     } catch {
       setOffers([])
     } finally {
@@ -142,7 +156,10 @@ export default function OffersPage() {
     }
   }, [activeType, activeOperator, maxPrice, minData, activeNetwork])
 
-  useEffect(() => { fetchOffers() }, [fetchOffers])
+  // Reset to page 1 whenever filters change (fetchOffers ref changes)
+  useEffect(() => { setPage(1); fetchOffers(1) }, [fetchOffers])
+
+  const goToPage = (n: number) => { setPage(n); fetchOffers(n) }
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg-page)' }}>
@@ -158,7 +175,7 @@ export default function OffersPage() {
               style={{ padding: '0.5rem 1.125rem', fontSize: 14, gap: 8 }}
             >
               {op.slug === 'all' ? <LayoutGrid size={14} /> : null}
-              {op.name}
+              {op.slug === 'all' ? t('filter.all') : (op as any).name}
             </button>
           ))}
         </div>
@@ -217,6 +234,24 @@ export default function OffersPage() {
         )}
 
 
+        {/* Data freshness + count */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8, marginBottom: '1rem' }}>
+          {lastVerified && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11.5, color: 'var(--text-muted)', background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: 8, padding: '4px 10px' }}>
+              <Info size={12} />
+              {t('filter.dataVerified').replace('{date}', new Date(lastVerified).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }))}
+            </div>
+          )}
+          {!loading && totalOffers > 0 && (
+            <span style={{ fontSize: 12, color: 'var(--text-muted)', marginLeft: 'auto' }}>
+              {t('filter.showing')
+                .replace('{from}', String((page - 1) * 24 + 1))
+                .replace('{to}', String(Math.min(page * 24, totalOffers)))
+                .replace('{total}', String(totalOffers))}
+            </span>
+          )}
+        </div>
+
         {/* Offers grid */}
         {loading ? (
           <div className="offers-grid">
@@ -263,6 +298,44 @@ export default function OffersPage() {
             ))}
           </motion.div>
         )}
+        {/* Pagination */}
+        {!loading && totalPages > 1 && (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: '2.5rem' }}>
+            <button
+              onClick={() => goToPage(page - 1)}
+              disabled={page <= 1}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 4, padding: '0.5rem 1rem',
+                fontSize: 13, fontWeight: 600, borderRadius: 8, cursor: page <= 1 ? 'not-allowed' : 'pointer',
+                background: 'var(--bg-elevated)', border: '1px solid var(--border-base)',
+                color: page <= 1 ? 'var(--text-muted)' : 'var(--text-primary)',
+                fontFamily: 'inherit', opacity: page <= 1 ? 0.5 : 1, transition: 'all 0.15s',
+              }}
+            >
+              <ChevronLeft size={14} /> {t('nav.prev')}
+            </button>
+
+            <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)', padding: '0.5rem 1rem', background: 'var(--bg-elevated)', border: '1px solid var(--border-base)', borderRadius: 8 }}>
+              {page} / {totalPages}
+            </span>
+
+            <button
+              onClick={() => goToPage(page + 1)}
+              disabled={page >= totalPages}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 4, padding: '0.5rem 1rem',
+                fontSize: 13, fontWeight: 600, borderRadius: 8, cursor: page >= totalPages ? 'not-allowed' : 'pointer',
+                background: page >= totalPages ? 'var(--bg-elevated)' : 'var(--accent)',
+                border: page >= totalPages ? '1px solid var(--border-base)' : 'none',
+                color: page >= totalPages ? 'var(--text-muted)' : 'white',
+                fontFamily: 'inherit', opacity: page >= totalPages ? 0.5 : 1, transition: 'all 0.15s',
+              }}
+            >
+              {t('nav.next')} <ChevronRight size={14} />
+            </button>
+          </div>
+        )}
+
       </main>
 
       {/* Footer */}
@@ -277,26 +350,26 @@ export default function OffersPage() {
                 Mobile<span style={{ color: 'var(--accent)' }}>Match</span> Algeria
               </span>
             </div>
-            <p style={{ fontSize: 12, lineHeight: 1.7 }}>Algeria's independent mobile plan comparator.</p>
+            <p style={{ fontSize: 12, lineHeight: 1.7 }}>{t('footer.tagline')}</p>
           </div>
           <div>
-            <div style={{ fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.75rem', fontSize: 13 }}>Platform</div>
+            <div style={{ fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.75rem', fontSize: 13 }}>{t('footer.platform')}</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               {[
-                { href: '/offers', label: 'Browse plans' },
-                { href: '/compare', label: 'Compare' },
-                { href: '/recommend', label: 'Recommendations' },
+                { href: '/offers', label: t('footer.browse') },
+                { href: '/compare', label: t('nav.compare') },
+                { href: '/recommend', label: t('nav.recommend') },
               ].map(l => (
                 <Link key={l.href} href={l.href} style={{ color: 'var(--text-secondary)', textDecoration: 'none', fontSize: 13 }}>{l.label}</Link>
               ))}
             </div>
           </div>
           <div>
-            <div style={{ fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.75rem', fontSize: 13 }}>Operators</div>
+            <div style={{ fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.75rem', fontSize: 13 }}>{t('footer.operators')}</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               {[
                 { href: 'https://mobilis.dz/', label: 'Mobilis' },
-                { href: 'https://www.djezzy5g.dz/#Offer', label: 'Djezzy' },
+                { href: 'https://www.djezzy.dz/', label: 'Djezzy' },
                 { href: 'https://www.ooredoo.dz/', label: 'Ooredoo' },
               ].map(l => (
                 <a key={l.label} href={l.href} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--text-secondary)', textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>{l.label} ↗</a>
@@ -320,7 +393,7 @@ export default function OffersPage() {
           display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '1rem', flexWrap: 'wrap',
         }}>
           <span style={{ fontSize: 14, color: 'var(--text-secondary)', fontWeight: 500 }}>
-            {compareList.length} offer{compareList.length !== 1 ? 's' : ''} selected
+            {compareList.length} {t('compare.selectedOffers')}
           </span>
           <Link
             href={`/compare?ids=${compareList.join(',')}`}
@@ -333,7 +406,7 @@ export default function OffersPage() {
             onClick={() => setCompareList([])}
             style={{ background: 'none', border: '1px solid var(--border-base)', borderRadius: 7, color: 'var(--text-muted)', cursor: 'pointer', fontSize: 13, fontFamily: 'inherit', padding: '0.4rem 0.75rem' }}
           >
-            ✕ Clear
+            ✕ {t('compare.clear')}
           </button>
         </div>
       )}

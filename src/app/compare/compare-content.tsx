@@ -7,20 +7,23 @@ import {
   ArrowLeft, X, Wifi, Phone, MessageSquare, Calendar, Plus, Zap,
   CreditCard, DollarSign, Signal, Building2, Trophy, BarChart3,
 } from 'lucide-react'
-import { formatDA, formatData, formatMinutes, formatSms, formatValidity, getNetworkStyle, RANK_COLORS, RANK_GRADIENTS, RANK_BG, OPERATOR_LOGOS, cleanOfferName } from '@/lib/utils'
+import { formatDA, formatData, formatMinutes, formatSms, formatValidity, getNetworkStyle, OPERATOR_LOGOS, cleanOfferName, RANK_GRADIENTS, RANK_COLORS } from '@/lib/utils'
 import { useLang } from '@/lib/lang-context'
 import type { TKey } from '@/lib/i18n'
+
+const RANK_LABELS = ['🥇', '🥈', '🥉']
+const RANK_BORDER = ['#F59E0B', '#94A3B8', '#CD7C3E']
 
 function RankBadge({ index }: { index: number }) {
   return (
     <div style={{
-      width: 24, height: 24, borderRadius: '50%',
-      background: index < 3 ? RANK_GRADIENTS[index] : '#475569',
+      width: 28, height: 28, borderRadius: '50%',
+      background: RANK_GRADIENTS[index] ?? 'var(--accent-muted)',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
-      fontSize: 10, fontWeight: 900, color: 'white', flexShrink: 0,
-      boxShadow: index < 3 ? `0 2px 8px ${RANK_COLORS[index]}60` : 'none',
+      fontSize: 14, flexShrink: 0,
+      boxShadow: `0 2px 8px ${RANK_COLORS[index] ?? '#818CF8'}50`,
     }}>
-      {index + 1}
+      {RANK_LABELS[index] ?? `#${index + 1}`}
     </div>
   )
 }
@@ -28,9 +31,10 @@ function RankBadge({ index }: { index: number }) {
 interface Props {
   initialIds: string
   fromRecommend: boolean
+  fromSaved?: boolean
 }
 
-export default function CompareContent({ initialIds, fromRecommend }: Props) {
+export default function CompareContent({ initialIds, fromRecommend, fromSaved }: Props) {
   const { t } = useLang()
   const [offers, setOffers] = useState<any[]>([])
   const [allOffers, setAllOffers] = useState<any[]>([])
@@ -83,10 +87,10 @@ export default function CompareContent({ initialIds, fromRecommend }: Props) {
     <div style={{ minHeight: '100vh', background: 'var(--bg-page)', padding: '2rem 1.5rem 4rem' }}>
       <div style={{ maxWidth: 1100, margin: '0 auto' }}>
         <Link
-          href={fromRecommend ? '/recommend' : '/offers'}
+          href={fromRecommend ? '/recommend' : fromSaved ? '/saved' : '/offers'}
           style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: 'var(--text-muted)', textDecoration: 'none', fontSize: 13, marginBottom: '2rem' }}
         >
-          <ArrowLeft size={14} /> {fromRecommend ? t('compare.backRecommend') : t('compare.back')}
+          <ArrowLeft size={14} /> {fromRecommend ? t('compare.backRecommend') : fromSaved ? t('compare.backSaved') : t('compare.back')}
         </Link>
 
         {/* Header */}
@@ -113,11 +117,16 @@ export default function CompareContent({ initialIds, fromRecommend }: Props) {
               {offers[i] ? (
                 <div className="card" style={{
                   padding: '1.5rem', position: 'relative',
-                  background: fromRecommend ? RANK_BG[i] : 'var(--bg-card)',
-                  borderColor: fromRecommend ? RANK_COLORS[i] + '60' : 'var(--border-base)',
+                  background: fromRecommend ? `${RANK_COLORS[i]}10` : 'var(--bg-card)',
+                  border: fromRecommend ? `2px solid ${RANK_BORDER[i]}` : '1px solid var(--border-base)',
+                  overflow: 'hidden',
                 }}>
+                  {/* Rank color top strip */}
                   {fromRecommend && (
-                    <div style={{ position: 'absolute', top: -12, left: '50%', transform: 'translateX(-50%)' }}>
+                    <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 5, background: RANK_GRADIENTS[i] ?? 'var(--accent)' }} />
+                  )}
+                  {fromRecommend && (
+                    <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '0.75rem', marginTop: '0.5rem' }}>
                       <RankBadge index={i} />
                     </div>
                   )}
@@ -265,14 +274,14 @@ export default function CompareContent({ initialIds, fromRecommend }: Props) {
                     padding: '0.875rem 1.25rem',
                     borderLeft: ci > 0 ? '1px solid var(--border-subtle)' : undefined,
                     borderBottom: offers[ci]
-                      ? `4px solid ${fromRecommend ? RANK_COLORS[ci] : 'var(--border-strong)'}`
-                      : '4px solid transparent',
-                    background: fromRecommend && offers[ci] ? RANK_BG[ci] : undefined,
+                      ? `5px solid ${fromRecommend ? (RANK_BORDER[ci] ?? 'var(--accent)') : 'var(--accent)'}`
+                      : '5px solid transparent',
+                    background: fromRecommend && offers[ci] ? `${RANK_COLORS[ci]}14` : undefined,
                   }}>
                     {offers[ci] ? (
                       <div>
                         {fromRecommend && (
-                          <div style={{ marginBottom: 4 }}>
+                          <div style={{ marginBottom: 6 }}>
                             <RankBadge index={ci} />
                           </div>
                         )}
@@ -305,7 +314,7 @@ export default function CompareContent({ initialIds, fromRecommend }: Props) {
                   <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>{t('compare.operator')}</span>
                 </div>
                 {Array.from({ length: 3 }).map((_, ci) => (
-                  <div key={ci} style={{ padding: '1rem 1.25rem', display: 'flex', alignItems: 'center', gap: 10, borderLeft: ci > 0 ? '1px solid var(--border-subtle)' : undefined, background: fromRecommend && offers[ci] ? RANK_BG[ci] : undefined }}>
+                  <div key={ci} style={{ padding: '1rem 1.25rem', display: 'flex', alignItems: 'center', gap: 10, borderLeft: ci > 0 ? '1px solid var(--border-subtle)' : undefined, background: fromRecommend && offers[ci] ? `${RANK_COLORS[ci]}14` : undefined }}>
                     {offers[ci] ? (
                       <>
                         <div style={{ width: 32, height: 32, borderRadius: 8, background: 'var(--bg-subtle)', border: '1px solid var(--border-base)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, overflow: 'hidden' }}>
@@ -347,7 +356,7 @@ export default function CompareContent({ initialIds, fromRecommend }: Props) {
                       padding: '1rem 1.25rem',
                       display: 'flex', alignItems: 'center', gap: 8,
                       borderLeft: ci > 0 ? '1px solid var(--border-subtle)' : undefined,
-                      background: fromRecommend && offers[ci] ? RANK_BG[ci] : undefined,
+                      background: fromRecommend && offers[ci] ? `${RANK_COLORS[ci]}14` : undefined,
                     }}>
                       {offers[ci] ? (
                         <span style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-primary)' }}>
@@ -376,7 +385,7 @@ export default function CompareContent({ initialIds, fromRecommend }: Props) {
                   <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>{t('compare.network')}</span>
                 </div>
                 {Array.from({ length: 3 }).map((_, ci) => (
-                  <div key={ci} style={{ padding: '1rem 1.25rem', display: 'flex', alignItems: 'center', gap: 6, borderLeft: ci > 0 ? '1px solid var(--border-subtle)' : undefined, background: fromRecommend && offers[ci] ? RANK_BG[ci] : undefined }}>
+                  <div key={ci} style={{ padding: '1rem 1.25rem', display: 'flex', alignItems: 'center', gap: 6, borderLeft: ci > 0 ? '1px solid var(--border-subtle)' : undefined, background: fromRecommend && offers[ci] ? `${RANK_COLORS[ci]}14` : undefined }}>
                     {offers[ci] ? (
                       <span style={{ fontSize: 13, fontWeight: 600, padding: '3px 10px', borderRadius: 'var(--radius-full)', ...getNetworkStyle(offers[ci].network), display: 'flex', alignItems: 'center', gap: 4 }}>
                         <Zap size={10} /> {offers[ci].network}

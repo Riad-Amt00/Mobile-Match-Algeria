@@ -7,20 +7,20 @@ import { motion } from 'framer-motion'
 import {
   ArrowLeft, Wifi, Phone, MessageSquare, Calendar, Zap,
   CheckCircle, Bookmark, BookmarkCheck, BarChart2,
-  Star, TrendingDown, Loader2, Signal, LayoutGrid, Sparkles,
-  TrendingUp, AlertCircle,
+  Star, TrendingDown, Loader2, Signal, LayoutGrid,
+  TrendingUp, AlertCircle, Map, ExternalLink,
 } from 'lucide-react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useToast } from '@/components/toast'
 import {
   formatDA, formatData, formatMinutes, formatSms, formatValidity,
-  getPricePerGB, OPERATOR_LOGOS, cleanOfferName,
+  getPricePerGB, OPERATOR_LOGOS, COVERAGE_URLS, parseFeatures, cleanOfferName,
 } from '@/lib/utils'
 import { useLang } from '@/lib/lang-context'
 
 const OPERATOR_URLS: Record<string, string> = {
-  djezzy: 'https://www.djezzy5g.dz/#Offer',
+  djezzy: 'https://www.djezzy.dz/',
   ooredoo: 'https://www.ooredoo.dz/',
   mobilis: 'https://mobilis.dz/',
 }
@@ -63,9 +63,9 @@ export default function OfferDetailPage() {
       })
       const data = await res.json()
       setIsSaved(data.saved)
-      data.saved ? success(`${offer?.name ?? 'Offer'} saved!`) : info('Removed from saved')
+      data.saved ? success(`${offer?.name ?? ''} ${t('toast.saved')}`) : info(t('toast.removedSaved'))
     } catch {
-      toastError('Failed to update saved offers')
+      toastError(t('toast.updateError'))
     }
   }
 
@@ -146,7 +146,7 @@ export default function OfferDetailPage() {
                 </div>
               </div>
 
-              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: '1.5rem' }}>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: '0.75rem' }}>
                 <span className={`badge badge-${slug}`}>{offer.operator.name}</span>
                 <span style={{ fontSize: 12, padding: '3px 10px', borderRadius: 'var(--radius-full)', background: 'var(--bg-subtle)', border: '1px solid var(--border-base)', color: 'var(--text-secondary)', fontWeight: 600 }}>
                   {typeLabel}
@@ -161,13 +161,48 @@ export default function OfferDetailPage() {
                 )}
               </div>
 
+              {COVERAGE_URLS[slug] && (
+                <div style={{ marginBottom: '1.5rem' }}>
+                  <a
+                    href={COVERAGE_URLS[slug]}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12.5, fontWeight: 600, color: 'var(--accent)', textDecoration: 'none', padding: '4px 10px', borderRadius: 20, background: 'var(--accent-muted)', border: '1px solid var(--accent-border)', transition: 'opacity 0.15s' }}
+                    onMouseEnter={e => (e.currentTarget.style.opacity = '0.75')}
+                    onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
+                  >
+                    <Map size={11} /> {t('detail.coverageMap')} <ExternalLink size={10} />
+                  </a>
+                </div>
+              )}
+
               {/* Price */}
               <div>
-                <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
-                  <span className="price-hero">{offer.priceDA.toLocaleString()}</span>
-                  <span style={{ fontSize: '1.125rem', fontWeight: 700, color: 'var(--text-secondary)' }}>DA</span>
-                  <span style={{ fontSize: 14, color: 'var(--text-muted)' }}>/ {formatValidity(offer.validityDays, t)}</span>
-                </div>
+                {(() => {
+                  const history = offer.priceHistory ?? []
+                  const prev = history[1]
+                  const hasDrop = prev && prev.priceDA > offer.priceDA
+                  const savingPct = hasDrop ? Math.round(((prev.priceDA - offer.priceDA) / prev.priceDA) * 100) : 0
+                  return (
+                    <>
+                      <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
+                        <span className="price-hero">{offer.priceDA.toLocaleString()}</span>
+                        <span style={{ fontSize: '1.125rem', fontWeight: 700, color: 'var(--text-secondary)' }}>DA</span>
+                        <span style={{ fontSize: 14, color: 'var(--text-muted)' }}>/ {formatValidity(offer.validityDays, t)}</span>
+                      </div>
+                      {hasDrop && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 6 }}>
+                          <span style={{ fontSize: 12.5, color: 'var(--text-muted)', textDecoration: 'line-through' }}>
+                            {t('detail.wasPrice')} {prev.priceDA.toLocaleString()} DA
+                          </span>
+                          <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--color-success)', background: 'var(--color-success-muted)', border: '1px solid var(--color-success-border)', padding: '1px 7px', borderRadius: 20, display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+                            <TrendingDown size={11} /> −{savingPct}% {t('detail.priceDrop')}
+                          </span>
+                        </div>
+                      )}
+                    </>
+                  )
+                })()}
                 <div style={{ display: 'flex', gap: '1rem', marginTop: 6, flexWrap: 'wrap' }}>
                   {pricePerGB > 0 && (
                     <span style={{ fontSize: 13, color: 'var(--text-muted)', fontWeight: 500, display: 'flex', alignItems: 'center', gap: 4 }}>
@@ -175,7 +210,7 @@ export default function OfferDetailPage() {
                     </span>
                   )}
                   <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>
-                    {Math.round(offer.priceDA / offer.validityDays)} DA/day
+                    {Math.round(offer.priceDA / offer.validityDays)} {t('detail.perDay')}
                   </span>
                 </div>
               </div>
@@ -241,6 +276,30 @@ export default function OfferDetailPage() {
             </div>
           </div>
         </div>
+
+        {/* Included features */}
+        {(() => {
+          const features = parseFeatures(offer.features ?? '[]')
+          if (!features.length) return null
+          return (
+            <div className="card" style={{ padding: '1.5rem', marginTop: '1.5rem' }}>
+              <h2 style={{ fontSize: '0.9375rem', fontWeight: 800, marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: 8, color: 'var(--text-primary)' }}>
+                <CheckCircle size={16} style={{ color: 'var(--accent)' }} /> {t('detail.includedFeatures')}
+              </h2>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                {features.map((f, i) => (
+                  <span key={i} style={{
+                    fontSize: 12.5, fontWeight: 600, padding: '5px 12px', borderRadius: 20,
+                    background: 'var(--bg-subtle)', border: '1px solid var(--border-base)',
+                    color: 'var(--text-primary)', display: 'inline-flex', alignItems: 'center', gap: 5,
+                  }}>
+                    {f}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )
+        })()}
 
         {/* Similar offers */}
         {similar.length > 0 && (

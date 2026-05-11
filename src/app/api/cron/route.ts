@@ -10,7 +10,11 @@ import { runAllScrapers } from '@/lib/scraper'
  */
 export async function POST(req: NextRequest) {
   const secret = req.nextUrl.searchParams.get('secret')
-  const expected = process.env.CRON_SECRET || 'mobilematch-cron-2024'
+  const expected = process.env.CRON_SECRET
+
+  if (!expected) {
+    return NextResponse.json({ error: 'CRON_SECRET not configured' }, { status: 503 })
+  }
 
   if (secret !== expected) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })

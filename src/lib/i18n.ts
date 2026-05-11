@@ -31,6 +31,8 @@ export const translations = {
     'filter.reset':         'Reset filters',
     'filter.noResults':     'No offers match your criteria',
     'filter.noResultsHint': 'Try adjusting your filters',
+    'filter.dataVerified':  'Live data scraped from operator websites · Last updated {date} · Prices may vary.',
+    'filter.showing':       'Showing {from}–{to} of {total} offers',
 
     // ─── Offer card ────────────────────────────────────────────────────────
     'offer.data':     'Data',
@@ -133,15 +135,19 @@ export const translations = {
     'recommend.unlimitedCalls':  'Unlimited calls',
     'recommend.savesBefore':     'Saves ~',
     'recommend.savesAfter':      '/ year vs your budget',
-    // Presets
-    'recommend.preset.light':        'Light user',
-    'recommend.preset.lightDesc':    'Occasional browsing and calls',
-    'recommend.preset.student':      'Student',
-    'recommend.preset.studentDesc':  'Social media, streaming, moderate calls',
-    'recommend.preset.heavy':        'Heavy user',
-    'recommend.preset.heavyDesc':    'Lots of data, frequent calls',
-    'recommend.preset.business':     'Business',
-    'recommend.preset.businessDesc': 'Unlimited needs, roaming',
+    'recommend.lowMatchWarning': 'These are partial matches only. Try raising your budget or adjusting data requirements.',
+    'recommend.matchExcellent':  'Excellent',
+    'recommend.matchGood':       'Good',
+    'recommend.matchFair':       'Fair',
+    'recommend.matchWeak':       'Weak',
+    'recommend.topPriority':      'My top priority',
+    'recommend.budgetMode':       'Budget',
+    'recommend.budget.flexible':  'Flexible',
+    'recommend.budget.strict':    'Strict',
+    'recommend.priority.data':    'Data volume',
+    'recommend.priority.price':   'Best price',
+    'recommend.priority.calls':   'Call minutes',
+    'recommend.priority.network': 'Network (4G/5G)',
 
     // ─── Saved page ────────────────────────────────────────────────────────
     'saved.title':      'Saved offers',
@@ -170,6 +176,9 @@ export const translations = {
     'detail.networkType':      'Network type',
     'detail.moreFrom':         'More from',
     'detail.popular':          'POPULAR',
+    'detail.coverageMap':      'Check coverage map →',
+    'detail.priceDrop':        'Price dropped',
+    'detail.wasPrice':         'Was',
 
     // ─── Profile page ──────────────────────────────────────────────────────
     'profile.usageProfile':  'My usage profile',
@@ -187,10 +196,110 @@ export const translations = {
     'profile.noNotifDesc':   "You'll be notified of new offers and matches",
     'profile.getRecommend':  'Get my recommendations',
     'profile.loading':       'Loading...',
+    'profile.viewAll':       'View all notifications →',
 
     // ─── Footer ────────────────────────────────────────────────────────────
     'footer.browse':     'Browse plans',
     'footer.disclaimer': 'Non-contractual. Verify with operators.',
+    'footer.tagline':    "Algeria's independent mobile plan comparator.",
+    'footer.platform':   'Platform',
+    'footer.operators':  'Operators',
+
+    // ─── Login page ────────────────────────────────────────────────────────
+    'login.back':       'Back to home',
+    'login.title':      'Welcome back',
+    'login.subtitle':   'Sign in to your account',
+    'login.registered': 'Account created! Sign in to get started.',
+    'login.email':      'Email address',
+    'login.password':   'Password',
+    'login.submit':     'Sign in',
+    'login.signingIn':  'Signing in…',
+    'login.noAccount':  "Don't have an account?",
+    'login.createFree': 'Create one free',
+    'login.errorCreds': 'Incorrect email or password.',
+    'login.errorNet':   'Network error. Please try again.',
+
+    // ─── Register page ─────────────────────────────────────────────────────
+    'register.title':       'Create account',
+    'register.subtitle':    "Join Mobile Match Algeria — it's free",
+    'register.name':        'Full name',
+    'register.namePh':      'Your name',
+    'register.pwPh':        '8+ characters',
+    'register.submit':      'Create my account',
+    'register.creating':    'Creating account…',
+    'register.hasAccount':  'Already have an account?',
+    'register.signIn':      'Sign in',
+    'register.failedError': 'Registration failed. Please try again.',
+
+    // ─── Compare bar / saved ───────────────────────────────────────────────
+    'compare.selectedOffers': 'offers selected',
+    'compare.clear':          'Clear',
+    'saved.countLabel':       'saved offers',
+
+    // ─── Offer detail ──────────────────────────────────────────────────────
+    'detail.perDay': 'DA/day',
+
+    // ─── Recommendation match reasons ─────────────────────────────────────
+    'match.budget.wellUnder':    'Well under budget ({pct}% savings)',
+    'match.budget.within':       'Within budget with {pct}% to spare',
+    'match.budget.fits':         'Fits your budget',
+    'match.budget.slightlyOver': 'Slightly over budget (+{pct}%)',
+    'match.budget.over':         'Over budget by {pct}%',
+    'match.data.unlimited':      'Unlimited data included',
+    'match.data.excess':         '{pct}% more data than needed',
+    'match.data.covers':         'Covers your data needs',
+    'match.data.short':          'Data slightly short ({has} vs {need} GB needed)',
+    'match.data.insufficient':   'Insufficient data ({has} vs {need} GB needed)',
+    'match.voice.unlimited':     'Unlimited calls',
+    'match.voice.excess':        'More than enough call minutes',
+    'match.voice.short':         'Call minutes slightly short ({has} vs {need} min)',
+    'match.voice.low':           'Low call minutes ({has} vs {need} min needed)',
+    'match.sms.unlimited':       'Unlimited SMS',
+    'match.sms.low':             'Low SMS count ({has} vs {need} needed)',
+    'match.value.great':         'Great data value',
+    'match.network.unavailable': '{net} not available ({alt} only)',
+    'match.voice.notUnlimited':  'Calls not unlimited ({has} min included)',
+    'match.sms.notUnlimited':    'SMS not unlimited ({has} included)',
+    'match.operator.preferred':  'Matches your preferred operator',
+    'match.priority.data':    'Prioritised for data volume',
+    'match.priority.price':   'Prioritised for best price',
+    'match.priority.calls':   'Prioritised for call minutes',
+    'match.priority.network': 'Prioritised for network quality',
+
+    // ─── Toast messages ────────────────────────────────────────────────────
+    'toast.saved':        'saved!',
+    'toast.removedSaved': 'Removed from saved',
+    'toast.saveError':    'Failed — try again',
+    'toast.addedCompare': 'added to comparison',
+    'toast.removedCmp':   'removed from comparison',
+    'toast.maxPlans':     'You can compare up to 3 plans',
+    'toast.updateError':  'Failed to update saved offers',
+
+    // ─── Navigation ────────────────────────────────────────────────────────
+    'nav.prev': 'Previous',
+    'nav.next': 'Next',
+
+    // ─── Error messages ────────────────────────────────────────────────────
+    'error.saveFailed': 'Failed to save — please try again',
+
+    // ─── Compare page extras ───────────────────────────────────────────────
+    'compare.backSaved': 'Back to saved offers',
+
+    // ─── Admin panel ───────────────────────────────────────────────────────
+    'admin.tab.overview':       'Overview',
+    'admin.tab.history':        'Scrape history',
+    'admin.tab.notifications':  'Notifications',
+    'admin.section.health':     'Operator health',
+    'admin.section.platform':   'Platform',
+    'admin.section.automation': 'Automation',
+    'admin.btn.runScrape':      'Run scrape now',
+    'admin.btn.scraping':       'Scraping…',
+    'admin.btn.export':         'Export .txt',
+    'admin.btn.markAllRead':    'Mark all read',
+    'admin.stat.activeOffers':  'Active offers',
+    'admin.stat.users':         'Registered users',
+    'admin.stat.sessions':      'Scrape sessions',
+    'admin.stat.successRate':   'Success rate',
   },
 
   fr: {
@@ -225,6 +334,8 @@ export const translations = {
     'filter.reset':         'Réinitialiser',
     'filter.noResults':     'Aucune offre ne correspond à vos critères',
     'filter.noResultsHint': "Essayez d'ajuster vos filtres",
+    'filter.dataVerified':  "Données en direct collectées depuis les sites opérateurs · Dernière mise à jour : {date} · Les prix peuvent varier.",
+    'filter.showing':       'Affichage {from}–{to} sur {total} offres',
 
     // ─── Offer card ────────────────────────────────────────────────────────
     'offer.data':     'Data',
@@ -327,15 +438,6 @@ export const translations = {
     'recommend.unlimitedCalls':  'Appels illimités',
     'recommend.savesBefore':     'Économise ~',
     'recommend.savesAfter':      '/ an vs votre budget',
-    // Presets
-    'recommend.preset.light':        'Utilisation légère',
-    'recommend.preset.lightDesc':    'Navigation et appels occasionnels',
-    'recommend.preset.student':      'Étudiant',
-    'recommend.preset.studentDesc':  'Réseaux sociaux, streaming, appels modérés',
-    'recommend.preset.heavy':        'Utilisation intensive',
-    'recommend.preset.heavyDesc':    'Beaucoup de data, appels fréquents',
-    'recommend.preset.business':     'Professionnel',
-    'recommend.preset.businessDesc': 'Besoins illimités, itinérance',
 
     // ─── Saved page ────────────────────────────────────────────────────────
     'saved.title':      'Offres sauvegardées',
@@ -364,6 +466,9 @@ export const translations = {
     'detail.networkType':      'Type de réseau',
     'detail.moreFrom':         'Plus de',
     'detail.popular':          'POPULAIRE',
+    'detail.coverageMap':      'Voir la carte de couverture →',
+    'detail.priceDrop':        'Prix en baisse',
+    'detail.wasPrice':         'Était',
 
     // ─── Profile page ──────────────────────────────────────────────────────
     'profile.usageProfile':  "Mon profil d'utilisation",
@@ -381,10 +486,123 @@ export const translations = {
     'profile.noNotifDesc':   'Vous serez notifié des nouvelles offres et correspondances',
     'profile.getRecommend':  'Obtenir mes recommandations',
     'profile.loading':       'Chargement...',
+    'profile.viewAll':       'Voir toutes les notifications →',
 
     // ─── Footer ────────────────────────────────────────────────────────────
     'footer.browse':     'Voir les offres',
     'footer.disclaimer': 'Non contractuel. Vérifiez auprès des opérateurs.',
+    'footer.tagline':    'Comparateur indépendant de forfaits mobiles en Algérie.',
+    'footer.platform':   'Plateforme',
+    'footer.operators':  'Opérateurs',
+
+    // ─── Login page ────────────────────────────────────────────────────────
+    'login.back':       "Retour à l'accueil",
+    'login.title':      'Bon retour',
+    'login.subtitle':   'Connectez-vous à votre compte',
+    'login.registered': 'Compte créé ! Connectez-vous pour commencer.',
+    'login.email':      'Adresse email',
+    'login.password':   'Mot de passe',
+    'login.submit':     'Se connecter',
+    'login.signingIn':  'Connexion…',
+    'login.noAccount':  'Pas de compte ?',
+    'login.createFree': "S'inscrire gratuitement",
+    'login.errorCreds': 'Email ou mot de passe incorrect.',
+    'login.errorNet':   'Erreur réseau. Réessayez.',
+
+    // ─── Register page ─────────────────────────────────────────────────────
+    'register.title':       'Créer un compte',
+    'register.subtitle':    'Rejoignez Mobile Match Algeria — gratuit',
+    'register.name':        'Nom complet',
+    'register.namePh':      'Votre nom',
+    'register.pwPh':        '8+ caractères',
+    'register.submit':      'Créer mon compte',
+    'register.creating':    'Création en cours…',
+    'register.hasAccount':  'Déjà un compte ?',
+    'register.signIn':      'Se connecter',
+    'register.failedError': 'Inscription échouée. Réessayez.',
+
+    // ─── Compare bar / saved ───────────────────────────────────────────────
+    'compare.selectedOffers': 'offres sélectionnées',
+    'compare.clear':          'Effacer',
+    'saved.countLabel':       'offres sauvegardées',
+
+    // ─── Offer detail ──────────────────────────────────────────────────────
+    'detail.perDay': 'DA/jour',
+
+    // ─── Recommendation match reasons ─────────────────────────────────────
+    'match.budget.wellUnder':    'Bien en dessous du budget ({pct}% d\'économies)',
+    'match.budget.within':       'Dans le budget avec {pct}% de marge',
+    'match.budget.fits':         'Correspond à votre budget',
+    'match.budget.slightlyOver': 'Légèrement au-dessus du budget (+{pct}%)',
+    'match.budget.over':         'Dépasse le budget de {pct}%',
+    'match.data.unlimited':      'Données illimitées incluses',
+    'match.data.excess':         '{pct}% de données en plus que nécessaire',
+    'match.data.covers':         'Couvre vos besoins en données',
+    'match.data.short':          'Données insuffisantes ({has} vs {need} Go nécessaires)',
+    'match.data.insufficient':   'Données insuffisantes ({has} vs {need} Go nécessaires)',
+    'match.voice.unlimited':     'Appels illimités',
+    'match.voice.excess':        'Plus que suffisant en minutes d\'appel',
+    'match.voice.short':         'Minutes d\'appel légèrement insuffisantes ({has} vs {need} min)',
+    'match.voice.low':           'Peu de minutes d\'appel ({has} vs {need} min nécessaires)',
+    'match.sms.unlimited':       'SMS illimités',
+    'match.sms.low':             'Peu de SMS ({has} vs {need} nécessaires)',
+    'match.value.great':         'Excellent rapport qualité-prix',
+    'match.network.unavailable': '{net} non disponible ({alt} uniquement)',
+    'match.voice.notUnlimited':  'Appels non illimités ({has} min incluses)',
+    'match.sms.notUnlimited':    'SMS non illimités ({has} inclus)',
+    'match.operator.preferred':  'Correspond à votre opérateur préféré',
+    'match.priority.data':    'Priorisé pour le volume data',
+    'match.priority.price':   'Priorisé pour le meilleur prix',
+    'match.priority.calls':   "Priorisé pour les minutes d'appel",
+    'match.priority.network': 'Priorisé pour la qualité du réseau',
+    'recommend.lowMatchWarning': 'Ces offres ne correspondent que partiellement. Essayez d\'augmenter votre budget ou d\'ajuster vos besoins.',
+    'recommend.matchExcellent':  'Excellent',
+    'recommend.matchGood':       'Bon',
+    'recommend.matchFair':       'Passable',
+    'recommend.matchWeak':       'Faible',
+    'recommend.topPriority':      'Ma priorité principale',
+    'recommend.budgetMode':       'Budget',
+    'recommend.budget.flexible':  'Flexible',
+    'recommend.budget.strict':    'Strict',
+    'recommend.priority.data':    'Volume data',
+    'recommend.priority.price':   'Meilleur prix',
+    'recommend.priority.calls':   "Minutes d'appel",
+    'recommend.priority.network': 'Réseau (4G/5G)',
+
+    // ─── Toast messages ────────────────────────────────────────────────────
+    'toast.saved':        'enregistré !',
+    'toast.removedSaved': 'Retiré des favoris',
+    'toast.saveError':    'Échec — réessayez',
+    'toast.addedCompare': 'ajouté à la comparaison',
+    'toast.removedCmp':   'retiré de la comparaison',
+    'toast.maxPlans':     "Vous pouvez comparer jusqu'à 3 forfaits",
+    'toast.updateError':  'Échec de la mise à jour',
+
+    // ─── Navigation ────────────────────────────────────────────────────────
+    'nav.prev': 'Précédent',
+    'nav.next': 'Suivant',
+
+    // ─── Error messages ────────────────────────────────────────────────────
+    'error.saveFailed': 'Échec de la sauvegarde — réessayez',
+
+    // ─── Compare page extras ───────────────────────────────────────────────
+    'compare.backSaved': 'Retour aux favoris',
+
+    // ─── Admin panel ───────────────────────────────────────────────────────
+    'admin.tab.overview':       'Vue d\'ensemble',
+    'admin.tab.history':        'Historique de collecte',
+    'admin.tab.notifications':  'Notifications',
+    'admin.section.health':     'Santé des opérateurs',
+    'admin.section.platform':   'Plateforme',
+    'admin.section.automation': 'Automatisation',
+    'admin.btn.runScrape':      'Lancer la collecte',
+    'admin.btn.scraping':       'Collecte en cours…',
+    'admin.btn.export':         'Exporter .txt',
+    'admin.btn.markAllRead':    'Tout marquer comme lu',
+    'admin.stat.activeOffers':  'Offres actives',
+    'admin.stat.users':         'Utilisateurs inscrits',
+    'admin.stat.sessions':      'Sessions de collecte',
+    'admin.stat.successRate':   'Taux de succès',
   },
 
   ar: {
@@ -419,6 +637,8 @@ export const translations = {
     'filter.reset':         'إعادة تعيين',
     'filter.noResults':     'لا توجد عروض تطابق معاييرك',
     'filter.noResultsHint': 'حاول تعديل الفلاتر',
+    'filter.dataVerified':  'بيانات حية مجمّعة من مواقع المشغّلين · آخر تحديث: {date} · قد تتغير الأسعار.',
+    'filter.showing':       'عرض {from}–{to} من {total} عرض',
 
     // ─── Offer card ────────────────────────────────────────────────────────
     'offer.data':     'بيانات',
@@ -521,15 +741,6 @@ export const translations = {
     'recommend.unlimitedCalls':  'مكالمات غير محدودة',
     'recommend.savesBefore':     'يوفر ~',
     'recommend.savesAfter':      '/ سنة مقابل ميزانيتك',
-    // Presets
-    'recommend.preset.light':        'مستخدم خفيف',
-    'recommend.preset.lightDesc':    'تصفح ومكالمات عرضية',
-    'recommend.preset.student':      'طالب',
-    'recommend.preset.studentDesc':  'تواصل اجتماعي، بث، مكالمات متوسطة',
-    'recommend.preset.heavy':        'مستخدم مكثف',
-    'recommend.preset.heavyDesc':    'بيانات كثيرة، مكالمات متكررة',
-    'recommend.preset.business':     'أعمال',
-    'recommend.preset.businessDesc': 'احتياجات غير محدودة، تجوال',
 
     // ─── Saved page ────────────────────────────────────────────────────────
     'saved.title':      'العروض المحفوظة',
@@ -558,6 +769,9 @@ export const translations = {
     'detail.networkType':      'نوع الشبكة',
     'detail.moreFrom':         'المزيد من',
     'detail.popular':          'الأكثر شيوعًا',
+    'detail.coverageMap':      'خريطة التغطية ←',
+    'detail.priceDrop':        'انخفض السعر',
+    'detail.wasPrice':         'كان',
 
     // ─── Profile page ──────────────────────────────────────────────────────
     'profile.usageProfile':  'ملف استخدامي',
@@ -575,10 +789,123 @@ export const translations = {
     'profile.noNotifDesc':   'ستتلقى إشعارات بالعروض الجديدة والتطابقات',
     'profile.getRecommend':  'احصل على توصياتي',
     'profile.loading':       'جاري التحميل...',
+    'profile.viewAll':       'عرض كل الإشعارات ←',
 
     // ─── Footer ────────────────────────────────────────────────────────────
     'footer.browse':     'تصفح العروض',
     'footer.disclaimer': 'غير تعاقدي. تحقق مع المشغلين.',
+    'footer.tagline':    'مقارن مستقل لعروض الهاتف في الجزائر.',
+    'footer.platform':   'المنصة',
+    'footer.operators':  'المشغلون',
+
+    // ─── Login page ────────────────────────────────────────────────────────
+    'login.back':       'العودة إلى الرئيسية',
+    'login.title':      'مرحبًا بعودتك',
+    'login.subtitle':   'سجّل الدخول إلى حسابك',
+    'login.registered': 'تم إنشاء الحساب! سجّل الدخول للبدء.',
+    'login.email':      'البريد الإلكتروني',
+    'login.password':   'كلمة المرور',
+    'login.submit':     'تسجيل الدخول',
+    'login.signingIn':  'جاري الدخول…',
+    'login.noAccount':  'ليس لديك حساب؟',
+    'login.createFree': 'أنشئ حسابًا مجانًا',
+    'login.errorCreds': 'البريد أو كلمة المرور غير صحيحة.',
+    'login.errorNet':   'خطأ في الشبكة. حاول مجددًا.',
+
+    // ─── Register page ─────────────────────────────────────────────────────
+    'register.title':       'إنشاء حساب',
+    'register.subtitle':    'انضم إلى Mobile Match Algeria — مجانًا',
+    'register.name':        'الاسم الكامل',
+    'register.namePh':      'اسمك',
+    'register.pwPh':        '8+ أحرف',
+    'register.submit':      'إنشاء حسابي',
+    'register.creating':    'جاري الإنشاء…',
+    'register.hasAccount':  'لديك حساب بالفعل؟',
+    'register.signIn':      'تسجيل الدخول',
+    'register.failedError': 'فشل التسجيل. حاول مجددًا.',
+
+    // ─── Compare bar / saved ───────────────────────────────────────────────
+    'compare.selectedOffers': 'عروض محددة',
+    'compare.clear':          'مسح',
+    'saved.countLabel':       'عروض محفوظة',
+
+    // ─── Offer detail ──────────────────────────────────────────────────────
+    'detail.perDay': 'د.ج/يوم',
+
+    // ─── Recommendation match reasons ─────────────────────────────────────
+    'match.budget.wellUnder':    'أقل بكثير من الميزانية (توفير {pct}%)',
+    'match.budget.within':       'ضمن الميزانية مع هامش {pct}%',
+    'match.budget.fits':         'يناسب ميزانيتك',
+    'match.budget.slightlyOver': 'أعلى قليلاً من الميزانية (+{pct}%)',
+    'match.budget.over':         'يتجاوز الميزانية بـ {pct}%',
+    'match.data.unlimited':      'بيانات غير محدودة مشمولة',
+    'match.data.excess':         'بيانات أكثر بـ {pct}% مما تحتاج',
+    'match.data.covers':         'يلبي احتياجاتك من البيانات',
+    'match.data.short':          'البيانات غير كافية ({has} مقابل {need} جيجا)',
+    'match.data.insufficient':   'بيانات غير كافية ({has} مقابل {need} جيجا)',
+    'match.voice.unlimited':     'مكالمات غير محدودة',
+    'match.voice.excess':        'دقائق مكالمات أكثر من اللازم',
+    'match.voice.short':         'دقائق المكالمات غير كافية ({has} مقابل {need} دقيقة)',
+    'match.voice.low':           'دقائق مكالمات منخفضة ({has} مقابل {need} دقيقة)',
+    'match.sms.unlimited':       'رسائل غير محدودة',
+    'match.sms.low':             'عدد رسائل منخفض ({has} مقابل {need})',
+    'match.value.great':         'قيمة ممتازة للبيانات',
+    'match.network.unavailable': 'شبكة {net} غير متاحة ({alt} فقط)',
+    'match.voice.notUnlimited':  'المكالمات غير محدودة ({has} دقيقة متاحة)',
+    'match.sms.notUnlimited':    'الرسائل غير محدودة ({has} متاحة)',
+    'match.operator.preferred':  'يتوافق مع مشغلك المفضل',
+    'match.priority.data':    'مُعطى الأولوية لحجم البيانات',
+    'match.priority.price':   'مُعطى الأولوية للسعر الأفضل',
+    'match.priority.calls':   'مُعطى الأولوية لدقائق المكالمات',
+    'match.priority.network': 'مُعطى الأولوية لجودة الشبكة',
+    'recommend.lowMatchWarning': 'هذه العروض تتطابق جزئياً فقط. جرب رفع ميزانيتك أو تعديل احتياجاتك.',
+    'recommend.matchExcellent':  'ممتاز',
+    'recommend.matchGood':       'جيد',
+    'recommend.matchFair':       'مقبول',
+    'recommend.matchWeak':       'ضعيف',
+    'recommend.topPriority':      'أولويتي الرئيسية',
+    'recommend.budgetMode':       'الميزانية',
+    'recommend.budget.flexible':  'مرن',
+    'recommend.budget.strict':    'صارم',
+    'recommend.priority.data':    'حجم البيانات',
+    'recommend.priority.price':   'أفضل سعر',
+    'recommend.priority.calls':   'دقائق المكالمات',
+    'recommend.priority.network': 'الشبكة (4G/5G)',
+
+    // ─── Toast messages ────────────────────────────────────────────────────
+    'toast.saved':        'محفوظ!',
+    'toast.removedSaved': 'تمت الإزالة من المحفوظات',
+    'toast.saveError':    'فشل — حاول مجددًا',
+    'toast.addedCompare': 'أضيف إلى المقارنة',
+    'toast.removedCmp':   'أُزيل من المقارنة',
+    'toast.maxPlans':     'يمكن مقارنة 3 عروض كحد أقصى',
+    'toast.updateError':  'فشل التحديث',
+
+    // ─── Navigation ────────────────────────────────────────────────────────
+    'nav.prev': 'السابق',
+    'nav.next': 'التالي',
+
+    // ─── Error messages ────────────────────────────────────────────────────
+    'error.saveFailed': 'فشل الحفظ — حاول مجددًا',
+
+    // ─── Compare page extras ───────────────────────────────────────────────
+    'compare.backSaved': 'العودة إلى المحفوظات',
+
+    // ─── Admin panel ───────────────────────────────────────────────────────
+    'admin.tab.overview':       'نظرة عامة',
+    'admin.tab.history':        'سجل الجمع',
+    'admin.tab.notifications':  'الإشعارات',
+    'admin.section.health':     'حالة المشغلين',
+    'admin.section.platform':   'المنصة',
+    'admin.section.automation': 'الأتمتة',
+    'admin.btn.runScrape':      'تشغيل الجمع الآن',
+    'admin.btn.scraping':       'جاري الجمع…',
+    'admin.btn.export':         'تصدير .txt',
+    'admin.btn.markAllRead':    'تحديد الكل كمقروء',
+    'admin.stat.activeOffers':  'العروض النشطة',
+    'admin.stat.users':         'المستخدمون المسجلون',
+    'admin.stat.sessions':      'جلسات الجمع',
+    'admin.stat.successRate':   'معدل النجاح',
   },
 } as const
 

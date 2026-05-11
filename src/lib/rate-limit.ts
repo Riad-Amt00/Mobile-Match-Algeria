@@ -1,23 +1,28 @@
-interface RateLimitEntry {
-  count: number
-  resetAt: number
-}
+import { db } from '@/lib/db'
 
-const store = new Map<string, RateLimitEntry>()
+export async function rateLimit(key: string, max: number, windowMs: number): Promise<boolean> {
+  const now = new Date()
 
-export function rateLimit(key: string, max: number, windowMs: number): boolean {
-  const now = Date.now()
-  const entry = store.get(key)
+  try {
+    const record = await db.rateLimit.findUnique({ where: { key } })
 
-  if (!entry || now > entry.resetAt) {
-    store.set(key, { count: 1, resetAt: now + windowMs })
+    if (!record || record.resetAt < now) {
+      await db.rateLimit.upsert({
+        where: { key },
+        update: { count: 1, resetAt: new Date(Date.now() + windowMs) },
+        create: { key, count: 1, resetAt: new Date(Date.now() + windowMs) },
+      })
+      return true
+    }
+
+    if (record.count >= max) return false
+
+    await db.rateLimit.update({ where: { key }, data: { count: { increment: 1 } } })
+    return true
+  } catch {
+    // If DB is unavailable, fail open (allow the request)
     return true
   }
-
-  if (entry.count >= max) return false
-
-  entry.count++
-  return true
 }
 
 export function getRateLimitKey(req: Request, prefix: string): string {

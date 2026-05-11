@@ -1,0 +1,88 @@
+\contentsline {chapter}{Acknowledgments}{iii}{section*.1}%
+\contentsline {chapter}{Résumé}{iii}{section*.3}%
+\contentsline {chapter}{Abstract}{v}{section*.5}%
+\contentsline {chapter}{{\arabicfont ملخص}}{vi}{section*.7}%
+\contentsline {chapter}{List of Figures}{xi}{section*.9}%
+\contentsline {chapter}{List of Tables}{xii}{section*.11}%
+\contentsline {chapter}{List of Abbreviations}{xii}{section*.13}%
+\contentsline {chapter}{General Introduction}{2}{chapter*.15}%
+\contentsline {chapter}{\numberline {1}State of the Art and Core Concepts}{5}{chapter.1}%
+\contentsline {section}{\numberline {1.1}The Algerian Mobile Telecommunications Market}{5}{section.1.1}%
+\contentsline {subsection}{\numberline {1.1.1}Market Overview and Key Figures}{5}{subsection.1.1.1}%
+\contentsline {subsection}{\numberline {1.1.2}Offer Complexity and the Consumer Decision Problem}{6}{subsection.1.1.2}%
+\contentsline {section}{\numberline {1.2}Existing Comparison Platforms}{6}{section.1.2}%
+\contentsline {subsection}{\numberline {1.2.1}International Benchmarks}{6}{subsection.1.2.1}%
+\contentsline {subsection}{\numberline {1.2.2}Gap Analysis for Algeria}{7}{subsection.1.2.2}%
+\contentsline {section}{\numberline {1.3}Web Data Aggregation}{7}{section.1.3}%
+\contentsline {subsection}{\numberline {1.3.1}Static vs. Dynamic Scraping}{7}{subsection.1.3.1}%
+\contentsline {subsection}{\numberline {1.3.2}Data Normalisation}{8}{subsection.1.3.2}%
+\contentsline {subsection}{\numberline {1.3.3}Legal and Ethical Considerations}{8}{subsection.1.3.3}%
+\contentsline {section}{\numberline {1.4}Recommendation Systems}{9}{section.1.4}%
+\contentsline {subsection}{\numberline {1.4.1}Classification of Recommendation Approaches}{9}{subsection.1.4.1}%
+\contentsline {subsection}{\numberline {1.4.2}Scoring-Based Recommendation for Plan Selection}{9}{subsection.1.4.2}%
+\contentsline {section}{\numberline {1.5}Modern Web Stack Overview}{9}{section.1.5}%
+\contentsline {subsection}{\numberline {1.5.1}Next.js and the App Router}{9}{subsection.1.5.1}%
+\contentsline {subsection}{\numberline {1.5.2}Prisma ORM}{10}{subsection.1.5.2}%
+\contentsline {subsection}{\numberline {1.5.3}SQLite as the Data Store}{10}{subsection.1.5.3}%
+\contentsline {section}{\numberline {1.6}Positioning of This Work}{10}{section.1.6}%
+\contentsline {chapter}{\numberline {2}Requirements Analysis and System Design}{11}{chapter.2}%
+\contentsline {section}{\numberline {2.1}Requirements Gathering}{11}{section.2.1}%
+\contentsline {subsection}{\numberline {2.1.1}Methodology}{11}{subsection.2.1.1}%
+\contentsline {subsection}{\numberline {2.1.2}Functional Requirements}{11}{subsection.2.1.2}%
+\contentsline {subsection}{\numberline {2.1.3}Non-Functional Requirements}{12}{subsection.2.1.3}%
+\contentsline {section}{\numberline {2.2}System Actors}{13}{section.2.2}%
+\contentsline {section}{\numberline {2.3}UML Use Case Diagrams}{13}{section.2.3}%
+\contentsline {section}{\numberline {2.4}UML Activity and Sequence Diagrams}{15}{section.2.4}%
+\contentsline {subsection}{\numberline {2.4.1}Scraping Pipeline Activity Diagram}{15}{subsection.2.4.1}%
+\contentsline {subsection}{\numberline {2.4.2}Recommendation Request Sequence Diagram}{16}{subsection.2.4.2}%
+\contentsline {section}{\numberline {2.5}Data Model}{17}{section.2.5}%
+\contentsline {subsection}{\numberline {2.5.1}Conceptual Schema}{17}{subsection.2.5.1}%
+\contentsline {subsection}{\numberline {2.5.2}Prisma Schema Description}{18}{subsection.2.5.2}%
+\contentsline {section}{\numberline {2.6}System Architecture}{18}{section.2.6}%
+\contentsline {subsection}{\numberline {2.6.1}Three-Tier Architecture}{18}{subsection.2.6.1}%
+\contentsline {subsection}{\numberline {2.6.2}API Route Map}{19}{subsection.2.6.2}%
+\contentsline {section}{\numberline {2.7}UI/UX Design}{20}{section.2.7}%
+\contentsline {subsection}{\numberline {2.7.1}Design Principles}{20}{subsection.2.7.1}%
+\contentsline {subsection}{\numberline {2.7.2}Key Interface Screens}{20}{subsection.2.7.2}%
+\contentsline {section}{\numberline {2.8}Technology Stack Justification}{21}{section.2.8}%
+\contentsline {chapter}{\numberline {3}System Implementation}{22}{chapter.3}%
+\contentsline {section}{\numberline {3.1}Development Environment}{22}{section.3.1}%
+\contentsline {section}{\numberline {3.2}Data Aggregation Module}{23}{section.3.2}%
+\contentsline {subsection}{\numberline {3.2.1}Scraper Architecture}{23}{subsection.3.2.1}%
+\contentsline {subsection}{\numberline {3.2.2}Scraping Algorithm}{23}{subsection.3.2.2}%
+\contentsline {subsection}{\numberline {3.2.3}Data Normalisation Pipeline}{24}{subsection.3.2.3}%
+\contentsline {subsection}{\numberline {3.2.4}Cron Automation}{24}{subsection.3.2.4}%
+\contentsline {section}{\numberline {3.3}Backend --- REST API}{24}{section.3.3}%
+\contentsline {subsection}{\numberline {3.3.1}API Route Structure}{24}{subsection.3.3.1}%
+\contentsline {subsection}{\numberline {3.3.2}Cross-Operator Comparison Routing}{25}{subsection.3.3.2}%
+\contentsline {subsection}{\numberline {3.3.3}Authentication}{25}{subsection.3.3.3}%
+\contentsline {section}{\numberline {3.4}Recommendation Engine}{26}{section.3.4}%
+\contentsline {subsection}{\numberline {3.4.1}Scoring Model}{26}{subsection.3.4.1}%
+\contentsline {subsection}{\numberline {3.4.2}Recommendation Algorithm}{26}{subsection.3.4.2}%
+\contentsline {subsection}{\numberline {3.4.3}Triggering Recommendations}{27}{subsection.3.4.3}%
+\contentsline {section}{\numberline {3.5}Frontend --- Key Interfaces}{28}{section.3.5}%
+\contentsline {subsection}{\numberline {3.5.1}Home Page and Offer Browsing}{28}{subsection.3.5.1}%
+\contentsline {subsection}{\numberline {3.5.2}Offers Page}{28}{subsection.3.5.2}%
+\contentsline {subsection}{\numberline {3.5.3}Comparison Page}{29}{subsection.3.5.3}%
+\contentsline {subsection}{\numberline {3.5.4}Recommendations Page}{30}{subsection.3.5.4}%
+\contentsline {subsection}{\numberline {3.5.5}Login and Registration}{31}{subsection.3.5.5}%
+\contentsline {subsection}{\numberline {3.5.6}Admin Dashboard}{32}{subsection.3.5.6}%
+\contentsline {section}{\numberline {3.6}Security}{33}{section.3.6}%
+\contentsline {subsection}{\numberline {3.6.1}Authentication and Session Management}{33}{subsection.3.6.1}%
+\contentsline {subsection}{\numberline {3.6.2}Password Storage}{33}{subsection.3.6.2}%
+\contentsline {subsection}{\numberline {3.6.3}Role-Based Access Control}{33}{subsection.3.6.3}%
+\contentsline {subsection}{\numberline {3.6.4}Input Validation and Injection Prevention}{34}{subsection.3.6.4}%
+\contentsline {section}{\numberline {3.7}Deployment}{34}{section.3.7}%
+\contentsline {chapter}{\numberline {4}Evaluation and Documentation}{35}{chapter.4}%
+\contentsline {section}{\numberline {4.1}Comparison with Objectives}{35}{section.4.1}%
+\contentsline {section}{\numberline {4.2}Limitations}{36}{section.4.2}%
+\contentsline {section}{\numberline {4.3}Perspectives}{36}{section.4.3}%
+\contentsline {section}{\numberline {4.4}Documentation}{37}{section.4.4}%
+\contentsline {subsection}{\numberline {4.4.1}User Guide}{37}{subsection.4.4.1}%
+\contentsline {subsection}{\numberline {4.4.2}Administrator Manual}{37}{subsection.4.4.2}%
+\contentsline {subsection}{\numberline {4.4.3}API Reference}{37}{subsection.4.4.3}%
+\contentsline {chapter}{General Conclusion and Perspectives}{38}{chapter*.43}%
+\contentsline {chapter}{Bibliographic References}{40}{chapter*.44}%
+\contentsline {chapter}{\numberline {A}UML Diagrams}{41}{chapter.A}%
+\contentsline {chapter}{\numberline {B}Data Model Summary}{44}{chapter.B}%
+\contentsfinish 

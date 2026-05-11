@@ -7,12 +7,14 @@ interface LangCtx {
   lang: Lang
   setLang: (l: Lang) => void
   t: (key: TKey) => string
+  tInterp: (key: string, params?: Record<string, string | number>) => string
 }
 
 const LangContext = createContext<LangCtx>({
   lang: 'fr',
   setLang: () => {},
   t: (key) => key,
+  tInterp: (key) => key,
 })
 
 export function LangProvider({ children }: { children: ReactNode }) {
@@ -36,8 +38,14 @@ export function LangProvider({ children }: { children: ReactNode }) {
     return (translations[lang] as any)[key] ?? (translations.en as any)[key] ?? key
   }
 
+  function tInterp(key: string, params: Record<string, string | number> = {}): string {
+    let str: string = (translations[lang] as any)[key] ?? (translations.en as any)[key] ?? key
+    for (const [k, v] of Object.entries(params)) str = str.replace(`{${k}}`, String(v))
+    return str
+  }
+
   return (
-    <LangContext.Provider value={{ lang, setLang, t }}>
+    <LangContext.Provider value={{ lang, setLang, t, tInterp }}>
       {children}
     </LangContext.Provider>
   )

@@ -13,7 +13,10 @@ export async function GET(
 
     const offer = await db.offer.findUnique({
       where: { id },
-      include: { operator: true },
+      include: {
+        operator: true,
+        priceHistory: { orderBy: { recordedAt: 'desc' }, take: 2 },
+      },
     })
 
     if (!offer) {

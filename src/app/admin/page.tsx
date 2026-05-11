@@ -9,6 +9,7 @@ import {
   Users, Database, Bell, Activity, Download, Trash2,
   ChevronDown, ArrowLeft, Play, RefreshCw, ExternalLink,
 } from 'lucide-react'
+import { useLang } from '@/lib/lang-context'
 
 interface OperatorStatus {
   name: string
@@ -25,6 +26,7 @@ interface ScrapeLog {
   offersFound: number
   offersAdded: number
   offersUpdated: number
+  offersDeactivated: number
   duration?: number
   startedAt: string
   errorMessage?: string
@@ -47,6 +49,35 @@ interface AdminStats {
   sessions: Session[]
 }
 
+
+interface FamilyStatus {
+  family: string
+  status: 'live' | 'fallback' | 'permanent'
+  count: number | null
+}
+
+const PERMANENT_FAMILIES = /ZID|IZZY|Revolution/i
+
+function parseScraperFamilies(details: string | null | undefined): FamilyStatus[] {
+  if (!details) return []
+  let entries: { ts: number; level: string; msg: string }[] = []
+  try { entries = JSON.parse(details) } catch { return [] }
+
+  const families: FamilyStatus[] = []
+  for (const { level, msg } of entries) {
+    if (level === 'OK') {
+      const m = msg.match(/^([^:]+):\s+(\d+)\s+offers?\s+scraped\s+live/)
+      if (m) families.push({ family: m[1].trim(), status: 'live', count: parseInt(m[2]) })
+    } else if (level === 'WARN') {
+      const m = msg.match(/^([^:]+):.*(using fallback|unreachable)/)
+      if (m) {
+        const name = m[1].trim()
+        families.push({ family: name, status: PERMANENT_FAMILIES.test(name) ? 'permanent' : 'fallback', count: null })
+      }
+    }
+  }
+  return families
+}
 
 function timeSince(dateStr: string): string {
   const diff = Date.now() - new Date(dateStr).getTime()
@@ -83,6 +114,7 @@ export default function AdminPageWrapper() {
 }
 
 function AdminPage() {
+  const { t } = useLang()
   const { data: session, status } = useSession()
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -126,7 +158,8 @@ function AdminPage() {
       const res = await fetch('/api/admin/scrape', { method: 'POST' })
       const data = await res.json()
       if (data.success) {
-        setScrapeMsg({ text: `Done — ${data.totalFound} offers found, +${data.totalAdded} added`, ok: true })
+        const deactivatedPart = data.totalDeactivated > 0 ? `, −${data.totalDeactivated} removed` : ''
+        setScrapeMsg({ text: `Done — ${data.totalFound} offers found, +${data.totalAdded} added${deactivatedPart}`, ok: true })
         await fetchStats()
       } else {
         setScrapeMsg({ text: `Error: ${data.error || 'Unknown error'}`, ok: false })
@@ -178,13 +211,13 @@ function AdminPage() {
     <div style={{ minHeight: '100vh', background: 'var(--bg-dark)' }}>
 
       {/* ── Top bar ── */}
-      <div style={{ borderBottom: '1px solid var(--border)', padding: '0 1.5rem', background: 'rgba(7,11,20,0.9)', backdropFilter: 'blur(20px)', position: 'sticky', top: 60, zIndex: 50 }}>
+      <div style={{ borderBottom: '1px solid var(--border-base)', padding: '0 1.5rem', background: 'rgba(7,11,20,0.9)', backdropFilter: 'blur(20px)', position: 'sticky', top: 60, zIndex: 50 }}>
         <div style={{ maxWidth: 1100, margin: '0 auto', height: 56, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
             <Link href="/" style={{ color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: 6, textDecoration: 'none', fontSize: 13 }}>
               <ArrowLeft size={14} /> Back
             </Link>
-            <span style={{ color: 'var(--border)' }}>|</span>
+            <span style={{ color: 'var(--border-base)' }}>|</span>
             <span style={{ fontWeight: 800, fontSize: 15 }}>Admin</span>
 
             {/* System health dot */}
@@ -202,7 +235,7 @@ function AdminPage() {
         {/* ── OPERATOR HEALTH — main focus ── */}
         <div style={{ marginBottom: '2rem' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.875rem', flexWrap: 'wrap', gap: 8 }}>
-            <h2 style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em', margin: 0 }}>Operator health</h2>
+            <h2 style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em', margin: 0 }}>{t('admin.section.health')}</h2>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               {scrapeMsg && (
                 <span style={{ fontSize: 11, fontWeight: 600, color: scrapeMsg.ok ? '#4ade80' : '#f87171' }}>
@@ -225,7 +258,7 @@ function AdminPage() {
                 {scraping
                   ? <RefreshCw size={12} style={{ animation: 'spin 1s linear infinite' }} />
                   : <Play size={12} />}
-                {scraping ? 'Scraping…' : 'Run scrape now'}
+                {scraping ? t('admin.btn.scraping') : t('admin.btn.runScrape')}
               </button>
             </div>
           </div>
@@ -243,7 +276,7 @@ function AdminPage() {
 
                   <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '1rem' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                      <div style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <div style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border-base)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                         <Signal size={16} color="var(--text-secondary)" />
                       </div>
                       <div>
@@ -297,19 +330,19 @@ function AdminPage() {
         </div>
 
         {/* ── TABS ── */}
-        <div style={{ display: 'flex', gap: 4, marginBottom: '1.5rem', borderBottom: '1px solid var(--border)', paddingBottom: 0 }}>
+        <div style={{ display: 'flex', gap: 4, marginBottom: '1.5rem', borderBottom: '1px solid var(--border-base)', paddingBottom: 0 }}>
           {([
-            { id: 'overview',       label: 'Overview' },
-            { id: 'history',        label: `Scrape history ${stats?.scrapeSessionCount ? `(${stats.scrapeSessionCount})` : ''}` },
-            { id: 'notifications',  label: `Notifications ${stats?.unreadNotifications ? `· ${stats.unreadNotifications} unread` : ''}` },
-          ] as const).map(t => (
-            <button key={t.id} onClick={() => setActiveTab(t.id)} style={{
+            { id: 'overview',       label: t('admin.tab.overview') },
+            { id: 'history',        label: `${t('admin.tab.history')} ${stats?.scrapeSessionCount ? `(${stats.scrapeSessionCount})` : ''}` },
+            { id: 'notifications',  label: `${t('admin.tab.notifications')} ${stats?.unreadNotifications ? `· ${stats.unreadNotifications}` : ''}` },
+          ] as const).map(tab => (
+            <button key={tab.id} onClick={() => setActiveTab(tab.id)} style={{
               padding: '0.625rem 1rem', background: 'none', border: 'none', cursor: 'pointer',
               fontSize: 13, fontWeight: 600, fontFamily: 'inherit',
-              color: activeTab === t.id ? 'var(--text-primary)' : 'var(--text-secondary)',
-              borderBottom: `2px solid ${activeTab === t.id ? '#8B5CF6' : 'transparent'}`,
+              color: activeTab === tab.id ? 'var(--text-primary)' : 'var(--text-secondary)',
+              borderBottom: `2px solid ${activeTab === tab.id ? '#8B5CF6' : 'transparent'}`,
               marginBottom: -1, transition: 'color 0.15s',
-            }}>{t.label}</button>
+            }}>{tab.label}</button>
           ))}
         </div>
 
@@ -319,13 +352,13 @@ function AdminPage() {
 
             {/* Platform numbers */}
             <div>
-              <h2 style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '0.875rem' }}>Platform</h2>
+              <h2 style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '0.875rem' }}>{t('admin.section.platform')}</h2>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.875rem' }}>
                 {[
-                  { icon: <Database size={18} color="#a78bfa"/>, label: 'Active offers',    value: stats.totalActiveOffers },
-                  { icon: <Users size={18} color="#f59e0b"/>,    label: 'Registered users', value: stats.totalUsers },
-                  { icon: <Activity size={18} color="#A78BFA"/>, label: 'Scrape sessions',  value: stats.scrapeSessionCount },
-                  { icon: <CheckCircle size={18} color="#4ade80"/>, label: 'Success rate',  value: `${stats.successRate}%` },
+                  { icon: <Database size={18} color="#a78bfa"/>, label: t('admin.stat.activeOffers'), value: stats.totalActiveOffers },
+                  { icon: <Users size={18} color="#f59e0b"/>,    label: t('admin.stat.users'),        value: stats.totalUsers },
+                  { icon: <Activity size={18} color="#A78BFA"/>, label: t('admin.stat.sessions'),     value: stats.scrapeSessionCount },
+                  { icon: <CheckCircle size={18} color="#4ade80"/>, label: t('admin.stat.successRate'), value: `${stats.successRate}%` },
                 ].map(s => (
                   <div key={s.label} className="glass" style={{ borderRadius: 12, padding: '1rem 1.25rem', display: 'flex', alignItems: 'center', gap: 12 }}>
                     {s.icon}
@@ -338,9 +371,54 @@ function AdminPage() {
               </div>
             </div>
 
+            {/* Plan family breakdown */}
+            {lastSession && lastSession.logs.some(l => parseScraperFamilies(l.details).length > 0) && (
+              <div>
+                <h2 style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '0.875rem' }}>
+                  Last Scrape — Plan Family Breakdown
+                </h2>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '0.875rem' }}>
+                  {lastSession.logs.map(log => {
+                    const families = parseScraperFamilies(log.details)
+                    if (!families.length) return null
+                    const liveCount = families.filter(f => f.status === 'live').length
+                    const fallbackCount = families.filter(f => f.status === 'fallback').length
+                    return (
+                      <div key={log.id} className="glass" style={{ borderRadius: 14, padding: '1.125rem' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+                          <span style={{ fontSize: 14, fontWeight: 800 }}>{log.operator}</span>
+                          <div style={{ display: 'flex', gap: 6 }}>
+                            {liveCount > 0 && <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 50, background: 'rgba(74,222,128,0.12)', color: '#4ade80' }}>{liveCount} live</span>}
+                            {fallbackCount > 0 && <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 50, background: 'rgba(245,158,11,0.12)', color: '#f59e0b' }}>{fallbackCount} fallback</span>}
+                          </div>
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                          {families.map((f, i) => (
+                            <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.3rem 0.5rem', borderRadius: 6, background: 'rgba(255,255,255,0.025)' }}>
+                              <span style={{ fontSize: 12, color: 'var(--text-primary)', fontWeight: 500 }}>{f.family}</span>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                {f.count !== null && <span style={{ fontSize: 11, color: 'var(--text-secondary)' }}>{f.count} offers</span>}
+                                <span style={{
+                                  fontSize: 10, fontWeight: 700, padding: '1px 7px', borderRadius: 50,
+                                  background: f.status === 'live' ? 'rgba(74,222,128,0.12)' : f.status === 'permanent' ? 'rgba(107,114,128,0.12)' : 'rgba(245,158,11,0.12)',
+                                  color: f.status === 'live' ? '#4ade80' : f.status === 'permanent' ? '#9ca3af' : '#f59e0b',
+                                }}>
+                                  {f.status === 'live' ? 'Live' : f.status === 'permanent' ? 'Fixed data' : 'Fallback'}
+                                </span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
+
             {/* Automation status */}
             <div>
-              <h2 style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '0.875rem' }}>Automation</h2>
+              <h2 style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '0.875rem' }}>{t('admin.section.automation')}</h2>
               <div className="glass" style={{ borderRadius: 14, padding: '1.25rem' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8, marginBottom: '1rem' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -435,7 +513,7 @@ function AdminPage() {
                               onClick={downloadReport}
                               style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '3px 10px', borderRadius: 6, background: 'rgba(139,92,246,0.1)', border: '1px solid rgba(139,92,246,0.2)', color: '#A78BFA', cursor: 'pointer', fontSize: 11, fontWeight: 600, fontFamily: 'inherit' }}
                             >
-                              <Download size={11} /> Export .txt
+                              <Download size={11} /> {t('admin.btn.export')}
                             </button>
                           </div>
 
@@ -475,7 +553,7 @@ function AdminPage() {
                                   <LogLine ts={new Date(l.startedAt)} level="INFO" msg={`[${l.operator.toUpperCase()}] Launching browser → https://${opUrl}`} />
                                   {ok ? (
                                     <LogLine ts={new Date(new Date(l.startedAt).getTime() + (l.duration ?? 3000))} level="OK"
-                                      msg={`[${l.operator.toUpperCase()}] Scrape complete — ${l.offersFound} found, +${l.offersAdded} added, ${l.offersUpdated} updated${dur ? ` (${dur})` : ''}`}
+                                      msg={`[${l.operator.toUpperCase()}] Scrape complete — ${l.offersFound} found, +${l.offersAdded} added, ${l.offersUpdated} updated${l.offersDeactivated > 0 ? `, −${l.offersDeactivated} removed` : ''}${dur ? ` (${dur})` : ''}`}
                                     />
                                   ) : (
                                     <>
@@ -546,6 +624,7 @@ function LogLine({ ts, level, msg }: { ts: Date; level: 'INFO' | 'OK' | 'WARN' |
 
 /* ── Admin Notifications ──────────────────────────────────────────── */
 function AdminNotifications({ onNavigate }: { onNavigate: (href: string) => void }) {
+  const { t } = useLang()
   const [notifications, setNotifications] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -604,7 +683,7 @@ function AdminNotifications({ onNavigate }: { onNavigate: (href: string) => void
       {unread > 0 && (
         <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '1rem' }}>
           <button onClick={markAllRead} style={{ background: 'none', border: 'none', color: '#A78BFA', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
-            Mark all read
+            {t('admin.btn.markAllRead')}
           </button>
         </div>
       )}
@@ -627,7 +706,7 @@ function AdminNotifications({ onNavigate }: { onNavigate: (href: string) => void
                 style={{
                   padding: '0.875rem 1rem', borderRadius: 10,
                   background: n.isRead ? 'var(--bg-card)' : 'rgba(139,92,246,0.06)',
-                  border: `1px solid ${n.type === 'scrape_failed' ? 'rgba(248,113,113,0.25)' : n.isRead ? 'var(--border)' : 'rgba(139,92,246,0.2)'}`,
+                  border: `1px solid ${n.type === 'scrape_failed' ? 'rgba(248,113,113,0.25)' : n.isRead ? 'var(--border-base)' : 'rgba(139,92,246,0.2)'}`,
                   display: 'flex', alignItems: 'flex-start', gap: 12,
                   cursor: clickable ? 'pointer' : 'default',
                   transition: 'background 0.15s',

@@ -4,15 +4,17 @@ import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { ArrowLeft, User, Wifi, Phone, Save, LogOut, Bell, Target, Loader2, Settings, MessageSquare, Check, Trash2, CheckCircle, DollarSign, ShieldCheck } from 'lucide-react'
+import { ArrowLeft, User, Wifi, Phone, Save, LogOut, Bell, Target, Loader2, Settings, MessageSquare, Check, Trash2, CheckCircle, DollarSign } from 'lucide-react'
 import { signOut, useSession } from 'next-auth/react'
 import { formatDA } from '@/lib/utils'
 import { useLang } from '@/lib/lang-context'
+import { useToast } from '@/components/toast'
 
 export default function ProfilePage() {
-  const { t } = useLang()
+  const { t, lang } = useLang()
   const { data: session, status } = useSession()
   const router = useRouter()
+  const { error: toastError } = useToast()
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [budget, setBudget] = useState(2000)
@@ -24,10 +26,6 @@ export default function ProfilePage() {
   const [profileLoaded, setProfileLoaded] = useState(false)
   const [notifications, setNotifications] = useState<any[]>([])
   const [notifLoading, setNotifLoading] = useState(true)
-  const [adminCode, setAdminCode] = useState('')
-  const [adminError, setAdminError] = useState('')
-  const [adminSuccess, setAdminSuccess] = useState(false)
-  const [adminLoading, setAdminLoading] = useState(false)
 
   useEffect(() => {
     if (status === 'unauthenticated') router.push('/login')
@@ -60,13 +58,16 @@ export default function ProfilePage() {
   async function saveProfile() {
     setSaving(true)
     try {
-      await fetch('/api/profile', {
+      const res = await fetch('/api/profile', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ monthlyBudget: budget, dataUsageGB: dataGB, voiceMinutes: voice, smsCount: sms, preferredType: type, preferredNet: network }),
       })
+      if (!res.ok) throw new Error('save failed')
       setSaved(true)
       setTimeout(() => setSaved(false), 3000)
+    } catch {
+      toastError(t('error.saveFailed'))
     } finally {
       setSaving(false)
     }
@@ -77,24 +78,6 @@ export default function ProfilePage() {
       await fetch('/api/notifications', { method: 'PATCH' })
       setNotifications(prev => prev.map(n => ({ ...n, isRead: true })))
     } catch {}
-  }
-
-  async function claimAdmin() {
-    setAdminLoading(true)
-    setAdminError('')
-    try {
-      const res = await fetch('/api/admin/claim', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: adminCode }),
-      })
-      const data = await res.json()
-      if (!res.ok) { setAdminError(data.error); return }
-      setAdminSuccess(true)
-      setTimeout(() => signOut({ callbackUrl: '/login?promoted=1' }), 1500)
-    } finally {
-      setAdminLoading(false)
-    }
   }
 
   async function deleteNotif(id: string) {
@@ -281,7 +264,7 @@ export default function ProfilePage() {
                       <div style={{ fontSize: 13, fontWeight: n.isRead ? 500 : 700, color: 'var(--text-primary)' }}>{n.title}</div>
                       <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>{n.message}</div>
                       <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>
-                        {new Date(n.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                        {new Date(n.createdAt).toLocaleDateString(lang === 'ar' ? 'ar-DZ' : lang === 'fr' ? 'fr-DZ' : 'en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
                       </div>
                     </div>
                     <button onClick={() => deleteNotif(n.id)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: 4, borderRadius: 4, display: 'flex', flexShrink: 0 }}>
@@ -294,40 +277,6 @@ export default function ProfilePage() {
 
           </div>
         </div>
-
-          {/* Admin Access */}
-          {(session?.user as any)?.role !== 'ADMIN' && (
-            <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-base)', borderRadius: 12, padding: '1.5rem', marginTop: '1.5rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
-                <ShieldCheck size={18} color="var(--accent)" />
-                <h2 style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>Admin Access</h2>
-              </div>
-              <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 16 }}>
-                Enter the admin access code to elevate your account to administrator level. You will be signed out and need to sign back in.
-              </p>
-              {adminSuccess ? (
-                <div style={{ color: '#16a34a', fontSize: 14, fontWeight: 600 }}>✓ Access granted — signing you out…</div>
-              ) : (
-                <div style={{ display: 'flex', gap: 8 }}>
-                  <input
-                    type="password"
-                    placeholder="Enter admin access code"
-                    value={adminCode}
-                    onChange={(e) => { setAdminCode(e.target.value); setAdminError('') }}
-                    style={{ flex: 1, padding: '10px 14px', borderRadius: 8, border: '1px solid var(--border-base)', background: 'var(--bg-input)', color: 'var(--text-primary)', fontSize: 14, outline: 'none' }}
-                  />
-                  <button
-                    onClick={claimAdmin}
-                    disabled={adminLoading || !adminCode}
-                    style={{ padding: '10px 20px', borderRadius: 8, background: 'var(--accent)', color: '#fff', border: 'none', cursor: adminLoading || !adminCode ? 'not-allowed' : 'pointer', fontWeight: 600, fontSize: 14, opacity: !adminCode ? 0.6 : 1 }}
-                  >
-                    {adminLoading ? '…' : 'Claim'}
-                  </button>
-                </div>
-              )}
-              {adminError && <p style={{ color: '#ef4444', fontSize: 13, marginTop: 8 }}>{adminError}</p>}
-            </div>
-          )}
 
       </div>
     </motion.div>

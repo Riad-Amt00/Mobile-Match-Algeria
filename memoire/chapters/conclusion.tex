@@ -1,0 +1,29 @@
+% ─────────────────────────────────────────────────────────────────────────────
+% chapters/conclusion.tex — General Conclusion and Perspectives (unnumbered)
+% ─────────────────────────────────────────────────────────────────────────────
+
+\chapter*{General Conclusion and Perspectives}
+\addcontentsline{toc}{chapter}{General Conclusion and Perspectives}
+\markboth{General Conclusion and Perspectives}{General Conclusion and Perspectives}
+
+\section*{Recall of Problem and Objectives}
+
+This work set out to address a concrete gap in the Algerian digital services landscape: the absence of a neutral, real-time platform that allows consumers to compare mobile plans across all three national operators. Algerian users wishing to find the plan best suited to their needs are currently required to navigate three separate operator websites, manually reconcile heterogeneous formats, and make decisions based on information that may be outdated. The five objectives established at the outset of this project — a full-stack web application, an automated scraping module, a personalised recommendation engine, integrated data visualisation, and a notification system — were designed collectively to eliminate this gap.
+
+\section*{Summary of Contributions}
+
+The work produced the following concrete contributions. First, a functional and publicly accessible web application built on Next.js~16 that serves a live catalogue of over 100 mobile plans from Mobilis, Djezzy, and Ooredoo, with advanced filtering, side-by-side comparison with best-value highlighting, and a usage profile form. Second, a modular automated scraping pipeline that collects, normalises, and synchronises offer data from the three operator websites on a daily schedule, with per-family deactivation logic and a verified fallback dataset for the three plan families whose pages cannot be automatically parsed. Third, a multi-criteria recommendation engine that scores plans against a user's declared budget and usage profile with a 100-point composite score distributed across eight dimensions. Fourth, a complete admin dashboard that gives administrators visibility into platform health, detailed scrape history with per-operator event logs, and a notifications management panel. Fifth, an in-app notification system that alerts registered users to new offers and personalised recommendations after each scrape run.
+
+All five project objectives defined in the subject fiche were fully implemented. The running application demonstrates that each objective — web application, scraping module, recommendation engine, data visualisation, and notification system — has been realised end-to-end.
+
+\section*{Limitations}
+
+We acknowledge four limitations in the current version of the platform. The SQLite database is sufficient for the current single-server deployment but would need to be replaced with a client-server database engine (such as PostgreSQL) before the platform could scale to high traffic. The web scraping module is inherently fragile: any change to the structure of an operator's website will break the corresponding scraper until it is manually repaired. Feature descriptions in the database are currently extracted in French, which creates a language inconsistency when the Arabic interface is active. Finally, the platform has no integrated purchase flow or affiliate tracking, which limits its commercial viability.
+
+\section*{Perspectives}
+
+Several directions for future development present themselves naturally. In the short term, the three plan families currently served from a static dataset — Djezzy ZID, Djezzy IZZY!, and Mobilis Revolution — could be made fully live by integrating a residential proxy service to bypass network-level blocks, and optical character recognition (via \textit{Tesseract.js}) to extract text from the Revolution image carousels. Migrating from SQLite to PostgreSQL and deploying on a managed cloud host would significantly improve the reliability and scalability of the platform. In the medium term, the comparison scope could be extended to fixed-line internet plans and bundled home-mobile offers. Support for Arabic-language offer names and features, extracted directly from the Arabic-language pages of operator websites, would make the platform fully accessible to Arabic-speaking users. In the longer term, replacing the rule-based scoring model with a machine-learning model trained on user interaction data would yield more personalised recommendations as the user base grows. The platform's scraping and normalisation infrastructure could also be exposed as a public REST API, enabling third-party developers to build applications on top of the aggregated data.
+
+\bigskip
+
+\textit{Mobile Match Algeria} demonstrates that a well-designed, open-source web platform can meaningfully improve access to consumer information in a market where such tools have previously been absent. We hope that this work serves as both a useful resource for Algerian mobile users and a practical foundation for the extensions outlined above.
