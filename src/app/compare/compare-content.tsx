@@ -7,12 +7,56 @@ import {
   ArrowLeft, X, Wifi, Phone, MessageSquare, Calendar, Plus, Zap,
   CreditCard, DollarSign, Signal, Building2, Trophy, BarChart3,
 } from 'lucide-react'
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, LabelList } from 'recharts'
 import { formatDA, formatData, formatMinutes, formatSms, formatValidity, getNetworkStyle, OPERATOR_LOGOS, cleanOfferName, RANK_GRADIENTS, RANK_COLORS } from '@/lib/utils'
 import { useLang } from '@/lib/lang-context'
 import type { TKey } from '@/lib/i18n'
 
+// One comparative bar chart — offers on the X axis, a single metric on the Y axis.
+// Each offer keeps its own colour across all three charts so a bar can be traced
+// back to the same plan at a glance. The best performer for the metric stays at
+// full opacity while the rest are slightly dimmed.
+function MiniChart({ title, data, betterWhen, colors }: {
+  title: string
+  data: { name: string; value: number; label: string }[]
+  betterWhen: 'low' | 'high'
+  colors: string[]
+}) {
+  const values = data.map(d => d.value)
+  const best = betterWhen === 'low' ? Math.min(...values) : Math.max(...values)
+  return (
+    <div style={{ flex: 1, minWidth: 220 }}>
+      <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)', textAlign: 'center', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+        {title}
+      </div>
+      <ResponsiveContainer width="100%" height={180}>
+        <BarChart data={data} margin={{ top: 22, right: 8, bottom: 4, left: 8 }}>
+          <XAxis dataKey="name" tick={{ fontSize: 10, fill: 'var(--text-muted)' }} interval={0} />
+          <YAxis hide domain={[0, 'dataMax']} />
+          <Tooltip
+            cursor={{ fill: 'var(--bg-subtle)' }}
+            formatter={(_v: any, _n: any, p: any) => [p?.payload?.label ?? '', '']}
+            contentStyle={{ fontSize: 12, borderRadius: 8, border: '1px solid var(--border-base)', background: 'var(--bg-elevated)' }}
+            labelStyle={{ fontWeight: 700 }}
+          />
+          <Bar dataKey="value" radius={[4, 4, 0, 0]}>
+            {data.map((d, i) => (
+              <Cell key={i} fill={colors[i] ?? 'var(--accent)'} fillOpacity={d.value === best ? 1 : 0.5} />
+            ))}
+            <LabelList dataKey="label" position="top" style={{ fontSize: 10, fontWeight: 700, fill: 'var(--text-secondary)' }} />
+          </Bar>
+        </BarChart>
+      </ResponsiveContainer>
+    </div>
+  )
+}
+
 const RANK_LABELS = ['🥇', '🥈', '🥉']
 const RANK_BORDER = ['#F59E0B', '#94A3B8', '#CD7C3E']
+
+// Distinct per-slot colours for a normal (non-ranked) comparison — offer #1 / #2 / #3.
+// In a recommendation comparison the ranking palette (gold/silver/bronze) is used instead.
+const SLOT_COLORS = ['#6366F1', '#10B981', '#F43F5E']
 
 function RankBadge({ index }: { index: number }) {
   return (
@@ -74,6 +118,25 @@ export default function CompareContent({ initialIds, fromRecommend, fromSaved }:
     { key: 'smsCount',     icon: <MessageSquare size={16} />, label: t('compare.sms'),      format: (v: any) => formatSms(v, t) },
     { key: 'validityDays', icon: <Calendar size={16} />,      label: t('compare.validity'), format: (v: any) => formatValidity(v, t) },
   ]
+
+  // ── Comparative chart data (built when 2+ offers are selected) ──────────────
+  const finiteData = offers.map((o: any) => o.dataGB).filter((d: number) => d > 0)
+  const maxFiniteData = finiteData.length ? Math.max(...finiteData) : 50
+  const chartName = (o: any) => cleanOfferName(o.name).slice(0, 14)
+
+  const priceChart = offers.map((o: any) => ({
+    name: chartName(o), value: o.priceDA, label: formatDA(o.priceDA),
+  }))
+  const dataChart = offers.map((o: any) => ({
+    name: chartName(o),
+    value: o.dataGB === -1 ? Math.round(maxFiniteData * 1.15) : o.dataGB,
+    // formatData renders sub-1GB volumes as "256 MB" instead of "0.25618 GB".
+    label: o.dataGB === -1 ? '∞' : formatData(o.dataGB, t),
+  }))
+  // Ranked comparison → gold/silver/bronze; normal comparison → distinct per-slot hues.
+  const chartColors = fromRecommend ? RANK_COLORS : SLOT_COLORS
+  // Per-offer identity colour, reused to tint that offer's whole table column.
+  const slotColor = (i: number) => (fromRecommend ? RANK_COLORS[i] : SLOT_COLORS[i]) ?? 'var(--accent)'
 
   if (loading) {
     return (
@@ -261,6 +324,21 @@ export default function CompareContent({ initialIds, fromRecommend, fromSaved }:
           </div>
         )}
 
+        {/* Comparative charts */}
+        {offers.length >= 2 && (
+          <div className="card" style={{ padding: '1.5rem', marginBottom: '1.5rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: '0.25rem' }}>
+              <BarChart3 size={18} style={{ color: 'var(--accent)' }} />
+              <h3 style={{ fontSize: 15, fontWeight: 800, color: 'var(--text-primary)' }}>{t('compare.chartTitle')}</h3>
+            </div>
+            <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: '1.25rem' }}>{t('compare.chartHint')}</p>
+            <div style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap' }}>
+              <MiniChart title={t('compare.chartPrice')} data={priceChart} betterWhen="low" colors={chartColors} />
+              <MiniChart title={t('compare.chartData')} data={dataChart} betterWhen="high" colors={chartColors} />
+            </div>
+          </div>
+        )}
+
         {/* Comparison table */}
         {offers.length >= 1 && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
@@ -274,9 +352,9 @@ export default function CompareContent({ initialIds, fromRecommend, fromSaved }:
                     padding: '0.875rem 1.25rem',
                     borderLeft: ci > 0 ? '1px solid var(--border-subtle)' : undefined,
                     borderBottom: offers[ci]
-                      ? `5px solid ${fromRecommend ? (RANK_BORDER[ci] ?? 'var(--accent)') : 'var(--accent)'}`
+                      ? `5px solid ${slotColor(ci)}`
                       : '5px solid transparent',
-                    background: fromRecommend && offers[ci] ? `${RANK_COLORS[ci]}14` : undefined,
+                    background: offers[ci] ? `${slotColor(ci)}14` : undefined,
                   }}>
                     {offers[ci] ? (
                       <div>
@@ -314,7 +392,7 @@ export default function CompareContent({ initialIds, fromRecommend, fromSaved }:
                   <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>{t('compare.operator')}</span>
                 </div>
                 {Array.from({ length: 3 }).map((_, ci) => (
-                  <div key={ci} style={{ padding: '1rem 1.25rem', display: 'flex', alignItems: 'center', gap: 10, borderLeft: ci > 0 ? '1px solid var(--border-subtle)' : undefined, background: fromRecommend && offers[ci] ? `${RANK_COLORS[ci]}14` : undefined }}>
+                  <div key={ci} style={{ padding: '1rem 1.25rem', display: 'flex', alignItems: 'center', gap: 10, borderLeft: ci > 0 ? '1px solid var(--border-subtle)' : undefined, background: offers[ci] ? `${slotColor(ci)}14` : undefined }}>
                     {offers[ci] ? (
                       <>
                         <div style={{ width: 32, height: 32, borderRadius: 8, background: 'var(--bg-subtle)', border: '1px solid var(--border-base)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, overflow: 'hidden' }}>
@@ -356,7 +434,7 @@ export default function CompareContent({ initialIds, fromRecommend, fromSaved }:
                       padding: '1rem 1.25rem',
                       display: 'flex', alignItems: 'center', gap: 8,
                       borderLeft: ci > 0 ? '1px solid var(--border-subtle)' : undefined,
-                      background: fromRecommend && offers[ci] ? `${RANK_COLORS[ci]}14` : undefined,
+                      background: offers[ci] ? `${slotColor(ci)}14` : undefined,
                     }}>
                       {offers[ci] ? (
                         <span style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-primary)' }}>
@@ -385,7 +463,7 @@ export default function CompareContent({ initialIds, fromRecommend, fromSaved }:
                   <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>{t('compare.network')}</span>
                 </div>
                 {Array.from({ length: 3 }).map((_, ci) => (
-                  <div key={ci} style={{ padding: '1rem 1.25rem', display: 'flex', alignItems: 'center', gap: 6, borderLeft: ci > 0 ? '1px solid var(--border-subtle)' : undefined, background: fromRecommend && offers[ci] ? `${RANK_COLORS[ci]}14` : undefined }}>
+                  <div key={ci} style={{ padding: '1rem 1.25rem', display: 'flex', alignItems: 'center', gap: 6, borderLeft: ci > 0 ? '1px solid var(--border-subtle)' : undefined, background: offers[ci] ? `${slotColor(ci)}14` : undefined }}>
                     {offers[ci] ? (
                       <span style={{ fontSize: 13, fontWeight: 600, padding: '3px 10px', borderRadius: 'var(--radius-full)', ...getNetworkStyle(offers[ci].network), display: 'flex', alignItems: 'center', gap: 4 }}>
                         <Zap size={10} /> {offers[ci].network}

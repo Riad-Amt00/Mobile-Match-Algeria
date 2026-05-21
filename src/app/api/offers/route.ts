@@ -37,43 +37,78 @@ export async function GET(req: NextRequest) {
     if (network && network !== 'all') where.network = { contains: network }
     if (featured === 'true') where.isFeatured = true
     if (search) {
-      const s = search.toLowerCase()
-      const orConditions: any[] = [
-        { name: { contains: search } },
-        { operator: { name: { contains: search } } },
-        { features: { contains: search } },
-        { network: { contains: search } },
-      ]
+      // ── Smart search: parse the query the way a user thinks. ────────────────
+      // Structured tokens (data volume, price, SMS, minutes, network, operator,
+      // plan type, "unlimited") are pulled out and matched against real columns;
+      // whatever text remains must ALL appear in the name/features (AND).
+      // Every extracted condition is ANDed, so "5gb djezzy" really means
+      // "≥5 GB AND Djezzy", and "free internet" means "free AND internet".
+      let s = search.toLowerCase().trim()
+      const AND: any[] = []
 
-      // For multi-word queries, also search each word individually in name + features
-      const words = s.split(/\s+/).filter(w => w.length > 2)
-      for (const word of words) {
-        orConditions.push({ name: { contains: word } })
-        orConditions.push({ features: { contains: word } })
+      // Data volume: "5gb", "5 gb", "10go", "2giga" → plans around N GB
+      // (band 0.7×–3× so "5gb" finds ~5 GB plans, not every 200 GB plan).
+      s = s.replace(/(\d+(?:[.,]\d+)?)\s*(gb|go|giga|gigas)\b/g, (_m, n: string) => {
+        const gb = parseFloat(n.replace(',', '.'))
+        AND.push({ dataGB: { gte: gb * 0.7, lte: gb * 3 } })
+        return ' '
+      })
+      // Price: "1000da", "500 dinars" → within ±30% of the stated price
+      s = s.replace(/(\d+)\s*(da|dzd|dinars?|dj)\b/g, (_m, n: string) => {
+        const p = parseInt(n)
+        AND.push({ priceDA: { gte: Math.round(p * 0.7), lte: Math.round(p * 1.3) } })
+        return ' '
+      })
+      // SMS: "10 sms", "100sms" → at least N SMS (or unlimited)
+      s = s.replace(/(\d+)\s*sms\b/g, (_m, n: string) => {
+        AND.push({ OR: [{ smsCount: -1 }, { smsCount: { gte: parseInt(n) } }] })
+        return ' '
+      })
+      // Minutes: "100 min", "200 minutes" → at least N minutes (or unlimited)
+      s = s.replace(/(\d+)\s*(minutes?|mins?|mn)\b/g, (_m, n: string) => {
+        AND.push({ OR: [{ voiceMinutes: -1 }, { voiceMinutes: { gte: parseInt(n) } }] })
+        return ' '
+      })
+      // Network: "4g", "5 g", "3g"
+      s = s.replace(/\b([345])\s*g\b/g, (_m, g: string) => {
+        AND.push({ network: { contains: `${g}G` } })
+        return ' '
+      })
+      // "unlimited" / "illimité" → unlimited calls or SMS, or an unlimited feature
+      if (/unlimited|illimit|infini/.test(s)) {
+        s = s.replace(/unlimited|illimit[a-zà-ÿ]*|infini[a-zà-ÿ]*/g, ' ')
+        AND.push({ OR: [{ voiceMinutes: -1 }, { smsCount: -1 }, { features: { contains: 'nlimited' } }] })
+      }
+      // Operator names
+      for (const op of ['djezzy', 'ooredoo', 'mobilis']) {
+        if (s.includes(op)) { AND.push({ operator: { slug: op } }); s = s.split(op).join(' ') }
+      }
+      // Plan type
+      if (/pr[ée]pay|prepaid|recharge/.test(s)) {
+        s = s.replace(/pr[ée]pay[a-zà-ÿ]*|prepaid|recharges?/g, ' '); AND.push({ type: 'PREPAID' })
+      }
+      if (/postpay|postpaid|abonnement/.test(s)) {
+        s = s.replace(/postpay[a-zà-ÿ]*|postpaid|abonnements?/g, ' '); AND.push({ type: 'POSTPAID' })
+      }
+      // Remaining free-text words — each must appear in name or features (AND).
+      // French terms are mapped to the English text stored in the DB.
+      const ALIAS: Record<string, string> = {
+        appel: 'call', appels: 'call', voix: 'call',
+        texto: 'sms', message: 'sms', messages: 'sms',
+        réseaux: 'social', réseau: 'social', sociaux: 'social',
+        gratuit: 'free', gratuite: 'free', gratuits: 'free', gratuites: 'free',
+        données: 'data',
+      }
+      for (const word of s.split(/\s+/).map(w => w.trim()).filter(w => w.length >= 2)) {
+        const term = ALIAS[word] || word
+        AND.push({ OR: [
+          { name: { contains: term } },
+          { features: { contains: term } },
+          { operator: { name: { contains: term } } },
+        ] })
       }
 
-      // French → English feature aliases (features are stored in English)
-      if (/appel|appels/i.test(s))         orConditions.push({ features: { contains: 'call' } })
-      if (/voix/i.test(s))                 orConditions.push({ features: { contains: 'call' } })
-      if (/forfait/i.test(s))              orConditions.push({ name: { contains: 'forfait' } })
-      if (/r[eé]seau social|social/i.test(s)) orConditions.push({ features: { contains: 'social' } })
-      if (/facebook|fb/i.test(s))          orConditions.push({ features: { contains: 'Facebook' } })
-      if (/whatsapp/i.test(s))             orConditions.push({ features: { contains: 'WhatsApp' } })
-      if (/youtube/i.test(s))              orConditions.push({ features: { contains: 'YouTube' } })
-
-      // Keyword → structured field mappings (French + English)
-      const isUnlimited = /illimit[eé]|unlimited|gratuit|free|infini/i.test(s)
-      const isCalls     = /appel|call|voix|voice|minute|\bmin\b/i.test(s)
-      const isSms       = /\bsms\b|texto|message/i.test(s)
-      // Note: dataGB never uses -1; only voiceMinutes and smsCount do
-      if (isUnlimited && isCalls) orConditions.push({ voiceMinutes: -1 })
-      if (isUnlimited && isSms)   orConditions.push({ smsCount: -1 })
-      if (isUnlimited && !isCalls && !isSms) {
-        orConditions.push({ voiceMinutes: -1 }, { smsCount: -1 })
-      }
-      if (/prépay[eé]|prepaid|recharge/i.test(s)) orConditions.push({ type: 'PREPAID' })
-      if (/postpay[eé]|postpaid|abonnement/i.test(s)) orConditions.push({ type: 'POSTPAID' })
-      where.OR = orConditions
+      if (AND.length > 0) where.AND = AND
     }
 
     const page  = Math.max(1, parseInt(searchParams.get('page')  ?? '1'))

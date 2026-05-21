@@ -33,11 +33,8 @@ export async function proxy(req: NextRequest) {
 
   // /admin – must be an ADMIN role
   if (path.startsWith('/admin')) {
-    if (!isLoggedIn || !isAdmin) {
-      return NextResponse.redirect(
-        new URL('/login?error=unauthorized', nextUrl)
-      )
-    }
+    if (!isLoggedIn) return NextResponse.redirect(new URL('/login', nextUrl))
+    if (!isAdmin) return NextResponse.redirect(new URL('/', nextUrl))
   }
 
   // /profile, /saved, /recommend – must be logged in

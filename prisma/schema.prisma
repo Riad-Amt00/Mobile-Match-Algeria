@@ -1,6 +1,5 @@
 generator client {
-  provider        = "prisma-client-js"
-  previewFeatures = ["driverAdapters"]
+  provider = "prisma-client-js"
 }
 
 datasource db {
@@ -73,8 +72,10 @@ model UserProfile {
   dataUsageGB    Float?
   voiceMinutes   Int?
   smsCount       Int?
-  preferredType  String? // "prepaid" | "postpaid"
-  preferredNet   String? // "4G" | "5G"
+  preferredType     String? // "prepaid" | "postpaid"
+  preferredNet      String? // "4G" | "5G"
+  preferredOperator String? // operator slug: "djezzy" | "ooredoo" | "mobilis"
+  priorities        String? // ranked priorities, comma-separated: e.g. "price,data,calls"
   user           User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 

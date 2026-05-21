@@ -15,7 +15,7 @@ export async function GET(
       where: { id },
       include: {
         operator: true,
-        priceHistory: { orderBy: { recordedAt: 'desc' }, take: 2 },
+        priceHistory: { orderBy: { recordedAt: 'desc' }, take: 30 },
       },
     })
 

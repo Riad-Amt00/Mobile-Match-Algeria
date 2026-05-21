@@ -13,6 +13,14 @@
  */
 import * as cheerio from 'cheerio'
 import { OfferType } from '@prisma/client'
+import {
+  parseGB as parseArabicGB,
+  parsePriceDA as parseArabicDA,
+  parseValidityDays as parseArabicDays,
+  validateOffer,
+  type ScrapedOffer as ValidatedOffer,
+} from './validate'
+import { createBrowserFetcher } from './fetch'
 
 interface ScrapedOffer {
   name: string
@@ -29,60 +37,12 @@ interface ScrapedOffer {
 
 type Emit = (level: 'INFO' | 'OK' | 'WARN' | 'ERROR', msg: string) => void
 
-const HEADERS = {
-  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-  'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-  'Accept-Language': 'fr-FR,fr;q=0.9,en;q=0.8',
-}
-
-async function fetchPage(url: string): Promise<string | null> {
-  try {
-    const res = await fetch(url, { headers: HEADERS, signal: AbortSignal.timeout(15000) })
-    if (!res.ok) return null
-    const text = await res.text()
-    if (text.length < 500) return null  // WAF rejection page is ~245 bytes
-    return text
-  } catch {
-    return null
-  }
-}
-
-// Parse Arabic GB/MB amount: "60 جيغا" → 60, "300 ميغا" → 0.293
-function parseArabicGB(text: string): number {
-  const giga = text.match(/([\d.]+)\s*جيغا/u)
-  if (giga) return parseFloat(giga[1])
-  const mega = text.match(/([\d.]+)\s*ميغا/u)
-  if (mega) return parseFloat(mega[1]) / 1024
-  // Also handle Latin: "60 Go", "60 GB"
-  const go = text.match(/([\d.]+)\s*(?:go|gb|giga)/i)
-  if (go) return parseFloat(go[1])
-  return 0
-}
-
-// Parse Arabic DA price: "30 دج" → 30, or plain "30" in context
-function parseArabicDA(text: string): number {
-  const m = text.match(/(\d[\d\s]*)(?:\s*دج|\s*DA)/u)
-  if (m) return parseInt(m[1].replace(/\s/g, ''))
-  return 0
-}
-
-// Parse validity from Arabic text: "30 يوم" → 30, "3 أشهر" → 90, "شهريا" → 30, "6 أشهر" → 180
-function parseArabicDays(text: string): number {
-  if (/شهريا|شهري/u.test(text)) return 30
-  const months = text.match(/(\d+)\s*(?:أشهر|شهر)/u)
-  if (months) return parseInt(months[1]) * 30
-  const days = text.match(/(\d+)\s*(?:أيام|يوم)/u)
-  if (days) return parseInt(days[1])
-  // Latin fallback
-  const mLat = text.match(/(\d+)\s*(?:mois|month)/i)
-  if (mLat) return parseInt(mLat[1]) * 30
-  const dLat = text.match(/(\d+)\s*(?:jours?|days?)/i)
-  if (dLat) return parseInt(dLat[1])
-  return 30
+function pushIfValid(offers: ScrapedOffer[], offer: ScrapedOffer): void {
+  if (validateOffer(offer as ValidatedOffer).valid) offers.push(offer)
 }
 
 // ── Parser for div.item_price layout (passinternet, mobinet_plus, mobinet) ────
-function parseItemPriceCards(
+export function parseItemPriceCards(
   $: cheerio.CheerioAPI,
   pageUrl: string,
   planFamily: string,
@@ -93,10 +53,16 @@ function parseItemPriceCards(
   $('div.item_price').each((_, el) => {
     const card = $(el)
 
-    // Price — text directly in .pricing-price before the <span class="price-unit">
+    // Price — use the unit-anchored parser on the whole .pricing-price text.
+    // More robust than DOM-traversal-then-text-extract; the parser ignores
+    // anything that isn't "<digits> DA" or "<digits> دج".
     const pricingDiv = card.find('.pricing-price')
-    const priceText = pricingDiv.clone().find('span').remove().end().text().trim()
-    const priceDA = parseInt(priceText.replace(/\D/g, ''))
+    let priceDA = parseArabicDA(pricingDiv.text())
+    // Fallback: digit-only extraction if no unit marker found (rare layout variant)
+    if (!priceDA) {
+      const priceText = pricingDiv.clone().find('span').remove().end().text().trim()
+      priceDA = parseInt(priceText.replace(/\D/g, ''))
+    }
     if (!priceDA || isNaN(priceDA)) return
 
     // Validity — in a small span inside .pricing-price like "/ 30 يوم" or "/ شهريا"
@@ -118,7 +84,7 @@ function parseItemPriceCards(
 
     if (!dataGB) return
 
-    offers.push({
+    pushIfValid(offers, {
       name: `${planFamily} ${priceDA} DA`,
       type,
       priceDA,
@@ -137,7 +103,7 @@ function parseItemPriceCards(
 
 // ── Parser for Navigui — Arabic Quill text with inline pricing ────────────────
 // Pattern: "✅ X جيغا صالحة Y بـ Z دج"
-function parseNaviguiText($: cheerio.CheerioAPI, pageUrl: string): ScrapedOffer[] {
+export function parseNaviguiText($: cheerio.CheerioAPI, pageUrl: string): ScrapedOffer[] {
   const offers: ScrapedOffer[] = []
   const pageText = $.text()
 
@@ -158,7 +124,7 @@ function parseNaviguiText($: cheerio.CheerioAPI, pageUrl: string): ScrapedOffer[
     seen.add(key)
 
     const label = validityDays === 30 ? 'Monthly' : validityDays === 90 ? '3 Months' : validityDays === 180 ? '6 Months' : `${validityDays}d`
-    offers.push({
+    pushIfValid(offers, {
       name: `Navigui Internet ${label} ${priceDA} DA`,
       type: OfferType.DATA_ONLY,
       priceDA,
@@ -178,6 +144,9 @@ function parseNaviguiText($: cheerio.CheerioAPI, pageUrl: string): ScrapedOffer[
 // ── Main scraper entry point ──────────────────────────────────────────────────
 export async function scrapeMobilis(emit: Emit = () => {}): Promise<ScrapedOffer[]> {
   emit('INFO', 'Fetching Mobilis offers from mobilis.dz')
+  // All operators use the same real-browser fetch path for a uniform pipeline.
+  const { fetchPage, close } = createBrowserFetcher(emit)
+  try {
   const liveOffers: ScrapedOffer[] = []
   const liveScrapedFamilies: Set<string> = new Set()
 
@@ -266,6 +235,9 @@ export async function scrapeMobilis(emit: Emit = () => {}): Promise<ScrapedOffer
   const result = [...liveOffers, ...fallback]
   emit('OK', `Total: ${result.length} Mobilis offers (${liveOffers.length} live, ${fallback.length} from verified dataset)`)
   return result
+  } finally {
+    await close()
+  }
 }
 
 // ── Fallback verified dataset (Revolution plans + any failed live pages) ──────
@@ -278,9 +250,9 @@ function getMobilisFallbackOffers(): ScrapedOffer[] {
     { name: 'Mobilis Revolution Prepaid 2000', type: OfferType.PREPAID, priceDA: 2000, dataGB: 45, voiceMinutes: -1, smsCount: -1, validityDays: 30, network: '4G/5G', features: ['Unlimited Mobilis calls', 'Unlimited Mobilis SMS', 'Unified MU credit', '200 MU renewal bonus', 'Data rollover', '5G compatible'], sourceUrl: 'https://mobilis.dz/revolution_prepaid' },
     { name: 'Mobilis Revolution Prepaid 3000', type: OfferType.PREPAID, priceDA: 3000, dataGB: 70, voiceMinutes: -1, smsCount: -1, validityDays: 30, network: '4G/5G', features: ['Unlimited calls (all networks)', 'Unlimited SMS', 'Unified MU credit', '200 MU renewal bonus', 'Data rollover', '5G compatible'], sourceUrl: 'https://mobilis.dz/revolution_prepaid' },
     // ── Revolution Control ────────────────────────────────────────────────────
-    { name: 'Mobilis Revolution Control 1000', type: OfferType.PREPAID, priceDA: 1000, dataGB: 18, voiceMinutes: -1, smsCount: -1, validityDays: 30, network: '4G/5G', features: ['Unlimited Mobilis calls', 'Unlimited Mobilis SMS', 'Control plan', '250 MU renewal bonus', 'KeepOn MU reserve', '5G compatible'], sourceUrl: 'https://mobilis.dz/revolution_control' },
-    { name: 'Mobilis Revolution Control 2000', type: OfferType.PREPAID, priceDA: 2000, dataGB: 45, voiceMinutes: -1, smsCount: -1, validityDays: 30, network: '4G/5G', features: ['Unlimited Mobilis calls', 'Unlimited Mobilis SMS', 'Control plan', '250 MU renewal bonus', 'KeepOn MU reserve', 'Data rollover', '5G compatible'], sourceUrl: 'https://mobilis.dz/revolution_control' },
-    { name: 'Mobilis Revolution Control 3000', type: OfferType.PREPAID, priceDA: 3000, dataGB: 70, voiceMinutes: -1, smsCount: -1, validityDays: 30, network: '4G/5G', features: ['Unlimited calls (all networks)', 'Unlimited SMS', 'Control plan', '250 MU renewal bonus', 'KeepOn MU reserve', 'Data rollover', '5G compatible'], sourceUrl: 'https://mobilis.dz/revolution_control' },
+    { name: 'Mobilis Revolution Control 1000', type: OfferType.POSTPAID, priceDA: 1000, dataGB: 18, voiceMinutes: -1, smsCount: -1, validityDays: 30, network: '4G/5G', features: ['Unlimited Mobilis calls', 'Unlimited Mobilis SMS', 'Control plan', '250 MU renewal bonus', 'KeepOn MU reserve', '5G compatible'], sourceUrl: 'https://mobilis.dz/revolution_control' },
+    { name: 'Mobilis Revolution Control 2000', type: OfferType.POSTPAID, priceDA: 2000, dataGB: 45, voiceMinutes: -1, smsCount: -1, validityDays: 30, network: '4G/5G', features: ['Unlimited Mobilis calls', 'Unlimited Mobilis SMS', 'Control plan', '250 MU renewal bonus', 'KeepOn MU reserve', 'Data rollover', '5G compatible'], sourceUrl: 'https://mobilis.dz/revolution_control' },
+    { name: 'Mobilis Revolution Control 3000', type: OfferType.POSTPAID, priceDA: 3000, dataGB: 70, voiceMinutes: -1, smsCount: -1, validityDays: 30, network: '4G/5G', features: ['Unlimited calls (all networks)', 'Unlimited SMS', 'Control plan', '250 MU renewal bonus', 'KeepOn MU reserve', 'Data rollover', '5G compatible'], sourceUrl: 'https://mobilis.dz/revolution_control' },
     // ── Revolution Postpaid ───────────────────────────────────────────────────
     { name: 'Mobilis Revolution Postpaid 1500', type: OfferType.POSTPAID, priceDA: 1500, dataGB: 30, voiceMinutes: -1, smsCount: -1, validityDays: 30, network: '4G/5G', features: ['Unlimited Mobilis calls', 'Unlimited Mobilis SMS', 'Monthly plan', '300 MU upgrade bonus', 'KeepOn MU reserve', '5G compatible'], sourceUrl: 'https://mobilis.dz/revolution_postpaid' },
     { name: 'Mobilis Revolution Postpaid 2000', type: OfferType.POSTPAID, priceDA: 2000, dataGB: 50, voiceMinutes: -1, smsCount: -1, validityDays: 30, network: '4G/5G', features: ['Unlimited Mobilis calls', 'Unlimited Mobilis SMS', 'Monthly plan', '300 MU upgrade bonus', 'KeepOn MU reserve', 'Data rollover', '5G compatible'], sourceUrl: 'https://mobilis.dz/revolution_postpaid' },

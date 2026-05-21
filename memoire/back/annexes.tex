@@ -20,38 +20,40 @@ This annexe contains the full set of UML diagrams produced during the analysis a
 \begin{tikzpicture}[
   actor/.style={rectangle, draw=black!60, fill=gray!10, rounded corners=3pt,
                 minimum width=2.4cm, minimum height=0.6cm, align=center, font=\scriptsize\bfseries},
-  uc/.style={ellipse, draw=black!70, fill=blue!5, minimum width=4.5cm, minimum height=0.72cm,
+  uc/.style={ellipse, draw=black!70, fill=blue!5, minimum width=4.5cm, minimum height=0.7cm,
              align=center, font=\scriptsize},
-  ucadm/.style={ellipse, draw=black!70, fill=orange!8, minimum width=4.5cm, minimum height=0.72cm,
+  ucadm/.style={ellipse, draw=black!70, fill=orange!8, minimum width=4.5cm, minimum height=0.7cm,
                 align=center, font=\scriptsize},
   sys/.style={rectangle, draw=black!50, dashed, rounded corners=5pt, inner sep=8pt},
   assoc/.style={thick, black!50},
   gen/.style={thick, black!70, -{Triangle[open, length=5pt, width=5pt]}}
 ]
-  \node[sys, minimum width=11cm, minimum height=13.8cm] (sys) at (5.5,-6.8) {};
+  \node[sys, minimum width=11cm, minimum height=15.0cm] (sys) at (5.5,-7.4) {};
   \node[font=\scriptsize\bfseries, anchor=north west] at (sys.north west) {\textit{Mobile Match Algeria — System Boundary}};
 
-  % Use cases accessible by all users (visitor + registered + admin)
-  \node[uc] (uc1) at (5.5,-0.7) {Browse \& Filter Offers};
-  \node[uc] (uc2) at (5.5,-1.9) {View Offer Details};
-  \node[uc] (uc3) at (5.5,-3.1) {Compare Plans (side-by-side)};
-  % Use cases for registered users and admin
-  \node[uc] (uc4) at (5.5,-4.4) {Get Personalised Recommendations};
-  \node[uc] (uc5) at (5.5,-5.6) {Save / Unsave a Plan};
-  \node[uc] (uc6) at (5.5,-6.8) {View Saved Plans};
-  \node[uc] (uc7) at (5.5,-8.0) {Edit Usage Profile};
-  \node[uc] (uc8) at (5.5,-9.2) {View \& Manage Notifications};
-  % Admin-only use cases
-  \node[ucadm] (uc9)  at (5.5,-10.5) {Trigger Scrape Run};
-  \node[ucadm] (uc10) at (5.5,-11.8) {View Scrape Logs \& Statistics};
-  \node[ucadm] (uc11) at (5.5,-13.0) {View \& Manage Notifications};
+  % Visitor-level use cases (UC1..UC6)
+  \node[uc] (uc1)  at (5.5,-0.7)  {Browse \& Filter Offers};
+  \node[uc] (uc2)  at (5.5,-1.85) {Advanced Search};
+  \node[uc] (uc3)  at (5.5,-3.0)  {View Offer Details};
+  \node[uc] (uc4)  at (5.5,-4.15) {Compare Plans (table + charts)};
+  \node[uc] (uc5)  at (5.5,-5.3)  {Use Savings Calculator};
+  \node[uc] (uc6)  at (5.5,-6.45) {View Help / Tutorial};
+  % Registered User use cases (UC7..UC10)
+  \node[uc] (uc7)  at (5.5,-7.7)  {Get Personalised Recommendations};
+  \node[uc] (uc8)  at (5.5,-8.85) {Save / Unsave a Plan};
+  \node[uc] (uc9)  at (5.5,-10.0) {View Saved Plans};
+  \node[uc] (uc10) at (5.5,-11.15){Edit Usage Profile};
+  \node[uc] (uc11) at (5.5,-12.3) {View \& Manage Notifications};
+  % Admin-only use cases (UC12..UC13)
+  \node[ucadm] (uc12) at (5.5,-13.55) {Trigger Scrape Run};
+  \node[ucadm] (uc13) at (5.5,-14.7)  {View Scrape Logs \& Statistics};
 
   % Actors (left side)
-  \node[actor] (visitor) at (-0.5,-1.3) {Visitor};
-  \node[actor] (user)    at (-0.5,-6.8) {Registered\\User};
-  \node[actor] (admin)   at (-0.5,-11.8) {Administrator};
+  \node[actor] (visitor) at (-0.5,-3.6)  {Visitor};
+  \node[actor] (user)    at (-0.5,-9.45) {Registered\\User};
+  \node[actor] (admin)   at (-0.5,-14.1) {Administrator};
 
-  % Generalisation arrows (open triangle = is-a / inherits; no label in UML)
+  % Generalisation arrows (open triangle = is-a / inherits)
   \draw[gen] (user.north)  -- (visitor.south);
   \draw[gen] (admin.north) -- (user.south);
 
@@ -59,18 +61,20 @@ This annexe contains the full set of UML diagrams produced during the analysis a
   \draw[assoc] (visitor.east) -- (uc1.west);
   \draw[assoc] (visitor.east) -- (uc2.west);
   \draw[assoc] (visitor.east) -- (uc3.west);
+  \draw[assoc] (visitor.east) -- (uc4.west);
+  \draw[assoc] (visitor.east) -- (uc5.west);
+  \draw[assoc] (visitor.east) -- (uc6.west);
 
   % Registered User additional associations
-  \draw[assoc] (user.east) -- (uc4.west);
-  \draw[assoc] (user.east) -- (uc5.west);
-  \draw[assoc] (user.east) -- (uc6.west);
   \draw[assoc] (user.east) -- (uc7.west);
   \draw[assoc] (user.east) -- (uc8.west);
+  \draw[assoc] (user.east) -- (uc9.west);
+  \draw[assoc] (user.east) -- (uc10.west);
+  \draw[assoc] (user.east) -- (uc11.west);
 
   % Admin additional (exclusive) associations
-  \draw[assoc] (admin.east) -- (uc9.west);
-  \draw[assoc] (admin.east) -- (uc10.west);
-  \draw[assoc] (admin.east) -- (uc11.west);
+  \draw[assoc] (admin.east) -- (uc12.west);
+  \draw[assoc] (admin.east) -- (uc13.west);
 \end{tikzpicture}
 \caption{Complete use case diagram --- actor generalisation and all use cases}
 \label{fig:usecase-full}
@@ -99,12 +103,14 @@ This annexe contains the full set of UML diagrams produced during the analysis a
     \node[row]{name, slug, type, network}; \\
     \node[row]{priceDA, dataGB, voiceMin}; \\
     \node[row]{smsCount, validityDays}; \\
-    \node[row]{isActive: Boolean}; \\
+    \node[row]{features, isActive}; \\
+    \node[row]{sourceUrl, scrapedAt}; \\
   };
   \matrix[cls, ampersand replacement=\&] (user) at (7.8,0) {
     \node[hdr]{User}; \\
     \node[row]{id: String (PK)}; \\
     \node[row]{name, email (unique)}; \\
+    \node[row]{emailVerified: DateTime}; \\
     \node[row]{passwordHash, role}; \\
     \node[row]{createdAt, updatedAt}; \\
   };
@@ -112,34 +118,43 @@ This annexe contains the full set of UML diagrams produced during the analysis a
     \node[hdr]{Notification}; \\
     \node[row]{id: String (PK)}; \\
     \node[row]{userId (FK)}; \\
-    \node[row]{title, message}; \\
+    \node[row]{title, message, type}; \\
     \node[row]{isRead: Boolean}; \\
-    \node[row]{createdAt: DateTime}; \\
+    \node[row]{offerId, createdAt}; \\
   };
 
-  %% ── Row 2: ScrapeLog · SavedOffer · UserProfile ───────────────────────────
-  \matrix[cls, ampersand replacement=\&] (scrape) at (0,-4.5) {
+  %% ── Row 2: ScrapeLog · PriceHistory · SavedOffer · UserProfile ────────────
+  \matrix[cls, ampersand replacement=\&] (scrape) at (0,-5.0) {
     \node[hdr]{ScrapeLog}; \\
     \node[row]{id: String (PK)}; \\
     \node[row]{operatorId (FK)}; \\
     \node[row]{status, duration}; \\
     \node[row]{offersFound/Added/Updated}; \\
-    \node[row]{errorMessage, createdAt}; \\
+    \node[row]{offersDeactivated, details}; \\
+    \node[row]{errorMessage, startedAt}; \\
   };
-  \matrix[cls, ampersand replacement=\&] (saved) at (3.9,-4.5) {
+  \matrix[cls, ampersand replacement=\&] (history) at (3.9,-5.0) {
+    \node[hdr]{PriceHistory}; \\
+    \node[row]{id: String (PK)}; \\
+    \node[row]{offerId (FK)}; \\
+    \node[row]{priceDA: Float}; \\
+    \node[row]{recordedAt: DateTime}; \\
+  };
+  \matrix[cls, ampersand replacement=\&] (saved) at (7.8,-5.0) {
     \node[hdr]{SavedOffer}; \\
     \node[row]{id: String (PK)}; \\
     \node[row]{userId (FK)}; \\
     \node[row]{offerId (FK)}; \\
     \node[row]{savedAt: DateTime}; \\
   };
-  \matrix[cls, ampersand replacement=\&] (profile) at (7.8,-4.5) {
+  \matrix[cls, ampersand replacement=\&] (profile) at (11.7,-5.0) {
     \node[hdr]{UserProfile}; \\
     \node[row]{id: String (PK)}; \\
     \node[row]{userId (FK, unique)}; \\
     \node[row]{monthlyBudget, dataUsageGB}; \\
     \node[row]{voiceMinutes, smsCount}; \\
     \node[row]{preferredType, preferredNet}; \\
+    \node[row]{preferredOperator, priorities}; \\
   };
 
   %% ── Associations ──────────────────────────────────────────────────────────
@@ -153,22 +168,27 @@ This annexe contains the full set of UML diagrams produced during the analysis a
     node[left, font=\scriptsize, pos=0.15]{1}
     node[left, font=\scriptsize, pos=0.85]{N}
     (scrape.north);
-  % Offer → SavedOffer  (1 to N)
+  % Offer → PriceHistory  (1 to N) — direct below
   \draw[assoc] (offer.south) --
-    node[right, font=\scriptsize, pos=0.15]{1}
-    node[right, font=\scriptsize, pos=0.85]{N}
-    (saved.north);
-  % User → SavedOffer  (1 to N) — diagonal, does not cross Offer→SavedOffer
+    node[left, font=\scriptsize, pos=0.15]{1}
+    node[left, font=\scriptsize, pos=0.85]{N}
+    (history.north);
+  % Offer → SavedOffer  (1 to N) — diagonal
+  \draw[assoc] (offer.south east) --
+    node[above, sloped, font=\scriptsize, pos=0.15]{1}
+    node[above, sloped, font=\scriptsize, pos=0.85]{N}
+    (saved.north west);
+  % User → SavedOffer  (1 to N) — diagonal
   \draw[assoc] (user.south west) --
     node[above, sloped, font=\scriptsize, pos=0.15]{1}
     node[above, sloped, font=\scriptsize, pos=0.85]{N}
     (saved.north east);
   % User → UserProfile  (1 to 1)
-  \draw[assoc] (user.south) --
-    node[right, font=\scriptsize, pos=0.15]{1}
-    node[right, font=\scriptsize, pos=0.85]{1}
-    (profile.north);
-  % User → Notification  (1 to N) — horizontal, no overlap
+  \draw[assoc] (user.south east) --
+    node[above, sloped, font=\scriptsize, pos=0.15]{1}
+    node[above, sloped, font=\scriptsize, pos=0.85]{1}
+    (profile.north west);
+  % User → Notification  (1 to N) — horizontal
   \draw[assoc] (user.east) --
     node[above, font=\scriptsize, pos=0.15]{1}
     node[above, font=\scriptsize, pos=0.85]{N}
@@ -236,7 +256,7 @@ This annexe contains the full set of UML diagrams produced during the analysis a
 \label{annexe:schema}
 % ─────────────────────────────────────────────────────────────────────────────
 
-The data model is defined in \texttt{prisma/schema.prisma} using the Prisma schema language. It consists of seven application-defined entities whose primary fields and relations are summarised in Table~\ref{tab:schema-entities}. Authentication infrastructure models managed by NextAuth.js (\texttt{Account}, \texttt{Session}) are excluded from this summary. The full schema file is available in the project repository.
+The data model is defined in \texttt{prisma/schema.prisma} using the Prisma schema language. It consists of eight application-defined entities whose primary fields and relations are summarised in Table~\ref{tab:schema-entities}. Authentication-infrastructure models managed by NextAuth.js (\texttt{Account}, \texttt{Session}, \texttt{VerificationToken}) and the system-level \texttt{RateLimit} table are excluded from this summary. The full schema file is available in the project repository.
 
 \begin{table}[H]
   \caption{Prisma schema entities and primary fields}
@@ -246,19 +266,21 @@ The data model is defined in \texttt{prisma/schema.prisma} using the Prisma sche
     \hline
     \textbf{Entity} & \textbf{Key fields} & \textbf{Relations} \\
     \hline
-    User         & id, name, email, role, passwordHash, createdAt & SavedOffer, Notification, UserProfile \\
+    Operator     & id, name, slug, logoUrl, websiteUrl, primaryColor & Offer, ScrapeLog \\
     \hline
-    UserProfile  & id, userId, monthlyBudget, dataUsageGB, voiceMinutes, preferredType & User \\
+    Offer        & id, operatorId, name, slug, type, priceDA, dataGB, voiceMinutes, smsCount, validityDays, network, features, isActive, sourceUrl, scrapedAt & Operator, PriceHistory, SavedOffer \\
     \hline
-    Offer        & id, operator, name, type, priceDA, dataGB, voiceMinutes, validityDays, isActive & SavedOffer \\
+    PriceHistory & id, offerId, priceDA, recordedAt & Offer \\
+    \hline
+    User         & id, name, email, emailVerified, passwordHash, role, createdAt & UserProfile, SavedOffer, Notification \\
+    \hline
+    UserProfile  & id, userId, monthlyBudget, dataUsageGB, voiceMinutes, smsCount, preferredType, preferredNet, preferredOperator, priorities & User \\
     \hline
     SavedOffer   & id, userId, offerId, savedAt & User, Offer \\
     \hline
-    Notification & id, userId, title, message, type, isRead, createdAt & User \\
+    Notification & id, userId, title, message, type, isRead, offerId, createdAt & User \\
     \hline
-    ScrapeLog    & id, operatorId, status, offersFound, offersAdded, offersUpdated, duration, startedAt & Operator \\
-    \hline
-    Operator     & id, name, slug, logoUrl, websiteUrl, primaryColor & Offer, ScrapeLog \\
+    ScrapeLog    & id, operatorId, status, offersFound, offersAdded, offersUpdated, offersDeactivated, details, errorMessage, duration, startedAt, completedAt & Operator \\
     \hline
   \end{tabular}
 \end{table}

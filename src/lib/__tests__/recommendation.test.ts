@@ -55,7 +55,8 @@ describe('thesis test cases (Table 4.2)', () => {
     const results = recommendOffers(OFFERS, { budget: 1000, dataGB: 5, voiceMinutes: 0, smsCount: 0 })
     expect(results.length).toBeGreaterThan(0)
     const top = results[0].offer
-    expect(top.priceDA).toBeLessThanOrEqual(1000 * 1.15)
+    // Budget is a hard ceiling — no offer above 1000DA may be recommended.
+    expect(top.priceDA).toBeLessThanOrEqual(1000)
     expect(top.dataGB === -1 || top.dataGB >= 5).toBe(true)
   })
 
@@ -79,64 +80,80 @@ describe('thesis test cases (Table 4.2)', () => {
   })
 })
 
-// ─── Priority elicitation ─────────────────────────────────────────────────────
+// ─── Ranked priority elicitation ──────────────────────────────────────────────
+// The user ranks up to 2 criteria. Offers are tiered by the 1st priority's merit
+// (closeness to the user's target); the 2nd priority orders offers within a tier.
 
-describe('priority elicitation (+8 pts boost)', () => {
-  it('priority=price: offer priced ≤80% of budget receives boost', () => {
-    const withPriority = recommendOffers(OFFERS, { budget: 3000, dataGB: 10, voiceMinutes: 0, smsCount: 0 }, 3, {}, 'price')
-    const withoutPriority = recommendOffers(OFFERS, { budget: 3000, dataGB: 10, voiceMinutes: 0, smsCount: 0 })
-    // With price priority, cheap offers should bubble up; scores diverge
-    const topWithPriority = withPriority[0].offer
-    expect(topWithPriority.priceDA / 3000).toBeLessThanOrEqual(0.8)
+describe('ranked priority elicitation', () => {
+  it('priorities=[price]: the offer closest to the target price rises to top', () => {
+    // The budget is the user's TARGET price — a price priority surfaces the offer
+    // priced closest to it (not the cheapest).
+    const withPriority = recommendOffers(OFFERS, { budget: 3000, dataGB: 10, voiceMinutes: 0, smsCount: 0 }, 3, ['price'])
+    const inBudgetMax = Math.max(...OFFERS.filter(o => o.priceDA <= 3000).map(o => o.priceDA))
+    expect(withPriority[0].offer.priceDA).toBe(inBudgetMax)
   })
 
-  it('priority=calls: offer with unlimited calls receives boost', () => {
-    const results = recommendOffers(OFFERS, { budget: 4000, dataGB: 10, voiceMinutes: 100, smsCount: 0 }, 3, {}, 'calls')
+  it('priorities=[data]: every top result covers the stated data need', () => {
+    // Merit is need-relative — a data priority surfaces offers that COVER the need,
+    // not the single biggest plan in the catalogue (which may be wild overkill).
+    const withPriority = recommendOffers(OFFERS, { budget: 5000, dataGB: 20, voiceMinutes: 0, smsCount: 0 }, 3, ['data'])
+    withPriority.forEach(r => {
+      expect(r.offer.dataGB === -1 || r.offer.dataGB >= 20).toBe(true)
+    })
+  })
+
+  it('priorities=[calls]: offer with unlimited calls receives boost', () => {
+    const results = recommendOffers(OFFERS, { budget: 4000, dataGB: 10, voiceMinutes: 100, smsCount: 0 }, 3, ['calls'])
     expect(results[0].offer.voiceMinutes).toBe(-1)
   })
 
   it('priority boost match reason is present', () => {
-    const results = recommendOffers(OFFERS, { budget: 4000, dataGB: 10, voiceMinutes: 100, smsCount: 0 }, 3, {}, 'calls')
+    const results = recommendOffers(OFFERS, { budget: 4000, dataGB: 10, voiceMinutes: 100, smsCount: 0 }, 3, ['calls'])
     const reasons = results[0].matchReasons.map(r => r.key)
     expect(reasons).toContain('match.priority.calls')
   })
+
+  it('price priority surfaces the offer closest to the target budget', () => {
+    const yesP = recommendOffers(OFFERS, { budget: 4000, dataGB: 0, voiceMinutes: 0, smsCount: 0 }, 3, ['price'])
+    const inBudgetMax = Math.max(...OFFERS.filter(o => o.priceDA <= 4000).map(o => o.priceDA))
+    // top result = the one priced closest to the 4000 target
+    expect(yesP[0].offer.priceDA).toBe(inBudgetMax)
+    expect(yesP[0].matchReasons.some(m => m.key === 'match.priority.price')).toBe(true)
+  })
+
+  it('tiered ranking: the 1st priority strictly tiers the results', () => {
+    // With ['price','data'], results must be ordered by price-closeness tier first —
+    // the 2nd priority (data) can only reorder offers WITHIN a tier, never across it.
+    const r = recommendOffers(OFFERS, { budget: 5000, dataGB: 100, voiceMinutes: 0, smsCount: 0 }, 8, ['price', 'data'])
+    for (let i = 1; i < r.length; i++) {
+      const tierPrev = Math.round((r[i - 1].offer.priceDA / 5000) * 4)
+      const tierCur  = Math.round((r[i].offer.priceDA / 5000) * 4)
+      expect(tierPrev).toBeGreaterThanOrEqual(tierCur)
+    }
+  })
+
+  it('multiple priorities each contribute their own match reason', () => {
+    const results = recommendOffers(OFFERS, { budget: 3000, dataGB: 10, voiceMinutes: 100, smsCount: 0 }, 8, ['price', 'calls'])
+    const allReasons = results.flatMap(r => r.matchReasons.map(m => m.key))
+    expect(allReasons).toContain('match.priority.price')
+    expect(allReasons).toContain('match.priority.calls')
+  })
 })
 
-// ─── Strict budget filter ─────────────────────────────────────────────────────
+// ─── Budget hard ceiling ──────────────────────────────────────────────────────
 
-describe('strict budget mode', () => {
-  it('strict=true: no offer exceeds the stated budget', () => {
-    const results = recommendOffers(OFFERS, { budget: 1000, dataGB: 5, voiceMinutes: 0, smsCount: 0 }, 3, {}, '', true)
+describe('budget hard ceiling', () => {
+  it('no recommended offer ever exceeds the stated budget', () => {
+    const results = recommendOffers(OFFERS, { budget: 1000, dataGB: 5, voiceMinutes: 0, smsCount: 0 }, 8)
     results.forEach(r => {
       expect(r.offer.priceDA).toBeLessThanOrEqual(1000)
     })
   })
 
-  it('strict=false (default): offers up to 1.15× budget are included', () => {
-    // o1 is 1000DA — within 1150 overshoot limit for budget=900
-    const results = recommendOffers(OFFERS, { budget: 900, dataGB: 5, voiceMinutes: 0, smsCount: 0 }, 5, {}, '', false)
-    const ids = results.map(r => r.offer.id)
-    expect(ids).toContain('o1') // 1000DA is within 900 × 1.15 = 1035
-  })
-})
-
-// ─── Operator affinity ────────────────────────────────────────────────────────
-
-describe('operator affinity boost', () => {
-  it('preferred operator scores higher than without affinity', () => {
-    const withAffinity = recommendOffers(OFFERS, { budget: 5000, dataGB: 20, voiceMinutes: 0, smsCount: 0 }, 3, { mobilis: 2 })
-    const withoutAffinity = recommendOffers(OFFERS, { budget: 5000, dataGB: 20, voiceMinutes: 0, smsCount: 0 })
-    // Mobilis offers should appear with a higher relative score
-    const mobilisWithAffinity = withAffinity.find(r => r.offer.operatorId === 'mobilis')
-    const mobilisWithout = withoutAffinity.find(r => r.offer.operatorId === 'mobilis')
-    if (mobilisWithAffinity && mobilisWithout) {
-      expect(mobilisWithAffinity.score).toBeGreaterThan(mobilisWithout.score)
-    }
-    // At minimum the affinity match reason should appear
-    const affinityResult = withAffinity.find(r => r.offer.operatorId === 'mobilis')
-    if (affinityResult) {
-      expect(affinityResult.matchReasons.map(r => r.key)).toContain('match.operator.preferred')
-    }
+  it('an offer priced just above budget is excluded', () => {
+    // o1 is 1000DA — above a 900DA budget, so it must not appear.
+    const results = recommendOffers(OFFERS, { budget: 900, dataGB: 5, voiceMinutes: 0, smsCount: 0 }, 8)
+    expect(results.map(r => r.offer.id)).not.toContain('o1')
   })
 })
 

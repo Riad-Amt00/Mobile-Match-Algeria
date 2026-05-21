@@ -7,6 +7,7 @@ import { db } from '@/lib/db'
 import { scrapeDjezzy } from './djezzy'
 import { scrapeOoredoo } from './ooredoo'
 import { scrapeMobilis } from './mobilis'
+import { validateOffer } from './validate'
 import { OfferType, ScrapeStatus } from '@prisma/client'
 import { slugify } from '@/lib/utils'
 import { recommendOffers, UserNeeds } from '../recommendation'
@@ -89,15 +90,17 @@ async function notifyAdmins(results: ScrapeResult[], totalAdded: number) {
     userId: admin.id,
     title: `Scrape complete — ${totalAdded} new offer${totalAdded !== 1 ? 's' : ''} added`,
     message: summary || 'New offers were added to the database.',
-    type: 'new_offer' as const,
+    type: 'scrape_complete' as const,
   }))
 
   await db.notification.createMany({ data: notifications })
 }
 
 async function notifyPersonalizedRecommendations() {
+  // Recommendation alerts are a user-facing feature — admins are excluded so their
+  // notification feed stays purely operational (scrape complete / scrape failed).
   const usersWithProfiles = await db.user.findMany({
-    where: { profile: { isNot: null } },
+    where: { role: 'USER', profile: { isNot: null } },
     include: { profile: true },
   })
   if (usersWithProfiles.length === 0) return
@@ -118,9 +121,11 @@ async function notifyPersonalizedRecommendations() {
       smsCount: p.smsCount || 0,
       type: (p.preferredType as any) || 'any',
       network: (p.preferredNet as any) || 'any',
+      operator: (p.preferredOperator as any) || 'any',
     }
 
-    const matches = recommendOffers(allOffers, needs, 1)
+    const pris = p.priorities ? p.priorities.split(',').filter(Boolean) : []
+    const matches = recommendOffers(allOffers, needs, 1, pris)
     if (matches.length > 0 && matches[0].score >= 75) {
       const best = matches[0]
       notificationsToCreate.push({
@@ -181,10 +186,36 @@ async function runSingleScraper(
     emit('INFO', `Starting ${operatorName} scrape`)
     const rawOffers = await scraperFn(emit)
 
-    // Reject offers with no useful data — price-only scrapes are useless
-    const validOffers = rawOffers.filter(o =>
-      o.dataGB > 0 || o.voiceMinutes !== 0 || o.smsCount !== 0
-    )
+    // Validation gate — defense in depth. Each scraper already calls validateOffer()
+    // before pushing, so this is the final guard. Reject anything that slipped through.
+    const validated: any[] = []
+    let rejectedCount = 0
+    for (const o of rawOffers) {
+      const v = validateOffer(o)
+      if (v.valid) {
+        validated.push(o)
+      } else {
+        rejectedCount++
+        emit('WARN', `Rejected "${o.name || '(no name)'}" — ${v.reason}`)
+      }
+    }
+    if (rejectedCount > 0) {
+      emit('WARN', `Validation rejected ${rejectedCount} offer(s) from this scrape`)
+    }
+
+    // Dedupe by slug — a browser-rendered page can yield the same plan more than
+    // once (carousel libraries clone slides for their loop effect). Keep first.
+    const seenSlugs = new Set<string>()
+    const validOffers = validated.filter(o => {
+      const slug = slugify(o.name)
+      if (seenSlugs.has(slug)) return false
+      seenSlugs.add(slug)
+      return true
+    })
+    const dupeCount = validated.length - validOffers.length
+    if (dupeCount > 0) {
+      emit('WARN', `Removed ${dupeCount} duplicate offer(s) from this scrape`)
+    }
 
     const scrapedSlugs: string[] = []
 
@@ -230,32 +261,31 @@ async function runSingleScraper(
         // Log initial price in history
         await db.priceHistory.create({ data: { offerId: created.id, priceDA: rawOffer.priceDA } })
         // Notify users about new offer
-        await notifyUsersNewOffer(rawOffer, operatorName)
+        await notifyUsersNewOffer(rawOffer, operatorName, created.id)
       }
     }
 
-    // Per-family deactivation: group offers by sourceUrl (= one URL per plan family).
-    // For each family, if we got at least one offer this run, deactivate any DB
-    // entries from that URL whose slug is no longer in the scrape result.
-    // This detects operator plan removals precisely without a global count guard
-    // that would block all cleanup when the total scrape count differs from DB total.
-    const scrapedByUrl = new Map<string, string[]>()
-    for (const offer of validOffers) {
-      if (!scrapedByUrl.has(offer.sourceUrl)) scrapedByUrl.set(offer.sourceUrl, [])
-      scrapedByUrl.get(offer.sourceUrl)!.push(slugify(offer.name))
-    }
-
+    // Per-operator deactivation: the scrape result (live + fallback) is the full
+    // authoritative catalogue for this operator. Any active offer NOT in the
+    // result is stale and gets deactivated — this keeps the DB in sync and
+    // prevents ghost offers from accumulating across runs.
+    // Safety guard: if the scrape returned suspiciously few offers (likely a
+    // broken run), skip deactivation rather than wipe the catalogue.
     let deactivatedCount = 0
-    for (const [sourceUrl, slugs] of scrapedByUrl) {
-      if (slugs.length === 0) continue
+    const currentActive = await db.offer.count({
+      where: { operatorId: operator.id, isActive: true },
+    })
+    if (validOffers.length >= Math.max(1, currentActive * 0.5)) {
       const deactivated = await db.offer.updateMany({
-        where: { operatorId: operator.id, isActive: true, sourceUrl, slug: { notIn: slugs } },
+        where: { operatorId: operator.id, isActive: true, slug: { notIn: scrapedSlugs } },
         data: { isActive: false },
       })
-      deactivatedCount += deactivated.count
-    }
-    if (deactivatedCount > 0) {
-      emit('WARN', `Deactivated ${deactivatedCount} offer(s) no longer present on operator website`)
+      deactivatedCount = deactivated.count
+      if (deactivatedCount > 0) {
+        emit('WARN', `Deactivated ${deactivatedCount} stale offer(s) no longer in the operator catalogue`)
+      }
+    } else {
+      emit('WARN', `Skipping deactivation — scrape returned ${validOffers.length} offers vs ${currentActive} active (suspicious, possible broken run)`)
     }
 
     const duration = Date.now() - startedAt.getTime()
@@ -316,12 +346,13 @@ async function runSingleScraper(
   }
 }
 
-async function notifyUsersNewOffer(rawOffer: any, operatorName: string) {
-  const users = await db.user.findMany({ include: { profile: true } })
+async function notifyUsersNewOffer(rawOffer: any, operatorName: string, offerId: string) {
+  // User-facing alert — admins are excluded (they get the scrape-complete summary).
+  const users = await db.user.findMany({ where: { role: 'USER' }, include: { profile: true } })
   if (users.length === 0) return
 
   const notificationsToCreate = []
-  
+
   for (const user of users) {
     // Skip if offer doesn't match strict user preferences
     if (user.profile) {
@@ -332,6 +363,7 @@ async function notifyUsersNewOffer(rawOffer: any, operatorName: string) {
 
     notificationsToCreate.push({
       userId: user.id,
+      offerId,
       title: `New offer from ${operatorName}!`,
       message: `${operatorName} just released: ${rawOffer.name}. Compare now!`,
       type: 'new_offer',
@@ -344,7 +376,8 @@ async function notifyUsersNewOffer(rawOffer: any, operatorName: string) {
 }
 
 async function notifyUsersPriceDrop(offer: any, newPrice: number, operatorName: string) {
-  const users = await db.user.findMany({ include: { profile: true } })
+  // User-facing alert — admins are excluded (they get the scrape-complete summary).
+  const users = await db.user.findMany({ where: { role: 'USER' }, include: { profile: true } })
   if (users.length === 0) return
 
   const saving = Math.round(((offer.priceDA - newPrice) / offer.priceDA) * 100)

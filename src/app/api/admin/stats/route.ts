@@ -31,13 +31,16 @@ export async function GET() {
     }),
   ])
 
-  // Group individual operator logs into sessions (logs within 90s of the first = same session)
+  // Group individual operator logs into scrape sessions. One run produces
+  // exactly one log per operator (the 3 are scraped sequentially), so a session
+  // ends as soon as an operator would repeat. This is duration-independent — a
+  // slow run with retry/backoff still groups correctly — and guarantees a
+  // session never contains the same operator twice (no breakdown duplication).
   const sessions: { startedAt: Date; logs: typeof allLogs }[] = []
-  for (const log of [...allLogs].reverse()) {
-    const t = new Date(log.startedAt).getTime()
-    const existing = sessions.find(s => Math.abs(new Date(s.startedAt).getTime() - t) < 90_000)
-    if (existing) {
-      existing.logs.push(log)
+  for (const log of [...allLogs].reverse()) { // oldest → newest
+    const current = sessions[sessions.length - 1]
+    if (current && !current.logs.some(l => l.operatorId === log.operatorId)) {
+      current.logs.push(log)
     } else {
       sessions.push({ startedAt: log.startedAt, logs: [log] })
     }
@@ -47,7 +50,6 @@ export async function GET() {
 
   const totalLogs = allLogs.length
   const successLogs = allLogs.filter(l => l.status === 'SUCCESS').length
-  const failedLogs = allLogs.filter(l => l.status === 'FAILED').length
   const successRate = totalLogs > 0 ? Math.round((successLogs / totalLogs) * 100) : 0
 
   // Last SUCCESS log per operator
@@ -68,7 +70,6 @@ export async function GET() {
     unreadNotifications,
     scrapeSessionCount: sessions.length,
     successRate,
-    failedLogs,
     lastScrapePerOperator,
     sessions: sessions.slice(0, 20).map(s => ({
       startedAt: s.startedAt,

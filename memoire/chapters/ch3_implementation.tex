@@ -4,7 +4,7 @@
 
 \chapter{System Implementation}
 
-This chapter presents the concrete realisation of \textit{Mobile Match Algeria}. Each major subsystem is described in turn: the development environment, the data aggregation module, the REST API, the recommendation engine, the key user interface screens, the security mechanisms, and the deployment configuration.
+The architectural and design decisions documented in Chapter~2 --- the three-tier architecture, the data model, the API route map, the tiered-ranking recommendation engine, and the technology stack with Next.js, Prisma, SQLite, Playwright and NextAuth --- now have to be turned into running code. The present chapter walks through that realisation subsystem by subsystem, in roughly the order in which a request travels through the system. Section~3.1 establishes the development environment that supports every later choice. Sections~3.2--3.3 describe the data layer: the automated scraping pipeline that feeds the catalogue and the REST API that exposes it. Section~3.4 documents the recommendation engine introduced conceptually in Chapter~1 §1.4.2, with its full algorithm and its iterative-design history. Sections~3.5--3.8 cover the four user-facing features defined in the subject fiche: structured search, comparative visualisation, savings calculator, and the split-stream notification system. Section~3.9 illustrates the nine key user-interface screens; sections~3.10--3.11 close with the security architecture and the deployment configuration. The chapter is dense with concrete artefacts (algorithm diagrams, route maps, screenshots) because the goal is to show that every Chapter~2 design choice has a corresponding piece of working code.
 
 \section{Development Environment}
 
@@ -16,38 +16,44 @@ Table~\ref{tab:dev-env} describes the hardware and software environment used thr
   \centering\small
   \begin{tabular}{|p{4cm}|p{11cm}|}
     \hline
-    \textbf{Component}  & \textbf{Details} \\
+    \textbf{Component}   & \textbf{Details} \\
     \hline
-    Operating system    & Windows 11 Pro (Build 22631) \\
+    Operating system     & Windows 11 Pro (Build 26200) \\
     \hline
-    Runtime             & Node.js 20.11.0 LTS \\
+    Runtime              & Node.js 24.x LTS \\
     \hline
-    Package manager     & npm 10.2.4 \\
+    Package manager      & npm 11.x \\
     \hline
-    Framework           & Next.js 16.2.3 \\
+    Framework            & Next.js 16.2.3 (App Router, Turbopack) \\
     \hline
-    Language            & TypeScript 5.x (strict mode) \\
+    Language             & TypeScript 5.x (strict mode) \\
     \hline
-    ORM                 & Prisma 7.x \\
+    ORM                  & Prisma 7.x (with the better-sqlite3 driver adapter) \\
     \hline
-    Database            & SQLite (via Prisma driver adapter) \\
+    Database             & SQLite \\
     \hline
-    IDE                 & Visual Studio Code 1.89 \\
+    Authentication       & NextAuth.js v5 \\
     \hline
-    Version control     & Git 2.44, repository hosted on GitHub \\
+    Unit testing         & Vitest 4.x (99 unit tests across recommendation and scraping modules) \\
     \hline
-    Browser testing     & Google Chrome 124, Mozilla Firefox 125 \\
+    IDE                  & Visual Studio Code 1.95 \\
+    \hline
+    Version control      & Git 2.44, repository hosted on GitHub \\
+    \hline
+    Browser testing      & Google Chrome, Brave, Microsoft Edge \\
     \hline
   \end{tabular}
 \end{table}
 
-The project was initialised with \texttt{create-next-app} and immediately configured with strict TypeScript, ESLint, and Prisma. All sensitive configuration (database path, session secret, base URL) is stored in a \texttt{.env} file excluded from version control.
+The project was initialised with \texttt{create-next-app} and immediately configured with strict TypeScript, ESLint, Prisma, and Vitest. All sensitive configuration (database path, NextAuth secret, base URL, admin-claim code) is stored in a \texttt{.env} file excluded from version control.
+
+The first subsystem built on top of this environment is the one that feeds the catalogue: the data-aggregation module. Without it, the application has nothing to show.
 
 \section{Data Aggregation Module}
 
 \subsection{Scraper Architecture}
 
-The data aggregation module resides in \texttt{src/lib/scraper/} and follows a strict separation of concerns. Three per-operator scrapers (\texttt{djezzy.ts}, \texttt{ooredoo.ts}, \texttt{mobilis.ts}) are each responsible only for fetching and parsing their respective operator's plan page and returning a normalised array of raw offer objects. A central orchestrator (\texttt{index.ts}) coordinates all three scrapers and handles every database operation, deactivation decision, and notification dispatch.
+The data-aggregation module resides in \texttt{src/lib/scraper/} and follows a strict separation of concerns. Three per-operator scrapers (\texttt{djezzy.ts}, \texttt{ooredoo.ts}, \texttt{mobilis.ts}) are each responsible only for fetching and parsing their respective operator's plan page and returning a normalised array of raw offer objects. A central orchestrator (\texttt{index.ts}) coordinates all three scrapers and handles every database operation, deactivation decision, and notification dispatch. A shared validation module (\texttt{validate.ts}) provides robust parsers for the recurring formats encountered on the operator websites: prices in Algerian Dinars (\guillemotleft{}DA\guillemotright{}), data volumes in gigabytes (\guillemotleft{}Go\guillemotright{}, \guillemotleft{}GB\guillemotright{}), and validity periods (\guillemotleft{}jours\guillemotright{}, \guillemotleft{}semaines\guillemotright{}, \guillemotleft{}mois\guillemotright{}). A browser-backed fetcher (\texttt{fetch.ts}) launches a real headless instance of Microsoft Edge via Playwright (falling back to Playwright's bundled Chromium when Edge is unavailable), retries each URL up to three times with spaced delays of zero, seven, and eighteen seconds, and opens a per-operator circuit breaker after repeated failures to switch the affected operator to its verified fallback dataset.
 
 \subsection{Scraping Algorithm}
 
@@ -67,14 +73,14 @@ Figure~\ref{fig:scraper-algo} presents the algorithm executed by the orchestrato
 ]
   \node[head]  (h)  {Algorithm: Automated Scraping Pipeline \hfill \textit{Input: operator, scraper\_fn \quad Output: ScrapeResult}};
   \node[box, below=of h]  (s1)  {\textbf{1.} Record \textit{startedAt}; create ScrapeLog with status = RUNNING};
-  \node[box, below=of s1] (s2)  {\textbf{2.} Invoke \textit{scraper\_fn}: fetch operator page (HTTP GET), parse HTML, normalise attributes};
+  \node[box, below=of s1] (s2)  {\textbf{2.} Invoke \textit{scraper\_fn}: fetch operator page through a real headless Edge browser (spaced retries + circuit breaker), parse HTML with Cheerio, normalise attributes via \texttt{validate.ts}};
   \node[box, below=of s2] (s3)  {\textbf{3.} Filter out offers missing all data, voice, and SMS values};
   \node[box, below=of s3] (s4)  {\textbf{4.} For each valid offer:};
   \node[box, below=of s4] (s4a) {\quad\quad \textbf{a.} Compute slug = slugify(offer.name)};
-  \node[box, below=of s4a](s4b) {\quad\quad \textbf{b.} If slug exists in DB $\Rightarrow$ UPDATE record; else $\Rightarrow$ INSERT \& notify users};
+  \node[box, below=of s4a](s4b) {\quad\quad \textbf{b.} If slug exists in DB $\Rightarrow$ UPDATE record (insert PriceHistory if priceDA changed); else $\Rightarrow$ INSERT \& notify users};
   \node[box, below=of s4b](s5)  {\textbf{5.} Per-family deactivation: group scraped offers by source URL (one URL = one plan family)};
   \node[box, below=of s5] (s5a) {\quad\quad For each non-empty family: set isActive = false for DB offers of that URL absent from scrape};
-  \node[box, below=of s5a](s6)  {\textbf{6.} Update ScrapeLog: status = SUCCESS, duration, offersAdded, offersUpdated};
+  \node[box, below=of s5a](s6)  {\textbf{6.} Update ScrapeLog: status = SUCCESS, duration, offersAdded, offersUpdated, offersDeactivated};
   \node[box, below=of s6] (s7)  {\textbf{7.} Return ScrapeResult \quad\quad \textit{On error: status = FAILED, log errorMessage}};
 
   \foreach \a/\b in {h/s1, s1/s2, s2/s3, s3/s4, s4/s4a, s4a/s4b, s4b/s5, s5/s5a, s5a/s6, s6/s7}
@@ -86,19 +92,15 @@ Figure~\ref{fig:scraper-algo} presents the algorithm executed by the orchestrato
 
 A key precision mechanism is the \textbf{per-family deactivation} at step~5. Rather than comparing global offer counts — which would incorrectly block cleanup when the total scrape count differs from the database total due to unrelated family changes — the orchestrator groups the scraped offers by their source URL. Each URL corresponds to exactly one plan family (for example, one page for LEGEND, one for CAMPUCE, one for DjezzyNet). For each family that returned at least one offer in the current run, any database record sharing that source URL but absent from the current scrape is marked inactive. This detects removed plans precisely at the family level, independently of what other families returned in the same run.
 
-\subsection{Data Normalisation Pipeline}
+\subsection{Normalisation, Validation, and Scheduled Automation}
 
-Each operator presents plan data in a different format. The normalisation pipeline applies the following transformations before storing any record: data volumes expressed in megabytes are converted to gigabytes; plan names are trimmed and stripped of promotional suffixes; missing voice or SMS values are defaulted to zero; the plan type (prepaid, postpaid, data-only) is inferred from page context when not explicitly stated; and a unique slug is generated from the normalised name. The pipeline outputs objects that conform to the \texttt{Offer} schema defined in Prisma.
-
-\subsection{Cron Automation}
-
-The scraper is triggered automatically every day at 03:00~AM Algeria time (UTC+1) using the \texttt{node-cron} library, registered at server startup via the Next.js instrumentation hook. Administrators may also initiate a manual run from the admin dashboard at any time. After each successful scrape cycle, the orchestrator runs the recommendation engine against all active user profiles and dispatches personalised notifications to users whose top-matched plan has a score of 75 or above.
+Each operator presents plan data in a different format, so a normalisation pipeline applies the following transformations before any record is stored: data volumes in megabytes are converted to gigabytes; plan names are trimmed and stripped of promotional suffixes; missing voice or SMS values default to zero; unlimited values are stored as the sentinel \texttt{-1}; the plan type (prepaid, postpaid, data-only) is inferred from page context when not explicit; and a unique slug is generated from the normalised name. The pipeline outputs objects conforming to the \texttt{Offer} schema. The scrapers are accompanied by a snapshot-based test suite under \texttt{src/lib/scraper/\_\_tests\_\_} --- one parser-level test per operator (Djezzy CAMPUCE, Djezzy LEGEND, Ooredoo~500, Ooredoo~POP, Mobilis Pass Internet) verifies that the parser still extracts at least one offer from a frozen HTML fixture and that every extracted offer passes basic plausibility checks (no zero prices, no unrealistic data values, no \guillemotleft{}data == price\guillemotright{} parsing bugs) --- complemented by thirty independent tests covering multilingual unit parsing in \texttt{validate.ts}. This infrastructure has caught real parser regressions, most notably an Ooredoo POP page change in which data and price values briefly appeared in the same DOM node. The orchestrator runs automatically on a scheduled basis through the Next.js instrumentation hook (administrators may also trigger a manual run from the dashboard); after each successful run it inspects every updated offer and dispatches notifications: \texttt{price\_drop} to users who saved an offer whose price decreased, \texttt{new\_offer} to every registered user when a brand-new plan is inserted, and \texttt{scrape\_complete} or \texttt{scrape\_failed} to administrators only.
 
 \section{Backend --- REST API}
 
 \subsection{API Route Structure}
 
-All API routes are implemented as Next.js App Router route handlers under \texttt{src/app/api/}. Each file exports named async functions corresponding to HTTP methods (\texttt{GET}, \texttt{POST}, \texttt{PATCH}, \texttt{DELETE}). Route-level middleware checks for a valid session before executing any protected operation. Table~\ref{tab:api-routes} summarises all available routes.
+All API routes are implemented as Next.js App Router route handlers under \texttt{src/app/api/}. Each file exports named asynchronous functions corresponding to HTTP methods (\texttt{GET}, \texttt{POST}, \texttt{PATCH}, \texttt{DELETE}). Route-level middleware checks for a valid session before executing any protected operation, and a server-side rate-limit table (\texttt{RateLimit}) throttles abusable endpoints. Table~\ref{tab:api-routes} summarises the available routes.
 
 \begin{table}[H]
   \caption{API route map}
@@ -108,23 +110,27 @@ All API routes are implemented as Next.js App Router route handlers under \textt
     \hline
     \textbf{Route} & \textbf{Methods} & \textbf{Function} \\
     \hline
-    \texttt{/api/offers}          & GET                & List and filter active offers; fetch specific offers by ID list for comparison (bypasses isActive filter) \\
+    \texttt{/api/offers}              & GET                & List and filter active offers; accepts a structured \texttt{search} parameter; supports fetch-by-ID list for comparison (bypasses \texttt{isActive}) \\
     \hline
-    \texttt{/api/offers/[id]}     & GET, PATCH, DELETE & Retrieve, update, or delete a single offer (admin only) \\
+    \texttt{/api/offers/[id]}         & GET, PATCH, DELETE & Retrieve, update, or delete a single offer (admin only) \\
     \hline
-    \texttt{/api/saved-offers}    & GET, POST          & List saved offer IDs; toggle save/unsave \\
+    \texttt{/api/saved-offers}        & GET, POST          & List saved offer IDs; toggle save/unsave \\
     \hline
-    \texttt{/api/recommendations} & POST               & Run scoring engine; return top-3 matched plans \\
+    \texttt{/api/recommendations}     & POST               & Run the tiered-ranking engine and return the top-3 matched plans (rate-limited at 60 requests per minute per IP) \\
     \hline
-    \texttt{/api/notifications}   & GET, PATCH, DELETE & List, mark-all-read, or delete a notification \\
+    \texttt{/api/notifications}       & GET, PATCH, DELETE & List, mark-all-read, or delete a notification \\
     \hline
-    \texttt{/api/profile}         & GET, PUT           & Retrieve or update the user's usage profile \\
+    \texttt{/api/profile}             & GET, PUT           & Retrieve or update the authenticated user's profile (priorities, preferred operator, budget, needs) \\
     \hline
-    \texttt{/api/admin/stats}      & GET                & Platform statistics (users, active offers, scrape sessions, operator health) \\
+    \texttt{/api/auth/register}       & POST               & Create a user account (rate-limited at 5 requests per 15 minutes per IP) \\
     \hline
-    \texttt{/api/admin/scrape}     & POST               & Trigger a full scrape run across all three operators \\
+    \texttt{/api/auth/{[}...nextauth{]}} & GET, POST       & NextAuth sign-in / sign-out / session endpoints \\
     \hline
-    \texttt{/api/stats}           & GET                & Public statistics (offer count, operators) \\
+    \texttt{/api/admin/stats}         & GET                & Platform statistics (users, active offers, scrape sessions, operator health) \\
+    \hline
+    \texttt{/api/admin/claim}         & POST               & One-time admin role claim using the server-side \texttt{ADMIN\_CLAIM\_CODE} environment variable \\
+    \hline
+    \texttt{/api/stats}               & GET                & Public platform statistics (offer count, operator count) \\
     \hline
   \end{tabular}
 \end{table}
@@ -135,48 +141,13 @@ One non-trivial design decision in the offers route concerns the comparison feat
 
 \subsection{Authentication}
 
-User authentication is implemented with \textit{NextAuth.js} using the Credentials provider. Passwords are hashed with bcrypt at registration and verified at sign-in. Sessions are JWT-based with a 30-day expiry. The \texttt{role} field (\texttt{USER} or \texttt{ADMIN}) is embedded in the session token and verified at the start of every admin-gated route handler.
+User authentication is implemented with \textit{NextAuth.js} using the Credentials provider. Passwords are hashed with bcrypt at registration and verified at sign-in. Sessions are JWT-based with a thirty-day expiry. The \texttt{role} field (\texttt{USER} or \texttt{ADMIN}) is embedded in the session token and verified at the start of every admin-gated route handler. A one-time administrator-claim mechanism (\texttt{/api/admin/claim}) allows a registered user to elevate their role using a server-side secret defined in the \texttt{ADMIN\_CLAIM\_CODE} environment variable.
 
 \section{Recommendation Engine}
 
-\subsection{Scoring Model}
+\subsection{Two-Layer Decision Model}
 
-The recommendation engine is implemented in \texttt{src/lib/recommendation.ts}. It applies a 100-point composite score to each active offer using eight weighted dimensions, as listed in Table~\ref{tab:scoring}.
-
-\begin{table}[H]
-  \caption{Scoring dimensions of the recommendation engine}
-  \label{tab:scoring}
-  \centering\small
-  \begin{tabular}{|p{3.5cm}|p{9.5cm}|>{\centering\arraybackslash}p{1.5cm}|}
-    \hline
-    \textbf{Dimension} & \textbf{Scoring logic} & \textbf{Max pts} \\
-    \hline
-    Budget fit           & Ratio of offer price to declared budget; full score if well within budget, zero if more than 15\,\% over & 25 \\
-    \hline
-    Data fit             & Ratio of included data to declared need; full score for unlimited data & 25 \\
-    \hline
-    Voice fit            & Ratio of included minutes to declared need; full score for unlimited calls & 15 \\
-    \hline
-    SMS fit              & Ratio of included SMS to declared need; weighted low because OTT messaging apps have largely replaced SMS in Algeria & 5 \\
-    \hline
-    Value bonus          & Data-per-Dinar ratio (MB per DA): rewards cost-effectiveness; highest-weighted bonus dimension & 15 \\
-    \hline
-    Feature bonus        & Presence of streaming, social media, night bonus, or roaming in plan description & 5 \\
-    \hline
-    Validity fit         & Monthly plans ($\geq$30 days) score highest; weekly plans partial; daily minimal & 5 \\
-    \hline
-    Type / network match & Direct match to declared preferred type adds points; mismatch subtracts 5 pts & 5 \\
-    \hline
-    \textbf{Total}       & & \textbf{100} \\
-    \hline
-  \end{tabular}
-\end{table}
-
-\noindent\textbf{Dimension weight rationale.} Budget and data each receive the maximum 25~points because they represent the two constraints that Algerian mobile users consistently cite as primary when selecting a plan: affordability and data volume \parencite{GSMA2024, ARPCE2024}. Voice minutes receive 15~points, reflecting their continued relevance for calls within Algeria despite declining usage trends. The value bonus (15~points) is the highest-weighted secondary dimension, rewarding cost-efficiency — a critical differentiator in a price-sensitive prepaid market. SMS is weighted at only 5~points because over-the-top messaging applications have largely supplanted SMS in Algerian consumer behaviour \parencite{GSMA2024}. The remaining three dimensions (feature set, validity, type/network) each receive 5~points as contextual tiebreakers.
-
-\subsection{Recommendation Algorithm}
-
-Figure~\ref{fig:rec-algo} presents the complete recommendation algorithm.
+The recommendation engine is implemented in \texttt{src/lib/recommendation.ts}. It separates the recommendation problem into two distinct layers: a categorical filtering layer that excludes offers incompatible with the user's hard constraints, and a tiered-ranking layer that orders the remaining offers according to the user's primary and secondary continuous priorities. The second layer is an applied form of \textbf{lexicographic preference ordering with bounded relaxation}, a well-established technique in multi-criteria decision making \parencite{Fishburn1974, Roberts1979}: the contribution of this work is the adaptation of that technique to a cold-start consumer-plan context, not the algorithm itself. The final defensible design (Figure~\ref{fig:rec-algo}) was reached after several rejected attempts (Section~3.4.4), each of which exposed a specific failure mode of the previous one.
 
 \begin{figure}[H]
 \centering
@@ -191,50 +162,122 @@ Figure~\ref{fig:rec-algo} presents the complete recommendation algorithm.
   arrow/.style={-{Stealth[length=4pt]}, thick, gray!70},
   node distance=0.18cm
 ]
-  \node[head]  (h)  {Algorithm: Multi-Criteria Plan Recommendation \\ \normalfont\textit{\scriptsize Input: offers[ ], profile \quad Output: Recommendation[ ]}};
-  \node[box, below=of h]  (s1) {\textbf{1.} Pre-filter: discard offers where price $>$ budget $\times$ 1.15};
-  \node[box, below=of s1] (s2) {\textbf{2.} For each remaining offer, compute score (clamped to [0, 100]):};
-  \node[box, below=of s2] (s2a){\quad\quad \textbf{a.} Budget fit (25 pts): inversely proportional to price / budget ratio};
-  \node[box, below=of s2a](s2b){\quad\quad \textbf{b.} Data fit (25 pts): proportional to dataGB / profile.dataGB};
-  \node[box, below=of s2b](s2c){\quad\quad \textbf{c.} Voice fit (15 pts): proportional to voiceMinutes / profile.voiceMinutes};
-  \node[box, below=of s2c](s2d){\quad\quad \textbf{d.} SMS fit (5 pts): proportional to smsCount / profile.smsCount (low weight: OTT apps dominate)};
-  \node[box, below=of s2d](s2e){\quad\quad \textbf{e.} Value bonus (15 pts): data-per-Dinar ratio (MB per DA)};
-  \node[box, below=of s2e](s2f){\quad\quad \textbf{f.} Feature bonus (5 pts): streaming, social, night, roaming keywords};
-  \node[box, below=of s2f](s2g){\quad\quad \textbf{g.} Validity fit (5 pts): $\geq$30 days = 5 pts; $\geq$7 days = 3 pts; else 1 pt};
-  \node[box, below=of s2g](s2h){\quad\quad \textbf{h.} Type / network match (5 pts): mismatch subtracts 5 pts};
-  \node[box, below=of s2h](s3) {\textbf{3.} Sort scored offers descending by score};
-  \node[box, below=of s3] (s4) {\textbf{4.} Operator diversity check: if top-3 are all from same operator $\Rightarrow$};
-  \node[box, below=of s4] (s4a){\quad\quad swap \#3 with best different-operator offer within 15\,\% of \#3 score};
-  \node[box, below=of s4a](s5) {\textbf{5.} Return top-N results with matchReasons[ ] and mismatches[ ]};
+  \node[head]  (h)  {Algorithm: Tiered Ranking with Hard Filters \\ \normalfont\textit{\scriptsize Input: offers[ ], needs, priorities[ ] \quad Output: Recommendation[ ]}};
+  \node[box, below=of h]  (s1)  {\textbf{1.} Hard-filter layer (categorical constraints):};
+  \node[box, below=of s1] (s1a) {\quad\quad \textbf{a.} \textit{Budget ceiling}: discard offers where priceDA $>$ needs.budget};
+  \node[box, below=of s1a](s1b) {\quad\quad \textbf{b.} \textit{Operator}: discard offers whose operator does not match the user's preference (if any)};
+  \node[box, below=of s1b](s1c) {\quad\quad \textbf{c.} \textit{Plan type, network, calls, SMS}: discard offers that do not satisfy the user's categorical preferences};
+  \node[box, below=of s1c](s2)  {\textbf{2.} For each surviving offer, compute per-criterion merit $m \in [0,1]$:};
+  \node[box, below=of s2] (s2a) {\quad\quad \textbf{a.} \textit{price}: $m_1 = \mathrm{clamp01}(\mathrm{priceDA} / \mathrm{needs.budget})$ — closeness to target price};
+  \node[box, below=of s2a](s2b) {\quad\quad \textbf{b.} \textit{data}: $m_2 = \mathrm{clamp01}(\mathrm{dataGB} / \mathrm{needs.dataGB})$ — coverage of declared need};
+  \node[box, below=of s2b](s3)  {\textbf{3.} Tiered ranking (let $P_1, P_2$ = user's first and second priorities):};
+  \node[box, below=of s3] (s3a) {\quad\quad \textbf{a.} \textit{Tier}: $\mathrm{tier} = \mathrm{round}(m_{P_1} \times 4) / 4 \;\in\; \{0,\,0.25,\,0.5,\,0.75,\,1\}$};
+  \node[box, below=of s3a](s3b) {\quad\quad \textbf{b.} \textit{Composite key}: $C = \mathrm{tier} + 0.24 \times m_{P_2}$ \quad (the within-tier term is strictly $< 0.25$, so it cannot cross a tier boundary)};
+  \node[box, below=of s3b](s4)  {\textbf{4.} Sort by composite key, ties broken by base fitness score};
+  \node[box, below=of s4] (s5)  {\textbf{5.} Diversity rule: if top-3 are from a single operator and the next operator's best result is $\geq 85\,\%$ of the third's composite, swap it in};
+  \node[box, below=of s5] (s6)  {\textbf{6.} Return the top-N results with matchReasons[ ]};
 
-  \foreach \a/\b in {h/s1, s1/s2, s2/s2a, s2a/s2b, s2b/s2c, s2c/s2d, s2d/s2e, s2e/s2f, s2f/s2g, s2g/s2h, s2h/s3, s3/s4, s4/s4a, s4a/s5}
+  \foreach \a/\b in {h/s1, s1/s1a, s1a/s1b, s1b/s1c, s1c/s2, s2/s2a, s2a/s2b, s2b/s3, s3/s3a, s3a/s3b, s3b/s4, s4/s5, s5/s6}
     \draw[arrow] (\a.south) -- (\b.north);
 \end{tikzpicture}
-\caption{Multi-criteria recommendation algorithm}
+\caption{Tiered-ranking recommendation algorithm}
 \label{fig:rec-algo}
 \end{figure}
 
-The diversity check at step~4 prevents the engine from returning three plans from the same operator when the user's profile happens to strongly match that operator's catalogue. This ensures that recommendations offer a meaningful choice across operators.
+\subsection{Hard Filters as Categorical Constraints}
 
-\subsection{Triggering Recommendations}
+The hard-filter layer treats the user's categorical preferences as binary go / no-go conditions rather than scoring contributions. Concretely, if the user has expressed a preferred operator (other than \guillemotleft{}any\guillemotright{}), only offers from that operator are kept; the same logic applies to plan type (prepaid / postpaid / data-only), network generation (4G / 5G), and the unlimited-calls and unlimited-SMS toggles. The budget acts as a price ceiling: offers above it are excluded entirely. This separation reflects the structural difference between continuous trade-offs (rankable) and categorical choices (filterable).
 
-The engine is called from two distinct contexts. The first is the \texttt{/api/recommendations} route handler, which executes the algorithm synchronously in response to an explicit user request from the recommendations page. The second is the scraper orchestrator, which runs the engine in batch after each successful scrape cycle to generate proactive notification recommendations for all registered users who have a saved profile.
+\subsection{Tiered Ranking with Explicit Priority Elicitation}
 
-\subsection{Operator Affinity Personalisation}
+Rather than asking the user to assign numeric weights to each criterion — a known difficulty in multi-criteria decision contexts where users have well-defined preferences but cannot accurately quantify the corresponding weights \parencite{Roberts1979} — the engine asks the user to rank two criteria from the rankable set \{price, data\}. The first-ranked priority strictly determines an offer tier, and the second-ranked priority orders offers within that tier.
 
-In addition to the content-based scoring described above, the engine incorporates a lightweight behavioural signal derived from each user's saved offers. When the \texttt{/api/recommendations} route is called for an authenticated user, the server retrieves the user's complete saved-offer list and counts how many saved offers belong to each operator. This produces an \textit{operator affinity map} — a dictionary keyed by operator identifier with the count of saved offers as the value.
+The merit of each rankable criterion is computed as a need-relative ratio, not as a pool-normalised score: this ensures that a catalogue outlier (for example, an absurdly cheap 10~DA plan with no data) cannot distort the ranking for users with a typical budget. The tier function \texttt{round($m_1 \times 4$) / 4} produces five discrete tier centres (0, 0.25, 0.5, 0.75, 1) covering the merit space in equal intervals of width $h = 0.25$. \textbf{Five centres rather than three or seven} was retained for two reasons: a smaller catalogue (~100 plans) does not statistically support finer-grained partitioning, and a larger number of tiers would shrink each tier toward a single offer, defeating the within-tier ordering purpose. \textbf{The secondary-merit multiplier of $0.24$} is set strictly below the tier width $h = 0.25$ to guarantee that no within-tier improvement on the secondary criterion can lift an offer past a higher tier; the small safety margin (0.24 < 0.25) absorbs floating-point rounding and keeps the boundary inviolate. The user's primary priority therefore strictly dominates the result, while the secondary priority still influences the final order.
 
-After the initial content-based scoring and sorting, each offer receives an affinity boost equal to $\min(5,\; \text{count} \times 2)$~points, where \textit{count} is the number of the user's saved offers from that operator. The boost is capped at 5~points out of 100 to ensure that content-based fit always dominates: no offer can move from a poor match to a good match on affinity alone. The results are re-sorted after the boost is applied. If an offer receives any affinity boost, its match-reason panel displays the indicator \guillemotleft{}Matches your preferred operator\guillemotright{} so the personalisation is visible and not hidden from the user.
+\subsection{Iterative Design History}
 
-This approach follows the implicit-feedback paradigm in recommender systems research, where user actions such as saves, clicks, or purchase history serve as proxies for preference in the absence of explicit ratings \parencite{hu2008collaborative}. The limitation of this signal — that saving an offer does not unambiguously indicate operator loyalty — is explicitly acknowledged in Chapter~4.
+The tiered model presented above was reached only after four earlier designs had been rejected. The first prototype added a flat $+12 / +8 / +4$ bonus to a hundred-point base fitness score for each ranked priority; the bonus was too small to overcome the base score, so the recommendations always followed price regardless of the user's choice. The second prototype replaced the bonus with a weighted sum of merits, with weights of 60\,\% on the primary and 40\,\% on the secondary; this allowed a great score on one criterion to compensate for a poor score on the other, contradicting the user's stated priority. The third prototype replaced the weighted sum with a weighted geometric mean of merits; tuning the weights merely shifted the symptom between \guillemotleft{}follows only price\guillemotright{} and \guillemotleft{}follows only data\guillemotright{} without ever producing a clean primary-then-secondary order. A fourth prototype attempted tiered ranking with a tier step of $0.1$, which made the cheapest tier so narrow that it contained only micro-plans, producing degenerate results. The final design (tier step $0.25$, with a multiplier of $0.24$ for the secondary) was retained: it reliably produces \guillemotleft{}follow the first priority, then get as close as possible to the second\guillemotright{}, which matches the user's stated mental model.
+
+To illustrate the failure mode of the weighted geometric mean concretely, consider a user with budget 1\,400~DA, data need 20~GB, and priority ranking \texttt{[price, data]}. Two candidate offers are: $O_A$ at 200~DA / 3~GB and $O_B$ at 1\,400~DA / 25~GB. The need-relative merits are $m_{\mathrm{price}}(O_A) = 200/1400 \approx 0.14$, $m_{\mathrm{data}}(O_A) = 3/20 = 0.15$; $m_{\mathrm{price}}(O_B) = 1400/1400 = 1.00$, $m_{\mathrm{data}}(O_B) = 25/20 \to 1.00$ (clamped). With weights $(0.6, 0.4)$ and the geometric-mean composite $m_1^{0.6} \cdot m_2^{0.4}$, the model returns $0.143$ for $O_A$ and $1.000$ for $O_B$, ranking $O_B$ first --- precisely contradicting the user's stated primary preference for the price criterion, which would prefer $O_A$ since it sits closest to the lower-price end. The tiered model places $O_A$ in tier $0.00$ and $O_B$ in tier $1.00$; because the user's primary priority is price (lower merit is better in the engine's internal direction), tier $0.00$ leads strictly and $O_A$ is ranked first. The two models produce opposite top results from the same inputs --- which is the symptom the iterative process was eliminating.
+
+The engine is called from two distinct contexts: the \texttt{/api/recommendations} route handler executes the algorithm synchronously in response to an explicit user request from the recommendations page (rate-limited at sixty requests per minute per IP), and the scraper orchestrator runs it in batch after each successful scrape cycle to dispatch personalised \texttt{recommendation} notifications when a user's top match has changed. The engine covers the case where the user has filled out a profile and wants the system to choose for them; the complementary case --- the user has a query in mind and wants the catalogue filtered by it --- is handled by the structured search interface described next.
+
+\section{Structured Search Engine}
+
+The search engine is a parser implemented twice in symmetry: the server-side parser lives inside the \texttt{GET /api/offers} handler and converts a free-text query into a Prisma \texttt{where} clause, while the client-side parser (\texttt{src/lib/search-tokens.ts}) applies the same regular-expression vocabulary to produce visible \guillemotleft{}Read as\guillemotright{} chips that show the user how the query was interpreted. Eight token kinds are recognised; Table~\ref{tab:search-tokens} lists each token with its example input and resulting filter.
+
+\begin{table}[H]
+  \caption{Token kinds recognised by the search parser}
+  \label{tab:search-tokens}
+  \centering\small
+  \begin{tabular}{|p{2.5cm}|p{4.5cm}|p{6.4cm}|}
+    \hline
+    \textbf{Token kind} & \textbf{Example input} & \textbf{Resulting filter} \\
+    \hline
+    Data volume        & \texttt{5gb}, \texttt{10 go}, \texttt{2 giga}                            & \texttt{dataGB} between $0.7\times$ and $3\times$ the stated value \\
+    \hline
+    Price              & \texttt{1000 da}, \texttt{500 dinars}                                    & \texttt{priceDA} within $\pm 30\,\%$ of the stated value \\
+    \hline
+    SMS                & \texttt{10 sms}                                                          & \texttt{smsCount $\geq$ N} or unlimited (\texttt{-1}) \\
+    \hline
+    Voice minutes      & \texttt{100 min}, \texttt{200 minutes}                                   & \texttt{voiceMinutes $\geq$ N} or unlimited (\texttt{-1}) \\
+    \hline
+    Network            & \texttt{4g}, \texttt{5g}, \texttt{3g}                                    & Exact substring match on the \texttt{network} column \\
+    \hline
+    Unlimited keyword  & \texttt{unlimited}, \texttt{illimité}, \texttt{infini}                   & Calls, SMS, or feature list contains an unlimited indicator \\
+    \hline
+    Operator           & \texttt{djezzy}, \texttt{ooredoo}, \texttt{mobilis}                      & Operator slug match \\
+    \hline
+    Plan type          & \texttt{prepaid}, \texttt{prépayé}, \texttt{postpaid}, \texttt{abonnement} & \texttt{type} field match \\
+    \hline
+  \end{tabular}
+\end{table}
+
+Each recognised token is consumed from the input string; the remaining words (at least two characters each) are passed through a small French-to-English alias table (\texttt{appel} $\rightarrow$ \texttt{call}, \texttt{données} $\rightarrow$ \texttt{data}, etc.) and must appear in the offer's \texttt{name}, \texttt{features}, or operator name. All tokens are combined under \texttt{AND}, so the query \guillemotleft{}5\,gb djezzy\guillemotright{} returns offers covering approximately 5\,GB \emph{and} sold by Djezzy. Two assistance elements are visible on the offers page: \textbf{example chips} above the input (clickable presets such as \guillemotleft{}5 Go Djezzy\guillemotright{} or \guillemotleft{}Illimité 1000 DA\guillemotright{}), shown only when the input is empty, and a \textbf{\guillemotleft{}?\guillemotright{} help popover} next to the input which opens a syntax cheat-sheet listing every recognisable token kind with an example.
+
+\section{Comparative Visualisation and Savings Calculator}
+
+Two short user-facing features sit on top of the same recommendation backbone introduced above.
+
+\paragraph{Comparative bar charts.} The comparison page renders, in addition to the side-by-side specification table, two per-metric bar charts comparing the selected plans on price (lower is better) and data volume (higher is better, with the sentinel value $-1$ shown as \guillemotleft{}$\infty$\guillemotright{}). Each plan's bar is coloured according to its operator using the palette defined in \texttt{src/lib/utils.ts}, and the corresponding columns of the table are tinted to match. The charts use the \texttt{recharts} library and are rendered client-side.
+
+\paragraph{Savings calculator.} A dedicated page (\texttt{/savings}) implements the FICHE deliverable \guillemotleft{}calculateur d'économies potentielles\guillemotright{}. The user enters four values: the current monthly bill (continuous slider), the data need (continuous slider in GB), and two binary preferences for calls and SMS expressed as Any / Unlimited toggle pills --- the same control used on the \texttt{/recommend} page, to keep the input model coherent with the rest of the application and with the binary representation of calls and SMS in the database. The page calls the existing recommendations endpoint with the current bill as the budget; the result card displays the best-matching offer together with the monthly saving, the annual saving ($\times$~12), and the percentage reduction. When the current bill is already cheaper than every catalogue offer the page shows an \guillemotleft{}already optimal\guillemotright{} state instead of negative savings.
+
+\section{Notification System}
+
+The notification system is split into two distinct streams handled by the same \texttt{Notification} table, distinguished by their \texttt{type} field. Table~\ref{tab:notif-types} enumerates every notification type together with its target audience, the event that triggers it, and the page the user is routed to when they click the notification.
+
+\begin{table}[H]
+  \caption{Notification types --- audience, trigger, and click-through routing}
+  \label{tab:notif-types}
+  \centering\small
+  \begin{tabular}{|p{2.7cm}|p{2.4cm}|p{4.5cm}|p{3.6cm}|}
+    \hline
+    \textbf{Type} & \textbf{Audience} & \textbf{Trigger} & \textbf{Routes to} \\
+    \hline
+    \texttt{new\_offer}        & Registered users (\texttt{USER} role) & The scraper inserts a previously unknown plan & The offer detail page \\
+    \hline
+    \texttt{price\_drop}       & Users who have saved that offer & A scrape detects a price decrease on a saved offer & The offer detail page \\
+    \hline
+    \texttt{recommendation}    & Registered users with a saved profile & The user's top-matched plan has changed after a scrape cycle & \texttt{/recommend} \\
+    \hline
+    \texttt{scrape\_complete}  & Administrators only & A manual or scheduled scrape run finishes successfully & \texttt{/admin?tab=history} \\
+    \hline
+    \texttt{scrape\_failed}    & Administrators only & An operator was unreachable or returned invalid data & \texttt{/admin?tab=history} \\
+    \hline
+  \end{tabular}
+\end{table}
+
+The two-stream separation is enforced at the source: every notification-dispatch function in the scraper orchestrator (\texttt{notifyUsers}, \texttt{notifyAdmins}, \texttt{notifyAdminsFailure}) filters the recipient set by the \texttt{User.role} field before writing any row. Each notification type also drives the click-through routing applied by the navbar bell and the admin panel: user-stream notifications navigate to the offer detail page or to \texttt{/recommend} depending on the type, while administrator-stream notifications navigate to \texttt{/admin?tab=history}.
+
+The separation was introduced specifically to fix two defects in an earlier single-stream design. Without role filters on the dispatch functions, an administrator's feed was systematically polluted with consumer-facing alerts produced for every newly scraped offer. More damagingly, both administrator \guillemotleft{}scrape complete\guillemotright{} and user \guillemotleft{}new offer\guillemotright{} events used the same \texttt{type} value, so a non-administrator user clicking on a \guillemotleft{}new offer\guillemotright{} notification was routed to \texttt{/admin?tab=history} — a page they were not permitted to access. The current two-stream design — role-filtered dispatch, distinct \texttt{type} values, and type-aware routing — eliminates both defects by construction.
 
 \section{Frontend --- Key Interfaces}
 
-The application comprises six primary screens covering the full user journey from discovery to account management. This section describes each interface and illustrates its appearance in the running application.
+The application comprises nine primary screens covering the full user journey from discovery to account management. This section describes the main screens and illustrates their appearance in the running application.
 
-\subsection{Home Page and Offer Browsing}
-
-The home page (Figure~\ref{fig:ss-home}) serves as the entry point for unauthenticated users. It presents a language selector (English, French, or Arabic), four feature highlight tiles (Compare Plans, Personalised Recommendations, Save Favourites, Live Data), and the three operator logos. Selecting a language stores the preference and redirects immediately to the offers catalogue. Authenticated users bypass this screen entirely and are redirected directly to the offers page.
+\paragraph{Home page and offer browsing.}
+The home page (Figure~\ref{fig:ss-home}) serves as the entry point for unauthenticated users. It presents a language selector (English, French, or Arabic), four feature highlight tiles, and the three operator logos. Selecting a language stores the preference and redirects immediately to the offers catalogue. Authenticated users bypass this screen entirely and are redirected directly to the offers page.
 
 \begin{figure}[H]
   \centering
@@ -243,14 +286,13 @@ The home page (Figure~\ref{fig:ss-home}) serves as the entry point for unauthent
   \label{fig:ss-home}
 \end{figure}
 
-\subsection{Offers Page}
-
-The offers page (Figure~\ref{fig:ss-offers}) is the application's main discovery surface. It renders a grid of offer cards using the shared \texttt{OfferCard} component, with staggered entrance animations. Operator filter tabs are rendered at the top of the page, and a collapsible advanced filter panel provides range sliders for maximum price and minimum data together with network generation toggles. When a user selects plans for comparison, a fixed-bottom sticky bar appears (Figure~\ref{fig:compare-bar}) displaying the selection count and a navigation button.
+\paragraph{Offers page with structured search.}
+The offers page (Figure~\ref{fig:ss-offers}) is the application's main discovery surface. It renders a grid of offer cards with operator filter tabs, plan-type pills, and a collapsible advanced filter panel (price, data, network). Above the grid, a structured search input parses the user's query into typed tokens (operator, data volume, price range, feature keywords) and displays each parsed token as a \guillemotleft{}Read as\guillemotright{} chip so the user sees how the query was interpreted. When plans are selected for comparison, a fixed-bottom sticky bar appears (Figure~\ref{fig:compare-bar}) displaying the selection count and a navigation button.
 
 \begin{figure}[H]
   \centering
   \includegraphics[width=0.95\textwidth]{images/screenshot_offers}
-  \caption{Offers page showing plan catalogue with operator filter tabs}
+  \caption{Offers page showing plan catalogue, structured search, and operator filter tabs}
   \label{fig:ss-offers}
 \end{figure}
 
@@ -261,30 +303,27 @@ The offers page (Figure~\ref{fig:ss-offers}) is the application's main discovery
   \label{fig:compare-bar}
 \end{figure}
 
-\subsection{Comparison Page}
-
-The comparison page (Figure~\ref{fig:ss-compare}) reads the plan IDs from the URL query string and fetches the corresponding offers from the \texttt{/api/offers?ids=...} endpoint. It renders a structured side-by-side table where the best value for each row is highlighted in the accent colour, covering six attributes: type, price, data, voice, SMS, and validity.
+\paragraph{Comparison page.}
+The comparison page (Figure~\ref{fig:ss-compare}) reads the plan IDs from the URL query string and fetches the corresponding offers from the \texttt{/api/offers?ids=...} endpoint. It renders a structured side-by-side specification table, with each column tinted in the operator's brand colour, accompanied by per-metric bar charts for price and data volume.
 
 \begin{figure}[H]
   \centering
   \includegraphics[width=0.95\textwidth]{images/screenshot_compare}
-  \caption{Side-by-side comparison page with best-value row highlighting}
+  \caption{Side-by-side comparison page with operator-tinted columns and bar charts}
   \label{fig:ss-compare}
 \end{figure}
 
-\subsection{Recommendations Page}
-
-The recommendations page (Figure~\ref{fig:ss-recommend}) presents a usage profile form with range sliders for budget, data, voice, and SMS, and toggle buttons for preferred plan type and network generation. On submission, the form sends a POST request to \texttt{/api/recommendations} and renders the top three scored plans with their composite scores and the specific match reasons.
+\paragraph{Recommendations page.}
+The recommendations page (Figure~\ref{fig:ss-recommend}) presents a usage-profile form with the budget and data needs, toggle pills for calls and SMS (no preference / unlimited), filter pills for plan type, network, and operator, and the two priority slots (first and second) used by the tiered-ranking engine. On submission, the form sends a POST request to \texttt{/api/recommendations} and renders the three best-matched plans annotated with rank badges (🥇🥈🥉) and the human-readable match reasons.
 
 \begin{figure}[H]
   \centering
   \includegraphics[width=0.95\textwidth]{images/screenshot_recommend}
-  \caption{Recommendations page --- form and personalised results}
+  \caption{Recommendations page --- profile form, priority slots, and ranked results}
   \label{fig:ss-recommend}
 \end{figure}
 
-\subsection{Login and Registration}
-
+\paragraph{Login and registration.}
 Figure~\ref{fig:ss-login} shows the authentication screens. The login page accepts an email address and password; the registration page adds a name field. Both forms perform client-side validation before submitting. Incorrect credentials trigger a non-destructive inline error message without reloading the page.
 
 \begin{figure}[H]
@@ -294,9 +333,8 @@ Figure~\ref{fig:ss-login} shows the authentication screens. The login page accep
   \label{fig:ss-login}
 \end{figure}
 
-\subsection{Admin Dashboard}
-
-The admin dashboard (Figure~\ref{fig:ss-admin}) is accessible only to users with the \texttt{ADMIN} role, verified server-side on every request. It presents four statistics cards (active offers, registered users, scrape sessions, and scrape success rate), an operator health panel showing the last scrape status and offer count per operator, a per-family plan breakdown that colour-codes each scraped plan family as live, fallback, or fixed data after every run, a scrape history log with detailed per-operator event lines, and a notifications tab listing all system and recommendation alerts sent to the administrator.
+\paragraph{Admin dashboard.}
+The admin dashboard (Figure~\ref{fig:ss-admin}) is accessible only to users with the \texttt{ADMIN} role, verified server-side on every request. It presents four statistics cards (active offers, registered users, scrape sessions, scrape success rate), an operator health panel with the last scrape status and offer count per operator, a per-family plan breakdown that colour-codes each scraped plan family as live, fallback, or fixed data after every run, a scrape history log with detailed per-operator event lines, and a notifications tab listing every system event sent to the administrator.
 
 \begin{figure}[H]
   \centering
@@ -305,28 +343,79 @@ The admin dashboard (Figure~\ref{fig:ss-admin}) is accessible only to users with
   \label{fig:ss-admin}
 \end{figure}
 
+\paragraph{Savings calculator page.}
+The dedicated savings calculator (Figure~\ref{fig:ss-savings}) addresses the fiche deliverable \guillemotleft{}calculateur d'économies potentielles\guillemotright{}. The user enters their current monthly bill and an estimate of their needs; the page calls the same recommendations endpoint with the current bill as the budget and renders the single best-matching plan together with the resulting monthly saving, the annual saving (saving $\times$~12), and the percentage reduction relative to the current bill.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.95\textwidth]{images/screenshot_savings}
+  \caption{Savings calculator --- best-matching plan with monthly, annual, and percentage savings}
+  \label{fig:ss-savings}
+\end{figure}
+
+\paragraph{Saved-plans page.}
+The saved-plans page (Figure~\ref{fig:ss-saved}) lists every plan the authenticated user has bookmarked from the offers page or from a recommendation result. Each card carries an unsave button and a direct path to the comparison view, which auto-selects the saved plans for side-by-side analysis.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.95\textwidth]{images/screenshot_saved}
+  \caption{Saved-plans page --- bookmarked offers grouped for quick comparison}
+  \label{fig:ss-saved}
+\end{figure}
+
+\paragraph{User-profile page.}
+The user-profile page (Figure~\ref{fig:ss-profile}) exposes the persisted usage profile used by the recommendation engine: monthly budget, data need, calls and SMS toggles, preferred plan type, network generation, preferred operator, and the two ranked priorities (price / data). Saving the profile from this page is bidirectionally synchronised with the recommendations page so that priorities updated on either screen apply to both.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.95\textwidth]{images/screenshot_profile}
+  \caption{User-profile page --- usage profile and ranked priorities}
+  \label{fig:ss-profile}
+\end{figure}
+
+\paragraph{Help / tutorial page.}
+The guided help page (Figure~\ref{fig:ss-help}) documents the five core features of the platform — structured search, recommendations, comparison, filters, and saved plans — in a single scrollable view. Each section pairs a textual description with numbered step-by-step instructions, an annotated screenshot captured automatically from the live application, and a link to the corresponding page. Sections requiring authentication carry a \guillemotleft{}sign-in required\guillemotright{} badge.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.95\textwidth]{images/screenshot_help}
+  \caption{Help / tutorial page --- five feature sections with annotated screenshots}
+  \label{fig:ss-help}
+\end{figure}
+
+The nine screens described above expose the application to users; the next two sections describe the protections that surround that exposure --- the security mechanisms enforced on every request, and the deployment configuration under which the protections operate.
+
 \section{Security}
 
-\subsection{Authentication and Session Management}
+Table~\ref{tab:security} summarises the security mechanisms applied across the application together with the class of threat each mechanism addresses and its concrete implementation in the codebase.
 
-User sessions are managed by NextAuth.js using signed JWT tokens. The secret key is stored in the \texttt{NEXTAUTH\_SECRET} environment variable. Tokens have a 30-day maximum age and are renewed on each valid request.
-
-\subsection{Password Storage}
-
-Passwords are hashed using bcrypt with a cost factor of 12 before being written to the database. Plain-text passwords are never logged or stored. At sign-in, \texttt{bcrypt.compare} verifies the supplied password against the stored hash without reversing the hash.
-
-\subsection{Role-Based Access Control}
-
-Admin-only API routes check for the \texttt{ADMIN} role in the decoded session before executing any privileged operation. A missing or non-admin session returns \texttt{401 Unauthorized} or \texttt{403 Forbidden} respectively. This check is implemented at the application layer for every relevant route handler.
-
-\subsection{Input Validation and Injection Prevention}
-
-All numeric query parameters are parsed and range-checked before use. All database queries are issued through Prisma's parameterised query interface, which prevents SQL injection by construction. No user-supplied string is ever interpolated directly into a query.
+\begin{table}[H]
+  \caption{Security mechanisms applied across the application}
+  \label{tab:security}
+  \centering\small
+  \begin{tabular}{|p{3.0cm}|p{3.8cm}|p{6.0cm}|}
+    \hline
+    \textbf{Mechanism} & \textbf{Threat addressed} & \textbf{Implementation} \\
+    \hline
+    Signed JWT sessions       & Session forgery, cookie tampering & NextAuth.js with the secret stored in \texttt{NEXTAUTH\_SECRET}; thirty-day expiry; renewed on each valid request \\
+    \hline
+    Bcrypt password storage   & Plain-text leakage in case of a database breach & \texttt{bcrypt.hash} at registration with a cost factor of twelve; verified at sign-in via \texttt{bcrypt.compare} \\
+    \hline
+    Role-based access control & Privilege escalation by an authenticated user & The \texttt{ADMIN} role is embedded in the session token and verified on every admin-gated route handler; mismatches return \texttt{401} or \texttt{403} \\
+    \hline
+    Rate limiting             & Brute-force registration and recommendation-engine abuse & A server-side \texttt{RateLimit} table enforces five requests per fifteen minutes per IP on \texttt{/api/auth/register} and sixty requests per minute per IP on \texttt{/api/recommendations} \\
+    \hline
+    Input validation          & Malformed payloads, injection through structured fields & All query parameters and request bodies are validated through \texttt{zod} schemas before reaching the business logic \\
+    \hline
+    Parameterised queries     & SQL injection & All database access goes through Prisma's parameterised query API; no user-supplied string is ever interpolated into a query \\
+    \hline
+  \end{tabular}
+\end{table}
 
 \section{Deployment}
 
-{\sloppy The application is built for production with \texttt{next build}, which performs static analysis, tree-shaking, and route-level code splitting. The resulting artefact is a Node.js server launched with \texttt{next start}. Three environment variables must be set: \texttt{DATABASE\_URL} (path to the SQLite file), \texttt{NEXTAUTH\_SECRET} (JWT signing key), and \texttt{NEXTAUTH\_URL} (public base URL). The SQLite file is the only persistent artefact that must be preserved across deployments.\par}
+{\sloppy The application is built for production with \texttt{next build}, which performs static analysis, tree-shaking, and route-level code splitting. The resulting artefact is a Node.js server launched with \texttt{next start}. Three environment variables must be set: \texttt{DATABASE\_URL} (path to the SQLite file), \texttt{NEXTAUTH\_SECRET} (JWT signing key), and \texttt{NEXTAUTH\_URL} (base URL). The SQLite file is the only persistent artefact that must be preserved across deployments. The current evaluation deployment runs in production mode on a single machine; public deployment to a managed cloud host is identified as a perspective in the general conclusion.\par}
 
 \section*{Chapter Summary}
 
-This chapter has described the full implementation of \textit{Mobile Match Algeria}: the development environment, the automated scraping pipeline and its per-family deactivation guard, the REST API and its cross-operator comparison routing, the multi-criteria recommendation engine with operator affinity personalisation, the eight key user interface screens, the security architecture, and the deployment configuration. Chapter~4 evaluates these implementations against the project objectives and documents the known limitations.
+This chapter has described the full implementation of \textit{Mobile Match Algeria}: the development environment, the automated scraping pipeline with its per-family deactivation guard and its validation infrastructure, the REST API and its cross-operator comparison routing, the two-layer recommendation engine combining hard filters and tiered ranking, the structured search engine with explainable chip output, the comparative visualisation and the savings calculator, the split-stream notification system, the nine key user-interface screens, the security architecture, and the deployment configuration. Chapter~4 evaluates these implementations against the project objectives, validates the recommendation engine on representative test cases, reports the load-testing results, and documents the identified limitations.

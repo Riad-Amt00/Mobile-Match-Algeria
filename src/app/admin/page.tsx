@@ -44,7 +44,6 @@ interface AdminStats {
   unreadNotifications: number
   scrapeSessionCount: number
   successRate: number
-  failedLogs: number
   lastScrapePerOperator: OperatorStatus[]
   sessions: Session[]
 }
@@ -268,11 +267,12 @@ function AdminPage() {
               const isError = opSession?.status === 'FAILED'
               const hasError = !!opSession?.errorMessage
               const statusOk = opSession?.status === 'SUCCESS' && !hasError
+              const isRunning = opSession?.status === 'RUNNING' || scraping
               const neverScraped = !op.lastScrapedAt
               return (
                 <div key={op.slug} style={{ borderRadius: 16, padding: '1.25rem', background: 'var(--bg-card)', border: `1px solid ${isError || hasError ? 'rgba(248,113,113,0.3)' : 'var(--border-base)'}`, position: 'relative', overflow: 'hidden' }}>
                   {/* Status stripe */}
-                  <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: isError ? '#f87171' : statusOk ? 'rgba(74,222,128,0.5)' : neverScraped ? 'rgba(107,114,128,0.3)' : 'rgba(245,158,11,0.4)' }} />
+                  <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: isError ? '#f87171' : statusOk ? 'rgba(74,222,128,0.5)' : isRunning ? 'rgba(96,165,250,0.5)' : neverScraped ? 'rgba(107,114,128,0.3)' : 'rgba(245,158,11,0.4)' }} />
 
                   <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '1rem' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -291,12 +291,12 @@ function AdminPage() {
                     </div>
                     <div style={{
                       display: 'flex', alignItems: 'center', gap: 5, padding: '3px 10px', borderRadius: 50,
-                      background: isError ? 'rgba(248,113,113,0.12)' : statusOk ? 'rgba(74,222,128,0.1)' : neverScraped ? 'rgba(107,114,128,0.1)' : 'rgba(245,158,11,0.1)',
-                      border: `1px solid ${isError ? 'rgba(248,113,113,0.3)' : statusOk ? 'rgba(74,222,128,0.25)' : neverScraped ? 'rgba(107,114,128,0.25)' : 'rgba(245,158,11,0.25)'}`,
+                      background: isError ? 'rgba(248,113,113,0.12)' : statusOk ? 'rgba(74,222,128,0.1)' : isRunning ? 'rgba(96,165,250,0.12)' : neverScraped ? 'rgba(107,114,128,0.1)' : 'rgba(245,158,11,0.1)',
+                      border: `1px solid ${isError ? 'rgba(248,113,113,0.3)' : statusOk ? 'rgba(74,222,128,0.25)' : isRunning ? 'rgba(96,165,250,0.3)' : neverScraped ? 'rgba(107,114,128,0.25)' : 'rgba(245,158,11,0.25)'}`,
                     }}>
-                      {isError ? <XCircle size={11} color="#f87171" /> : statusOk ? <CheckCircle size={11} color="#4ade80" /> : <Clock size={11} color={neverScraped ? '#9ca3af' : '#f59e0b'} />}
-                      <span style={{ fontSize: 11, fontWeight: 700, color: isError ? '#f87171' : statusOk ? '#4ade80' : neverScraped ? '#9ca3af' : '#f59e0b' }}>
-                        {isError ? 'Failed' : statusOk ? 'OK' : neverScraped ? 'Never scraped' : 'Unknown'}
+                      {isError ? <XCircle size={11} color="#f87171" /> : statusOk ? <CheckCircle size={11} color="#4ade80" /> : isRunning ? <RefreshCw size={11} color="#60a5fa" style={{ animation: 'spin 1s linear infinite' }} /> : <Clock size={11} color={neverScraped ? '#9ca3af' : '#f59e0b'} />}
+                      <span style={{ fontSize: 11, fontWeight: 700, color: isError ? '#f87171' : statusOk ? '#4ade80' : isRunning ? '#60a5fa' : neverScraped ? '#9ca3af' : '#f59e0b' }}>
+                        {isError ? 'Failed' : statusOk ? 'OK' : isRunning ? 'Scraping…' : neverScraped ? 'Never scraped' : 'Unknown'}
                       </span>
                     </div>
                   </div>
@@ -436,12 +436,6 @@ function AdminPage() {
                     <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginBottom: 2 }}>This page auto-refreshes</div>
                     <div style={{ fontSize: 14, fontWeight: 800, color: '#4ade80' }}>every 30s</div>
                   </div>
-                  {stats.failedLogs > 0 && (
-                    <div style={{ padding: '0.625rem 1rem', borderRadius: 8, background: 'rgba(248,113,113,0.08)', border: '1px solid rgba(248,113,113,0.2)' }}>
-                      <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginBottom: 2 }}>Failed scrape logs</div>
-                      <div style={{ fontSize: 14, fontWeight: 800, color: '#f87171' }}>{stats.failedLogs} total</div>
-                    </div>
-                  )}
                 </div>
               </div>
             </div>
@@ -638,8 +632,9 @@ function AdminNotifications({ onNavigate }: { onNavigate: (href: string) => void
 
   function getHref(n: any): string | null {
     if (n.offerId) return `/offers/${n.offerId}`
-    if (n.type === 'scrape_failed' || n.type === 'new_offer') return '/admin?tab=history'
+    if (n.type === 'scrape_failed' || n.type === 'scrape_complete') return '/admin?tab=history'
     if (n.type === 'recommendation') return '/recommend'
+    if (n.type === 'new_offer' || n.type === 'price_drop') return '/offers'
     return null
   }
 
@@ -672,6 +667,7 @@ function AdminNotifications({ onNavigate }: { onNavigate: (href: string) => void
 
   const typeIcon: Record<string, string> = {
     scrape_failed: '⚠️',
+    scrape_complete: '✅',
     new_offer: '🆕',
     recommendation: '✨',
     price_drop: '📉',

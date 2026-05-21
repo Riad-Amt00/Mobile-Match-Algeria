@@ -8,6 +8,14 @@
  */
 import * as cheerio from 'cheerio'
 import { OfferType } from '@prisma/client'
+import {
+  parseGB,
+  parseValidityDays as parseValidity,
+  cleanFeatureText,
+  validateOffer,
+  type ScrapedOffer as ValidatedOffer,
+} from './validate'
+import { createBrowserFetcher } from './fetch'
 
 interface ScrapedOffer {
   name: string
@@ -25,49 +33,18 @@ interface ScrapedOffer {
 type Emit = (level: 'INFO' | 'OK' | 'WARN' | 'ERROR', msg: string) => void
 
 const BASE = 'https://www.ooredoo.dz'
-const HEADERS = {
-  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-  'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-  'Accept-Language': 'fr-FR,fr;q=0.9,en;q=0.8',
-}
 
-async function fetchPage(url: string): Promise<string | null> {
-  try {
-    const res = await fetch(url, {
-      headers: HEADERS,
-      signal: AbortSignal.timeout(20000),
-    })
-    if (!res.ok) return null
-    return await res.text()
-  } catch {
-    return null
-  }
-}
-
-function parseGB(text: string): number {
-  const clean = text.toLowerCase().replace(/\s+/g, ' ').trim()
-  const go = clean.match(/([\d.,]+)\s*go/i)
-  if (go) return parseFloat(go[1].replace(',', '.'))
-  const mb = clean.match(/([\d.,]+)\s*m[bo]/i)
-  if (mb) return parseFloat(mb[1].replace(',', '.')) / 1024
-  return 0
-}
-
-function parseValidity(text: string): number {
-  const weeks = text.match(/(\d+)\s*semaines?/i)
-  if (weeks) return parseInt(weeks[1]) * 7
-  const months = text.match(/(\d+)\s*mois/i)
-  if (months) return parseInt(months[1]) * 30
-  const days = text.match(/(\d+)\s*jours?/i)
-  if (days) return parseInt(days[1])
-  return 30
+function pushIfValid(offers: ScrapedOffer[], offer: ScrapedOffer): void {
+  if (validateOffer(offer as ValidatedOffer).valid) offers.push(offer)
 }
 
 // ── Parser for Ooredoo 500 / Dima layout (swiper-slide.s-relative) ────────────
-function parseOoredoo500Cards($: cheerio.CheerioAPI, pageUrl: string, planFamily: string, type: OfferType): ScrapedOffer[] {
+export function parseOoredoo500Cards($: cheerio.CheerioAPI, pageUrl: string, planFamily: string, type: OfferType): ScrapedOffer[] {
   const offers: ScrapedOffer[] = []
 
-  $('div.swiper-slide.s-relative').each((_, el) => {
+  // :not(.swiper-slide-duplicate) — Swiper.js clones slides for its loop effect
+  // when the page is rendered in a real browser; skip the clones to avoid dupes.
+  $('div.swiper-slide.s-relative:not(.swiper-slide-duplicate)').each((_, el) => {
     const card = $(el)
 
     // Name heading: "Forfait 1500" or "Dima 500" — price embedded in name
@@ -120,16 +97,16 @@ function parseOoredoo500Cards($: cheerio.CheerioAPI, pageUrl: string, planFamily
       if (/sms/i.test(text)) smsCount = -1
     })
 
-    offers.push({ name: `${planFamily} ${priceDA}`, type, priceDA, dataGB, voiceMinutes, smsCount, validityDays, network: '4G/5G', features, sourceUrl: pageUrl })
+    pushIfValid(offers, { name: `${planFamily} ${priceDA}`, type, priceDA, dataGB, voiceMinutes, smsCount, validityDays, network: '4G/5G', features, sourceUrl: pageUrl })
   })
   return offers
 }
 
 // ── Parser for Scholar / N'YOOZ layout (swiper-slide.solid.relative) ──────────
-function parseOoredooScholarCards($: cheerio.CheerioAPI, pageUrl: string, planFamily: string, type: OfferType): ScrapedOffer[] {
+export function parseOoredooScholarCards($: cheerio.CheerioAPI, pageUrl: string, planFamily: string, type: OfferType): ScrapedOffer[] {
   const offers: ScrapedOffer[] = []
 
-  $('div.swiper-slide.solid.relative').each((_, el) => {
+  $('div.swiper-slide.solid.relative:not(.swiper-slide-duplicate)').each((_, el) => {
     const card = $(el)
 
     // Name heading: "Forfait 500" or "N'YOOZ 1500"
@@ -158,7 +135,7 @@ function parseOoredooScholarCards($: cheerio.CheerioAPI, pageUrl: string, planFa
       if (/sms/i.test(text)) smsCount = -1
     })
 
-    offers.push({ name: `${planFamily} ${priceDA}`, type, priceDA, dataGB, voiceMinutes, smsCount, validityDays, network: '4G/5G', features, sourceUrl: pageUrl })
+    pushIfValid(offers, { name: `${planFamily} ${priceDA}`, type, priceDA, dataGB, voiceMinutes, smsCount, validityDays, network: '4G/5G', features, sourceUrl: pageUrl })
   })
   return offers
 }
@@ -167,10 +144,10 @@ function parseOoredooScholarCards($: cheerio.CheerioAPI, pageUrl: string, planFa
 // Red header div (a-bg-ED1C24) contains name+price: "Ooredoo POP 1500"
 // Data from element with a-text-ED1C24: "50Go"
 // Price also from .card_price if heading parse fails
-function parseOoredooPopCards($: cheerio.CheerioAPI, pageUrl: string, planFamily: string, type: OfferType): ScrapedOffer[] {
+export function parseOoredooPopCards($: cheerio.CheerioAPI, pageUrl: string, planFamily: string, type: OfferType): ScrapedOffer[] {
   const offers: ScrapedOffer[] = []
 
-  $('div.swiper-slide.a-h-full, div.swiper-slide[class*="a-h-full"]').each((_, el) => {
+  $('div.swiper-slide.a-h-full:not(.swiper-slide-duplicate), div.swiper-slide[class*="a-h-full"]:not(.swiper-slide-duplicate)').each((_, el) => {
     const card = $(el)
 
     // Price from red header: "Ooredoo POP 1500" or "Ooredoo Internet 1000"
@@ -187,9 +164,13 @@ function parseOoredooPopCards($: cheerio.CheerioAPI, pageUrl: string, planFamily
     }
     if (!priceDA || isNaN(priceDA)) return
 
-    // Data from red text element
+    // Data from red text element. If the structured selector returns nothing,
+    // SKIP the card — never fall back to whole-card text (that was the source
+    // of the dataGB === priceDA misparsing bug). Better to miss an ambiguous
+    // offer than to insert wrong data. The validation layer is a second guard.
     const dataText = card.find('[class*="a-text-ED1C24"], [class*="text-red"], .data-amount').first().text().trim()
-    const dataGB = parseGB(dataText || card.text())
+    if (!dataText) return
+    const dataGB = parseGB(dataText)
     if (dataGB <= 0) return
 
     // Validity from footer or validity text
@@ -207,7 +188,7 @@ function parseOoredooPopCards($: cheerio.CheerioAPI, pageUrl: string, planFamily
       if (/sms/i.test(text)) smsCount = -1
     })
 
-    offers.push({ name: `${planFamily} ${priceDA}`, type, priceDA, dataGB, voiceMinutes, smsCount, validityDays, network: '4G/5G', features: features.slice(0, 5), sourceUrl: pageUrl })
+    pushIfValid(offers, { name: `${planFamily} ${priceDA}`, type, priceDA, dataGB, voiceMinutes, smsCount, validityDays, network: '4G/5G', features: features.slice(0, 5), sourceUrl: pageUrl })
   })
   return offers
 }
@@ -215,6 +196,9 @@ function parseOoredooPopCards($: cheerio.CheerioAPI, pageUrl: string, planFamily
 // ── Main scraper entry point ──────────────────────────────────────────────────
 export async function scrapeOoredoo(emit: Emit = () => {}): Promise<ScrapedOffer[]> {
   emit('INFO', 'Fetching Ooredoo offers from ooredoo.dz')
+  // Ooredoo's anti-bot layer rejects plain HTTP — drive a real browser instead.
+  const { fetchPage, close } = createBrowserFetcher(emit)
+  try {
   const liveOffers: ScrapedOffer[] = []
   const scrapedFamilies = new Set<string>()
 
@@ -335,6 +319,9 @@ export async function scrapeOoredoo(emit: Emit = () => {}): Promise<ScrapedOffer
   const result = [...liveOffers, ...filteredFallback]
   emit('OK', `Total: ${result.length} Ooredoo offers (${liveOffers.length} live, ${filteredFallback.length} from fallback)`)
   return result
+  } finally {
+    await close()
+  }
 }
 
 // ── Fallback verified dataset ─────────────────────────────────────────────────

@@ -8,6 +8,15 @@
  */
 import * as cheerio from 'cheerio'
 import { OfferType } from '@prisma/client'
+import {
+  parseGB,
+  parsePriceDA as parseDA,
+  parseValidityDays as parseDays,
+  cleanFeatureText,
+  validateOffer,
+  type ScrapedOffer as ValidatedOffer,
+} from './validate'
+import { createBrowserFetcher } from './fetch'
 
 interface ScrapedOffer {
   name: string
@@ -25,46 +34,14 @@ interface ScrapedOffer {
 type Emit = (level: 'INFO' | 'OK' | 'WARN' | 'ERROR', msg: string) => void
 
 const BASE = 'https://www.djezzy.dz'
-const HEADERS = {
-  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-  'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-  'Accept-Language': 'fr-FR,fr;q=0.9,en;q=0.8',
-}
 
-async function fetchPage(url: string): Promise<string | null> {
-  try {
-    const res = await fetch(url, {
-      headers: HEADERS,
-      signal: AbortSignal.timeout(15000),
-    })
-    if (!res.ok) return null
-    return await res.text()
-  } catch {
-    return null
-  }
-}
-
-function parseGB(text: string): number {
-  const clean = text.toLowerCase().replace(/\s+/g, ' ').trim()
-  const go = clean.match(/([\d.,]+)\s*g[bo]/i)
-  if (go) return parseFloat(go[1].replace(',', '.'))
-  const mb = clean.match(/([\d.,]+)\s*m[bo]/i)
-  if (mb) return parseFloat(mb[1].replace(',', '.')) / 1024
-  return 0
-}
-
-function parseDA(text: string): number {
-  const m = text.match(/(\d[\d\s]*)\s*DA/i)
-  return m ? parseInt(m[1].replace(/\s/g, '')) : 0
-}
-
-function parseDays(text: string): number {
-  const m = text.match(/(\d+)\s*(?:jours?|days?)/i)
-  return m ? parseInt(m[1]) : 30
+// Push an offer only if it passes validation. Silent skip — orchestrator logs rejections.
+function pushIfValid(offers: ScrapedOffer[], offer: ScrapedOffer): void {
+  if (validateOffer(offer as ValidatedOffer).valid) offers.push(offer)
 }
 
 // ── Parser for price-card article layout (LEGEND) ─────────────────────────────
-function parsePriceCards(
+export function parsePriceCards(
   $: cheerio.CheerioAPI,
   pageUrl: string,
   planFamily: string,
@@ -126,7 +103,7 @@ function parsePriceCards(
 
     if (!priceDA || dataGB <= 0) return
 
-    offers.push({
+    pushIfValid(offers, {
       name: `Djezzy ${planFamily} ${priceDA}`,
       type,
       priceDA,
@@ -144,7 +121,7 @@ function parsePriceCards(
 }
 
 // ── Parser for CAMPUCE price-card layout (different inner structure) ───────────
-function parseDjezzyCampuceCards($: cheerio.CheerioAPI, pageUrl: string): ScrapedOffer[] {
+export function parseDjezzyCampuceCards($: cheerio.CheerioAPI, pageUrl: string): ScrapedOffer[] {
   const offers: ScrapedOffer[] = []
 
   $('article.price-card').each((_, el) => {
@@ -190,14 +167,16 @@ function parseDjezzyCampuceCards($: cheerio.CheerioAPI, pageUrl: string): Scrape
         features.push('Unlimited Djezzy SMS')
       } else if (iconClass.includes('icon-Promotion')) {
         features.push('Student offer')
-      } else if (text.length > 2 && !parseDA(text) && !parseGB(text)) {
-        features.push(text)
+      } else {
+        // Generic feature — sanitize first; cleanFeatureText returns null for noise
+        const clean = cleanFeatureText(text)
+        if (clean) features.push(clean)
       }
     })
 
     if (!priceDA || dataGB <= 0) return
 
-    offers.push({
+    pushIfValid(offers, {
       name: `Djezzy CAMPUCE ${priceDA}`,
       type: OfferType.PREPAID,
       priceDA,
@@ -218,7 +197,7 @@ function parseDjezzyCampuceCards($: cheerio.CheerioAPI, pageUrl: string): Scrape
 // Layout: div.options-tab-table > div.col-centered > table
 //   thead: span.price span (number) + span.da.unit (unit e.g. "Go")
 //   tbody: last td h4 or span matching "Pour XXXX DA"
-function parseDjezzyTableCards(
+export function parseDjezzyTableCards(
   $: cheerio.CheerioAPI,
   pageUrl: string,
   planFamily: string,
@@ -262,25 +241,31 @@ function parseDjezzyTableCards(
     })
     if (!priceDA) return
 
+    // Validity from the table text if stated ("/ 30 Jours", "3 mois"); else the param
+    let offerValidity = validityDays
+    const vMatch = $table.text().match(/(\d+)\s*(jours?|mois)/i)
+    if (vMatch) offerValidity = /mois/i.test(vMatch[2]) ? parseInt(vMatch[1]) * 30 : parseInt(vMatch[1])
+
     // Features from tbody rows, excluding the price row
     const features: string[] = []
     $table.find('tbody tr').each((_, tr) => {
       $(tr).find('td').each((_, td) => {
         const text = $(td).text().replace(/\s+/g, ' ').trim()
-        if (text && !/Pour\s+\d/i.test(text) && text.length > 2 && !/^\d+$/.test(text)) {
-          features.push(text)
+        if (text && !/Pour\s+\d/i.test(text)) {
+          const clean = cleanFeatureText(text)
+          if (clean) features.push(clean)
         }
       })
     })
 
-    offers.push({
+    pushIfValid(offers, {
       name: `Djezzy ${planFamily} ${priceDA}`,
       type,
       priceDA,
       dataGB,
       voiceMinutes: type === OfferType.DATA_ONLY ? 0 : -1,
       smsCount: type === OfferType.DATA_ONLY ? 0 : -1,
-      validityDays,
+      validityDays: offerValidity,
       network: '4G',
       features: features.slice(0, 5),
       sourceUrl: pageUrl,
@@ -291,7 +276,7 @@ function parseDjezzyTableCards(
 }
 
 // ── Parser for DjezzyNet tabbed layout (daily / weekly / monthly tabs) ────────
-function parseDjezzyNet($: cheerio.CheerioAPI, pageUrl: string): ScrapedOffer[] {
+export function parseDjezzyNet($: cheerio.CheerioAPI, pageUrl: string): ScrapedOffer[] {
   const offers: ScrapedOffer[] = []
 
   const tabValidities: Record<string, number> = {
@@ -331,7 +316,7 @@ function parseDjezzyNet($: cheerio.CheerioAPI, pageUrl: string): ScrapedOffer[] 
 
       if (!priceDA || dataGB <= 0) return
 
-      offers.push({
+      pushIfValid(offers, {
         name: `DjezzyNet ${validityDays === 1 ? 'Daily' : validityDays === 7 ? 'Weekly' : 'Monthly'} ${priceDA} DA`,
         type: OfferType.DATA_ONLY,
         priceDA,
@@ -382,6 +367,9 @@ function parseDjezzy3ayla($: cheerio.CheerioAPI, pageUrl: string): ScrapedOffer[
 // ── Main scraper entry point ──────────────────────────────────────────────────
 export async function scrapeDjezzy(emit: Emit = () => {}): Promise<ScrapedOffer[]> {
   emit('INFO', 'Fetching Djezzy offers from djezzy.dz')
+  // Djezzy's anti-bot layer rejects plain HTTP — drive a real browser instead.
+  const { fetchPage, close } = createBrowserFetcher(emit)
+  try {
   const liveOffers: ScrapedOffer[] = []
   const scrapedFamilies = new Set<string>()
 
@@ -490,6 +478,27 @@ export async function scrapeDjezzy(emit: Emit = () => {}): Promise<ScrapedOffer[
     emit('WARN', '3ayla: unreachable — using fallback')
   }
 
+  // ── ZID prepaid (table layout) ────────────────────────────────────────────
+  const zidUrl = `${BASE}/particuliers/offres/djezzy-zid/`
+  const zidHtml = await fetchPage(zidUrl)
+  if (zidHtml) {
+    const $ = cheerio.load(zidHtml)
+    const parsed = parseDjezzyTableCards($, zidUrl, 'ZID', OfferType.PREPAID, 30)
+    if (parsed.length > 0) {
+      liveOffers.push(...parsed)
+      emit('OK', `ZID: ${parsed.length} offers scraped live`)
+      scrapedFamilies.add('ZID')
+    } else {
+      emit('WARN', 'ZID: page fetched but no table cards found — using fallback')
+    }
+  } else {
+    emit('WARN', 'ZID: page unreachable — using fallback')
+  }
+
+  // iZZY: the offer page is a marketing layout (scattered feature cards, no
+  // structured price↔data↔validity grid) — kept on the verified dataset.
+  emit('WARN', 'iZZY: marketing page, no structured offer grid — using verified dataset')
+
   // ── Merge live with fallback for families not successfully scraped ─────────
   const filteredFallback = getDjezzyFallbackOffers().filter(o => {
     if (o.name.startsWith('Djezzy LEGEND MAX') && scrapedFamilies.has('LEGEND MAX')) return false
@@ -498,16 +507,16 @@ export async function scrapeDjezzy(emit: Emit = () => {}): Promise<ScrapedOffer[
     if (o.name.startsWith('Djezzy CAMPUCE') && scrapedFamilies.has('CAMPUCE')) return false
     if (o.name.startsWith('DjezzyNet') && scrapedFamilies.has('DjezzyNet')) return false
     if ((o.name.startsWith('Djezzy 3ayla') || o.name.startsWith('Djezzy SIM Internet')) && scrapedFamilies.has('3ayla')) return false
+    if (o.name.startsWith('Djezzy ZID') && scrapedFamilies.has('ZID')) return false
     return true
   })
-
-  // Emit permanent fallback notices so admin health dashboard detects ZID/IZZY!
-  emit('WARN', 'ZID: page unreachable on every attempt — permanent fallback (connection timeout)')
-  emit('WARN', 'IZZY!: marketing page with no structured data — permanent fallback')
 
   const result = [...liveOffers, ...filteredFallback]
   emit('OK', `Total: ${result.length} Djezzy offers (${liveOffers.length} live, ${filteredFallback.length} from fallback)`)
   return result
+  } finally {
+    await close()
+  }
 }
 
 // ── Fallback verified dataset (used when live scrape fails for a family) ──────
@@ -523,11 +532,8 @@ function getDjezzyFallbackOffers(): ScrapedOffer[] {
     { name: 'Djezzy LEGEND 2500', type: OfferType.PREPAID, priceDA: 2500, dataGB: 120, voiceMinutes: -1, smsCount: -1, validityDays: 30, network: '4G', features: ['Unlimited calls (all networks)', 'Unlimited Djezzy SMS', 'Data rollover'], sourceUrl: `${SRC}djezzy-legend/` },
     { name: 'Djezzy LEGEND 3000', type: OfferType.PREPAID, priceDA: 3000, dataGB: 145, voiceMinutes: -1, smsCount: -1, validityDays: 30, network: '4G', features: ['Unlimited calls (all networks)', 'Unlimited Djezzy SMS', 'Data rollover'], sourceUrl: `${SRC}djezzy-legend/` },
     { name: 'Djezzy LEGEND 4000', type: OfferType.PREPAID, priceDA: 4000, dataGB: 200, voiceMinutes: -1, smsCount: -1, validityDays: 30, network: '4G', features: ['Unlimited calls (all networks)', 'Unlimited Djezzy SMS', 'Data rollover'], sourceUrl: `${SRC}djezzy-legend/` },
-    // ── IZZY! (Prepaid — marketing page, no structured data, permanent fallback) ─
-    { name: 'IZZY! 50', type: OfferType.PREPAID, priceDA: 50, dataGB: 1, voiceMinutes: -1, smsCount: -1, validityDays: 1, network: '4G', features: ['Unlimited calls (all networks)', 'Unlimited SMS', 'Optional add-ons'], sourceUrl: `${SRC}izzy-game-changer/` },
-    { name: 'IZZY! 300', type: OfferType.PREPAID, priceDA: 300, dataGB: 3, voiceMinutes: -1, smsCount: -1, validityDays: 15, network: '4G', features: ['Unlimited calls (all networks)', 'Unlimited SMS', 'Optional add-ons (YouTube, social)'], sourceUrl: `${SRC}izzy-game-changer/` },
-    { name: 'IZZY! 500', type: OfferType.PREPAID, priceDA: 500, dataGB: 5, voiceMinutes: -1, smsCount: -1, validityDays: 30, network: '4G', features: ['Unlimited calls (all networks)', 'Unlimited SMS'], sourceUrl: `${SRC}izzy-game-changer/` },
-    { name: 'IZZY! 1200', type: OfferType.PREPAID, priceDA: 1200, dataGB: 10, voiceMinutes: -1, smsCount: -1, validityDays: 30, network: '4G', features: ['Unlimited calls (all networks)', 'Unlimited SMS', 'Free YouTube', '1000 DA credit'], sourceUrl: `${SRC}izzy-game-changer/` },
+    // ── iZZY (Prepaid — single flagship plan; fallback if live parse fails) ──
+    { name: 'Djezzy iZZY 1200', type: OfferType.PREPAID, priceDA: 1200, dataGB: 5, voiceMinutes: -1, smsCount: -1, validityDays: 30, network: '4G', features: ['Unlimited calls (all networks)', 'Unlimited SMS', '500 DA credit', 'Free FlexyNet', 'Free YouTube'], sourceUrl: `${SRC}izzy-game-changer/` },
     // ── ZID (Prepaid — permanent fallback: connection timeout on every attempt) ──
     { name: 'Djezzy ZID 50', type: OfferType.PREPAID, priceDA: 50, dataGB: 0.5, voiceMinutes: -1, smsCount: -1, validityDays: 1, network: '4G', features: ['Unlimited Djezzy calls', 'Unlimited Djezzy SMS'], sourceUrl: `${SRC}djezzy-zid/` },
     { name: 'Djezzy ZID 100', type: OfferType.PREPAID, priceDA: 100, dataGB: 1, voiceMinutes: -1, smsCount: -1, validityDays: 1, network: '4G', features: ['Unlimited Djezzy calls', 'Unlimited Djezzy SMS'], sourceUrl: `${SRC}djezzy-zid/` },

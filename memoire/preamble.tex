@@ -105,8 +105,10 @@
   morekeywords={const,let,var,async,await,interface,type,export,import,from,of,
                 string,number,boolean,void,any,null,undefined,readonly,Promise}}
 
-% Bibliography (APA)
-\usepackage[backend=biber,style=apa,sortcites=true,sorting=nyt]{biblatex}
+% Bibliography (numeric clickable style — IFAG §2.13 allows [1] or (Author, year); numeric is the
+% conventional choice for IT theses. Combined with hyperref, every \parencite{...} renders as a
+% clickable [N] that links to the entry below.)
+\usepackage[backend=biber,style=numeric-comp,sortcites=true,sorting=none]{biblatex}
 \addbibresource{back/bibliography.bib}
 
 % Extra table and list packages
@@ -119,7 +121,7 @@
 \setlist[enumerate]{itemsep=2pt,topsep=4pt}
 
 % Hyperlinks
-\usepackage[colorlinks=true,linkcolor=black,citecolor=black,urlcolor=blue,
+\usepackage[colorlinks=true,linkcolor=black,citecolor=blue!60!black,urlcolor=blue,
   pdftitle={Mobile Match Algeria - Memoire de Fin d'Etudes},
   pdfauthor={AMRATE Riad}]{hyperref}
 

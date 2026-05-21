@@ -11,8 +11,18 @@
  *   - Validity fit:    5 pts  (monthly plans score higher)
  *   - Type/Network:    5 pts  (filter match bonuses)
  *
- * Priority boost (up to +8 pts, capped at 100): applied after base scoring when the user
- * has selected a top priority via direct weight elicitation in the UI.
+ * Ranked priority elicitation: the user ranks up to 2 criteria (price, data). Each
+ * offer gets a per-criterion merit (0–1) measuring how CLOSE the offer is to the
+ * user's stated target — the budget is treated as the price they WANT to pay (an
+ * offer at the budget scores 1, a much cheaper one scores low), and the data slider
+ * as the data they want. Merit is target-relative, never pool-relative, so a
+ * catalogue outlier cannot distort the scale. Offers are then ranked in TIERS by the
+ * top priority's merit (rounded to 0.25 → ~4 broad tiers, so offers close on it share
+ * a tier); within a tier the 2nd priority decides the order. The 2nd can never lift
+ * an offer past a higher tier — "follow the top priority, then get as close as
+ * possible to the 2nd". The base fitness score is used only to break an exact tie.
+ * The monthly budget is a hard ceiling, and the plan-type / network / calls / SMS
+ * selections are hard filters — non-matching offers are excluded entirely.
  */
 
 export interface UserNeeds {
@@ -20,8 +30,9 @@ export interface UserNeeds {
   dataGB: number
   voiceMinutes: number
   smsCount: number
-  type?: string   // 'any' | 'PREPAID' | 'POSTPAID' | 'DATA_ONLY'
-  network?: string // 'any' | '4G' | '5G'
+  type?: string     // 'any' | 'PREPAID' | 'POSTPAID' | 'DATA_ONLY'
+  network?: string  // 'any' | '4G' | '5G'
+  operator?: string // 'any' | 'djezzy' | 'ooredoo' | 'mobilis'  (operator slug)
 }
 
 export interface ReasonToken {
@@ -41,46 +52,78 @@ export function recommendOffers(
   offers: any[],
   needs: UserNeeds,
   topN = 3,
-  operatorAffinity: Record<string, number> = {},
-  priority = '',
-  budgetStrict = false
+  priorities: string[] = []
 ): Recommendation[] {
+  // Hard constraints — offers failing any of these are excluded entirely, never
+  // scored: budget is a ceiling; operator / plan-type / network are categorical
+  // filters; unlimited calls / SMS (when requested, needs = -1) are binary filters.
   const scored: Recommendation[] = offers
-    .filter(o => o.priceDA <= needs.budget * (budgetStrict ? 1.0 : 1.15))
+    .filter(o => o.priceDA <= needs.budget)
+    .filter(o => !needs.operator || needs.operator === 'any' || o.operator?.slug === needs.operator)
+    .filter(o => !needs.type || needs.type === 'any' || o.type === needs.type)
+    .filter(o => !needs.network || needs.network === 'any' || String(o.network).includes(needs.network))
+    .filter(o => needs.voiceMinutes !== -1 || o.voiceMinutes === -1)
+    .filter(o => needs.smsCount !== -1 || o.smsCount === -1)
     .map(o => scoreOffer(o, needs))
-    .sort((a, b) => b.score - a.score)
 
-  // Operator affinity boost — up to +5 pts for operators the user has saved before
-  if (Object.keys(operatorAffinity).length > 0) {
-    scored.forEach(r => {
-      const count = operatorAffinity[r.offer.operatorId] ?? 0
-      if (count > 0) {
-        r.score = Math.min(100, r.score + Math.min(5, count * 2))
-        if (count >= 1) r.matchReasons.push({ key: 'match.operator.preferred' })
+  // ── Ranked priority elicitation — tiered ranking ───────────────────────────
+  // The user ranks up to 2 criteria. Offers are grouped into TIERS by the top
+  // priority's merit; within a tier the 2nd priority decides the order. The 2nd can
+  // never lift an offer past a higher tier — "follow the top priority, then get as
+  // close as possible to the 2nd."
+  const ranked = priorities.filter(Boolean).slice(0, 2)
+  if (ranked.length > 0 && scored.length > 0) {
+    // Per-criterion merit, 0 → 1, scored against the user's stated NEED — never
+    // normalised across the pool. An offer that fully covers the need scores 1;
+    // anything beyond the need is capped at 1. This keeps a catalogue outlier (e.g.
+    // a freak 1000 GB plan) from compressing every realistic offer toward 0.
+    // Unlimited (-1) always scores 1.
+    const merit = (pri: string, o: any): number => {
+      if (pri === 'price')
+        // Closeness to the user's TARGET price. The budget is the price they want to
+        // pay, not just a cap — an offer at the budget scores 1, a much cheaper one
+        // scores low ("not more, not less"). Over-budget offers are already excluded.
+        return clamp01(o.priceDA / Math.max(needs.budget, 1))
+      if (pri === 'data') {
+        if (o.dataGB === -1) return 1
+        return needs.dataGB > 0 ? clamp01(o.dataGB / needs.dataGB) : 0.5
       }
-    })
-    scored.sort((a, b) => b.score - a.score)
-  }
+      if (pri === 'calls') {
+        if (o.voiceMinutes === -1) return 1
+        if (needs.voiceMinutes === -1) return 0          // user wants unlimited, offer isn't
+        return needs.voiceMinutes > 0 ? clamp01(o.voiceMinutes / needs.voiceMinutes) : 0.5
+      }
+      if (pri === 'sms') {
+        if (o.smsCount === -1) return 1
+        if (needs.smsCount === -1) return 0              // user wants unlimited, offer isn't
+        return needs.smsCount > 0 ? clamp01(o.smsCount / needs.smsCount) : 0.5
+      }
+      if (pri === 'network')
+        return networkMerit(o.network)
+      return 0
+    }
 
-  // Priority elicitation — user's stated top priority gets +8 pts for offers excelling in that dimension
-  if (priority) {
-    scored.forEach(r => {
-      let boost = false
-      if (priority === 'data') {
-        boost = r.offer.dataGB === -1 || (needs.dataGB > 0 && r.offer.dataGB / needs.dataGB >= 1.0)
-      } else if (priority === 'price') {
-        boost = r.offer.priceDA / needs.budget <= 0.8
-      } else if (priority === 'calls') {
-        boost = r.offer.voiceMinutes === -1 ||
-                (needs.voiceMinutes > 0 && r.offer.voiceMinutes / needs.voiceMinutes >= 1.0)
-      } else if (priority === 'network') {
-        boost = !!needs.network && needs.network !== 'any' && r.offer.network.includes(needs.network)
-      }
-      if (boost) {
-        r.score = Math.min(100, r.score + 8)
-        r.matchReasons.push({ key: `match.priority.${priority}` })
-      }
+    // Tier by the TOP priority's merit (rounded to 0.25 → ~4 broad tiers, so a real
+    // range of e.g. "cheap" offers shares a tier); within a tier the 2nd priority
+    // refines the order. The 2nd term is kept strictly below one tier-step (0.25), so
+    // it can never push an offer past a higher tier. The base fitness score (r.score
+    // so far) only breaks an exact tie.
+    const keyed = scored.map(r => {
+      const m1 = merit(ranked[0], r.offer)
+      const m2 = ranked[1] ? merit(ranked[1], r.offer) : 0
+      if (m1 >= 0.66) r.matchReasons.push({ key: `match.priority.${ranked[0]}` })
+      if (ranked[1] && m2 >= 0.66) r.matchReasons.push({ key: `match.priority.${ranked[1]}` })
+      const tier = Math.round(m1 * 4) / 4
+      return { r, composite: tier + m2 * 0.24, base: r.score }
     })
+    keyed.sort((a, b) => b.composite - a.composite || b.base - a.base)
+    scored.length = 0
+    for (const k of keyed) {
+      // composite ∈ [0, 1.24] (tier ≤ 1 + 2nd-priority term ≤ 0.24) → scale to 0–100.
+      k.r.score = Math.round((k.composite / 1.24) * 100)
+      scored.push(k.r)
+    }
+  } else {
     scored.sort((a, b) => b.score - a.score)
   }
 
@@ -97,6 +140,23 @@ export function recommendOffers(
   }
 
   return scored.slice(0, topN)
+}
+
+function clamp01(x: number): number {
+  return x < 0 ? 0 : x > 1 ? 1 : x
+}
+
+/**
+ * Merit of an offer's network for the "network" priority. Picking Network as a
+ * priority means "I want the best network technology" — newer tech ranks higher,
+ * regardless of any 4G/5G filter the user may or may not have set.
+ */
+function networkMerit(network: string): number {
+  const n = String(network || '').toLowerCase()
+  if (n.includes('5g')) return 1
+  if (n.includes('4g')) return 0.6
+  if (n.includes('3g')) return 0.3
+  return 0.15
 }
 
 function scoreOffer(offer: any, needs: UserNeeds): Recommendation {

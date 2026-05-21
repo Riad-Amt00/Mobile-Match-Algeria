@@ -1,12 +1,12 @@
 'use client'
 
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { useSession } from 'next-auth/react'
 import { motion } from 'framer-motion'
 import {
   Zap, Wifi, Phone, TrendingUp, CheckCircle, AlertCircle, ArrowLeft,
-  Target, BarChart2, MessageSquare, Lock, Save, Loader2, Signal,
+  Target, BarChart2, MessageSquare, Lock, Loader2,
 } from 'lucide-react'
 
 import { formatDA, formatData, formatMinutes, RANK_GRADIENTS, RANK_COLORS, cleanOfferName } from '@/lib/utils'
@@ -24,40 +24,28 @@ interface Recommendation {
 const RANK_LABELS = ['🥇', '🥈', '🥉']
 const RANK_BORDER = ['#F59E0B', '#94A3B8', '#CD7C3E']
 
-function matchLabel(score: number, t: (k: any) => string) {
-  if (score >= 80) return t('recommend.matchExcellent')
-  if (score >= 60) return t('recommend.matchGood')
-  if (score >= 40) return t('recommend.matchFair')
-  return t('recommend.matchWeak')
-}
-
-function scoreColor(score: number) {
-  if (score >= 80) return 'var(--color-success)'
-  if (score >= 60) return 'var(--accent)'
-  if (score >= 40) return '#F59E0B'
-  return 'var(--text-muted)'
-}
-
 export default function RecommendPage() {
   const { t, tInterp } = useLang()
   const { data: session, status } = useSession()
 
   const [budget, setBudget] = useState(2000)
   const [dataGB, setDataGB] = useState(20)
-  const [voiceMinutes, setVoiceMinutes] = useState(100)
-  const [smsCount, setSmsCount] = useState(50)
+  // Calls / SMS are binary in the catalogue (unlimited or none) — 0 = "Any", -1 = "Unlimited"
+  const [voiceMinutes, setVoiceMinutes] = useState(0)
+  const [smsCount, setSmsCount] = useState(0)
   const [type, setType] = useState('any')
   const [network, setNetwork] = useState('any')
+  const [operator, setOperator] = useState('any')
 
   const [results, setResults] = useState<Recommendation[]>([])
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
-  const [saveOk, setSaveOk] = useState(false)
   const [initialLoaded, setInitialLoaded] = useState(false)
-  const [priority, setPriority] = useState<'data' | 'price' | 'calls' | 'network' | ''>('')
-  const [budgetStrict, setBudgetStrict] = useState(false)
-
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  // Ranked priorities — index 0 = 1st (most weight), 1 = 2nd
+  const [priorities, setPriorities] = useState<string[]>(['', ''])
+  // Results are shown only after the user explicitly runs the recommendation; any
+  // settings change hides them again — no live auto-update, no response races.
+  const [showResults, setShowResults] = useState(false)
 
   const rf = (v: number, mn: number, mx: number) =>
     ({ width: '100%', '--fill': `${((v - mn) / (mx - mn) * 100).toFixed(1)}%` } as React.CSSProperties)
@@ -69,16 +57,29 @@ export default function RecommendPage() {
     { id: 'DATA_ONLY', label: t('type.dataOnly') },
   ]
 
+  // Criteria the user can rank as their top priorities
+  // Only the continuous trade-off criteria are rankable. Calls/SMS (binary in the
+  // catalogue) and Network/Type (categorical) are not ranked — Network and Type are
+  // applied as hard filters below instead.
+  const PRIORITY_OPTIONS = [
+    { id: 'price', label: t('recommend.priority.price') },
+    { id: 'data',  label: t('recommend.priority.data') },
+  ]
+
   const fetchRecommendations = useCallback(async (
-    b: number, d: number, v: number, s: number, ty: string, net: string, prio = '', strict = false
+    b: number, d: number, v: number, s: number, ty: string, net: string, op: string, pris: string[] = []
   ) => {
     setLoading(true)
     try {
       const res = await fetch('/api/recommendations', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ budget: b, dataGB: d, voiceMinutes: v >= 500 ? -1 : v, smsCount: s >= 500 ? -1 : s, type: ty, network: net, priority: prio, budgetStrict: strict }),
+        body: JSON.stringify({ budget: b, dataGB: d, voiceMinutes: v, smsCount: s, type: ty, network: net, operator: op, priorities: pris }),
       })
+      if (res.status === 429) {
+        // Rate limited — keep previous results rather than showing empty
+        return
+      }
       const data = await res.json()
       setResults(data.recommendations || [])
     } catch {
@@ -97,45 +98,60 @@ export default function RecommendPage() {
         const p = d.profile
         const b = p?.monthlyBudget ?? 2000
         const dg = p?.dataUsageGB ?? 20
-        const v = p?.voiceMinutes ?? 100
-        const s = p?.smsCount ?? 50
+        // Calls/SMS are binary toggles — only -1 (unlimited) is meaningful; anything else = Any (0)
+        const v = p?.voiceMinutes === -1 ? -1 : 0
+        const s = p?.smsCount === -1 ? -1 : 0
         const ty = p?.preferredType ?? 'any'
         const net = p?.preferredNet ?? 'any'
+        const op = p?.preferredOperator ?? 'any'
+        // Keep only currently-valid criteria (drops legacy 'calls'/'sms'/'network').
+        const pris = p?.priorities
+          ? String(p.priorities).split(',').filter(x => ['price', 'data'].includes(x))
+          : []
         setBudget(b); setDataGB(dg); setVoiceMinutes(v)
-        setSmsCount(s); setType(ty); setNetwork(net)
+        setSmsCount(s); setType(ty); setNetwork(net); setOperator(op)
+        setPriorities([pris[0] || '', pris[1] || ''])
         setInitialLoaded(true)
-        fetchRecommendations(b, dg, v, s, ty, net, '', false)
       })
-      .catch(() => { setInitialLoaded(true); fetchRecommendations(2000, 20, 100, 50, 'any', 'any', '', false) })
+      .catch(() => setInitialLoaded(true))
   }, [status, fetchRecommendations])
 
-  // Auto-update when sliders change (debounced 700ms) — also saves profile silently
+  // Any settings change invalidates the shown results — the user must re-run the
+  // recommendation explicitly (see runRecommendations). This removes the old live
+  // auto-update and the response-race it caused. Args kept so call sites need no change.
   function onSliderChange(
-    b: number, d: number, v: number, s: number, ty: string, net: string, prio = '', strict = false
+    _b?: number, _d?: number, _v?: number, _s?: number, _ty?: string, _net?: string, _pris?: string[]
   ) {
-    if (!initialLoaded) return
-    if (debounceRef.current) clearTimeout(debounceRef.current)
-    debounceRef.current = setTimeout(() => {
-      fetchRecommendations(b, d, v, s, ty, net, prio, strict)
-      fetch('/api/profile', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ monthlyBudget: b, dataUsageGB: d, voiceMinutes: v, smsCount: s, preferredType: ty, preferredNet: net }),
-      }).catch(() => {})
-    }, 700)
+    setShowResults(false)
   }
 
-  async function saveProfile() {
+  // Set the criterion at rank slot `idx`; clear it from any other slot (no dupes).
+  function setPriorityAt(idx: number, value: string) {
+    const next = [...priorities]
+    const previous = next[idx]
+    next[idx] = value
+    // If this criterion already sits in another slot, SWAP the two — so reordering
+    // is a single action and the user is never locked into their first choice.
+    if (value) {
+      for (let i = 0; i < next.length; i++) {
+        if (i !== idx && next[i] === value) next[i] = previous
+      }
+    }
+    setPriorities(next)
+    onSliderChange(budget, dataGB, voiceMinutes, smsCount, type, network, next)
+  }
+
+  // Explicitly run the recommendation: persist the profile, fetch results, reveal them.
+  async function runRecommendations() {
     setSaving(true)
+    setShowResults(true)
     try {
       await fetch('/api/profile', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ monthlyBudget: budget, dataUsageGB: dataGB, voiceMinutes, smsCount, preferredType: type, preferredNet: network }),
+        body: JSON.stringify({ monthlyBudget: budget, dataUsageGB: dataGB, voiceMinutes, smsCount, preferredType: type, preferredNet: network, preferredOperator: operator, priorities }),
       })
-      await fetchRecommendations(budget, dataGB, voiceMinutes, smsCount, type, network, priority, budgetStrict)
-      setSaveOk(true)
-      setTimeout(() => setSaveOk(false), 2500)
+      await fetchRecommendations(budget, dataGB, voiceMinutes, smsCount, type, network, operator, priorities)
     } finally {
       setSaving(false)
     }
@@ -181,88 +197,42 @@ export default function RecommendPage() {
 
             {/* ── Profile sliders ── */}
             <div className="card" style={{ padding: '1.75rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem', flexWrap: 'wrap', gap: 10 }}>
-                <h2 style={{ fontSize: '1rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: 8, color: 'var(--text-primary)', margin: 0 }}>
-                  <Zap size={16} style={{ color: 'var(--accent)' }} /> {t('recommend.usageProfile')}
-                </h2>
-                <button
-                  onClick={saveProfile}
-                  disabled={saving}
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: 6,
-                    padding: '0.5rem 1.125rem', borderRadius: 8, cursor: saving ? 'wait' : 'pointer',
-                    background: saveOk ? 'var(--color-success-muted)' : 'var(--accent)',
-                    border: saveOk ? '1px solid var(--color-success-border)' : 'none',
-                    color: saveOk ? 'var(--color-success)' : 'white',
-                    fontSize: 13, fontWeight: 700, fontFamily: 'inherit',
-                    transition: 'all 0.2s',
-                  }}
-                >
-                  {saving
-                    ? <Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} />
-                    : saveOk
-                      ? <CheckCircle size={13} />
-                      : <Save size={13} />}
-                  {saving ? '…' : saveOk ? t('profile.saved') : t('profile.save')}
-                </button>
-              </div>
+              <h2 style={{ fontSize: '1rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: 8, color: 'var(--text-primary)', margin: '0 0 1.5rem' }}>
+                <Zap size={16} style={{ color: 'var(--accent)' }} /> {t('recommend.usageProfile')}
+              </h2>
 
-              {/* Priority elicitation */}
+              {/* Ranked priorities — user ranks up to 3 criteria; 1st gets the most weight */}
               <div style={{ marginBottom: '1rem', padding: '0.875rem 1rem', background: 'var(--bg-subtle)', borderRadius: 10, border: '1px solid var(--border-subtle)' }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 10 }}>
                   {t('recommend.topPriority')}
                 </div>
-                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>
-                  {([
-                    { id: 'data',    label: t('recommend.priority.data'),    icon: <Wifi size={11} /> },
-                    { id: 'price',   label: t('recommend.priority.price'),   icon: <TrendingUp size={11} /> },
-                    { id: 'calls',   label: t('recommend.priority.calls'),   icon: <Phone size={11} /> },
-                    { id: 'network', label: t('recommend.priority.network'), icon: <Signal size={11} /> },
-                  ] as const).map(opt => (
-                    <button key={opt.id}
-                      type="button"
-                      onClick={() => {
-                        const next = (priority === opt.id ? '' : opt.id) as typeof priority
-                        setPriority(next)
-                        onSliderChange(budget, dataGB, voiceMinutes, smsCount, type, network, next, budgetStrict)
-                      }}
-                      style={{
-                        display: 'flex', alignItems: 'center', gap: 4,
-                        padding: '4px 12px', borderRadius: 20, cursor: 'pointer',
-                        fontSize: 12, fontWeight: 600, fontFamily: 'inherit',
-                        background: priority === opt.id ? 'var(--accent)' : 'var(--bg-elevated)',
-                        color: priority === opt.id ? '#fff' : 'var(--text-secondary)',
-                        border: priority === opt.id ? 'none' : '1px solid var(--border-base)',
-                        transition: 'all 0.15s',
-                      }}>
-                      {opt.icon} {opt.label}
-                    </button>
-                  ))}
-                </div>
-                <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
-                  <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                    {t('recommend.budgetMode')}:
-                  </span>
-                  {([
-                    { val: false, label: t('recommend.budget.flexible') },
-                    { val: true,  label: t('recommend.budget.strict') },
-                  ] as const).map(opt => (
-                    <button key={String(opt.val)}
-                      type="button"
-                      onClick={() => {
-                        setBudgetStrict(opt.val)
-                        onSliderChange(budget, dataGB, voiceMinutes, smsCount, type, network, priority, opt.val)
-                      }}
-                      style={{
-                        padding: '3px 10px', borderRadius: 20, cursor: 'pointer',
-                        fontSize: 11, fontWeight: 600, fontFamily: 'inherit',
-                        background: budgetStrict === opt.val ? 'var(--accent-muted)' : 'var(--bg-elevated)',
-                        color: budgetStrict === opt.val ? 'var(--accent)' : 'var(--text-secondary)',
-                        border: budgetStrict === opt.val ? '1px solid var(--accent-border)' : '1px solid var(--border-base)',
-                        transition: 'all 0.15s',
-                      }}>
-                      {opt.label}
-                    </button>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {[0, 1].map(idx => (
+                    <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <div style={{
+                        width: 24, height: 24, borderRadius: '50%', flexShrink: 0,
+                        background: idx === 0 ? 'var(--accent)' : 'var(--accent-muted)',
+                        color: idx === 0 ? '#fff' : 'var(--accent)',
+                        opacity: idx === 2 ? 0.65 : 1,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontSize: 12, fontWeight: 800,
+                      }}>{idx + 1}</div>
+                      <select
+                        value={priorities[idx] || ''}
+                        onChange={e => setPriorityAt(idx, e.target.value)}
+                        style={{
+                          flex: 1, padding: '7px 10px', borderRadius: 8,
+                          background: 'var(--bg-elevated)', border: '1px solid var(--border-base)',
+                          color: priorities[idx] ? 'var(--text-primary)' : 'var(--text-muted)',
+                          fontSize: 13, fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer',
+                        }}
+                      >
+                        <option value="">{t('recommend.priorityChoose')}</option>
+                        {PRIORITY_OPTIONS.map(o => (
+                          <option key={o.id} value={o.id}>{o.label}</option>
+                        ))}
+                      </select>
+                    </div>
                   ))}
                 </div>
               </div>
@@ -275,7 +245,7 @@ export default function RecommendPage() {
                     <span style={{ color: 'var(--accent)' }}>{formatDA(budget)}</span>
                   </label>
                   <input type="range" min={100} max={8000} step={100} value={budget}
-                    onChange={e => { const v = +e.target.value; setBudget(v); onSliderChange(v, dataGB, voiceMinutes, smsCount, type, network, priority, budgetStrict) }}
+                    onChange={e => { const v = +e.target.value; setBudget(v); onSliderChange(v, dataGB, voiceMinutes, smsCount, type, network) }}
                     style={rf(budget, 100, 8000)} />
                 </div>
 
@@ -286,40 +256,30 @@ export default function RecommendPage() {
                     <span style={{ color: 'var(--accent)' }}>{dataGB} GB</span>
                   </label>
                   <input type="range" min={0} max={200} step={1} value={dataGB}
-                    onChange={e => { const v = +e.target.value; setDataGB(v); onSliderChange(budget, v, voiceMinutes, smsCount, type, network, priority, budgetStrict) }}
+                    onChange={e => { const v = +e.target.value; setDataGB(v); onSliderChange(budget, v, voiceMinutes, smsCount, type, network) }}
                     style={rf(dataGB, 0, 200)} />
                 </div>
 
-                {/* Voice */}
-                <div>
-                  <label style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, fontWeight: 600, marginBottom: 8, color: 'var(--text-primary)' }}>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}><Phone size={13} /> {t('recommend.callMinutes')}</span>
-                    <span style={{ color: 'var(--accent)' }}>{voiceMinutes >= 500 ? t('common.unlimited') : `${voiceMinutes} ${t('common.min')}`}</span>
-                  </label>
-                  <input type="range" min={0} max={500} step={10} value={voiceMinutes}
-                    onChange={e => { const v = +e.target.value; setVoiceMinutes(v); onSliderChange(budget, dataGB, v, smsCount, type, network, priority, budgetStrict) }}
-                    style={rf(voiceMinutes, 0, 500)} />
-                </div>
-
-                {/* SMS */}
-                <div>
-                  <label style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, fontWeight: 600, marginBottom: 8, color: 'var(--text-primary)' }}>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}><MessageSquare size={13} /> {t('recommend.smsMonth')}</span>
-                    <span style={{ color: 'var(--accent)' }}>{smsCount >= 500 ? t('common.unlimited') : `${smsCount}`}</span>
-                  </label>
-                  <input type="range" min={0} max={500} step={10} value={smsCount}
-                    onChange={e => { const v = +e.target.value; setSmsCount(v); onSliderChange(budget, dataGB, voiceMinutes, v, type, network, priority, budgetStrict) }}
-                    style={rf(smsCount, 0, 500)} />
-                </div>
               </div>
 
-              {/* Type + Network */}
+              {/* Filters — categorical / binary constraints */}
               <div style={{ display: 'flex', gap: '1.5rem', marginTop: '1.25rem', flexWrap: 'wrap' }}>
+                <div>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{t('recommend.operator')}</div>
+                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                    {[{ id: 'any', label: t('type.any') }, { id: 'djezzy', label: 'Djezzy' }, { id: 'ooredoo', label: 'Ooredoo' }, { id: 'mobilis', label: 'Mobilis' }].map(o => (
+                      <button key={o.id} onClick={() => { setOperator(o.id); onSliderChange() }}
+                        className={`filter-pill ${operator === o.id ? 'active' : ''}`} style={{ fontSize: 12 }}>
+                        {o.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
                 <div>
                   <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{t('recommend.preferredType')}</div>
                   <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                     {typeOptions.map(opt => (
-                      <button key={opt.id} onClick={() => { setType(opt.id); onSliderChange(budget, dataGB, voiceMinutes, smsCount, opt.id, network, priority, budgetStrict) }}
+                      <button key={opt.id} onClick={() => { setType(opt.id); onSliderChange(budget, dataGB, voiceMinutes, smsCount, opt.id, network) }}
                         className={`filter-pill ${type === opt.id ? 'active' : ''}`} style={{ fontSize: 12 }}>
                         {opt.label}
                       </button>
@@ -330,18 +290,55 @@ export default function RecommendPage() {
                   <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{t('recommend.reqNetwork')}</div>
                   <div style={{ display: 'flex', gap: 6 }}>
                     {[{ id: 'any', label: t('type.any') }, { id: '4G', label: '4G' }, { id: '5G', label: '5G' }].map(n => (
-                      <button key={n.id} onClick={() => { setNetwork(n.id); onSliderChange(budget, dataGB, voiceMinutes, smsCount, type, n.id, priority, budgetStrict) }}
+                      <button key={n.id} onClick={() => { setNetwork(n.id); onSliderChange(budget, dataGB, voiceMinutes, smsCount, type, n.id) }}
                         className={`filter-pill ${network === n.id ? 'active' : ''}`} style={{ fontSize: 12 }}>
                         {n.label}
                       </button>
                     ))}
                   </div>
                 </div>
+                <div>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em', display: 'flex', alignItems: 'center', gap: 5 }}>
+                    <Phone size={12} /> {t('recommend.priority.calls')}
+                  </div>
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    {[{ v: 0, label: t('common.noPreference') }, { v: -1, label: t('common.unlimited') }].map(o => (
+                      <button key={o.v} onClick={() => { setVoiceMinutes(o.v); onSliderChange(budget, dataGB, o.v, smsCount, type, network) }}
+                        className={`filter-pill ${voiceMinutes === o.v ? 'active' : ''}`} style={{ fontSize: 12 }}>
+                        {o.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em', display: 'flex', alignItems: 'center', gap: 5 }}>
+                    <MessageSquare size={12} /> {t('recommend.priority.sms')}
+                  </div>
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    {[{ v: 0, label: t('common.noPreference') }, { v: -1, label: t('common.unlimited') }].map(o => (
+                      <button key={o.v} onClick={() => { setSmsCount(o.v); onSliderChange(budget, dataGB, voiceMinutes, o.v, type, network) }}
+                        className={`filter-pill ${smsCount === o.v ? 'active' : ''}`} style={{ fontSize: 12 }}>
+                        {o.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
               </div>
+
+              <button onClick={runRecommendations} disabled={saving} className="btn-primary" style={{
+                width: '100%', marginTop: '1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                gap: 8, padding: '0.85rem', borderRadius: 'var(--radius-md)', fontSize: 14, fontWeight: 700,
+              }}>
+                {saving
+                  ? <Loader2 size={15} style={{ animation: 'spin 1s linear infinite' }} />
+                  : <Target size={15} />}
+                {t('recommend.getResults')}
+              </button>
 
             </div>
 
-            {/* ── Results ── */}
+            {/* ── Results ── (shown only after the user runs the recommendation) */}
+            {showResults && (
             <div>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
                 <h2 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -396,14 +393,12 @@ export default function RecommendPage() {
                               width: 42, height: 42, borderRadius: '50%',
                               background: RANK_GRADIENTS[i] ?? 'var(--bg-elevated)',
                               display: 'flex', alignItems: 'center', justifyContent: 'center',
-                              margin: '0 auto 6px',
+                              margin: '0 auto',
                               fontSize: 18,
                               boxShadow: `0 3px 10px ${RANK_COLORS[i] ?? '#818CF8'}50`,
                             }}>
                               {RANK_LABELS[i] ?? `#${i + 1}`}
                             </div>
-                            <div style={{ fontSize: '1.125rem', fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1 }}>{rec.score}%</div>
-                            <div style={{ fontSize: 10, fontWeight: 700, color: scoreColor(rec.score), textTransform: 'uppercase', letterSpacing: 0.5 }}>{matchLabel(rec.score, t)}</div>
                           </div>
 
                           {/* Offer info */}
@@ -427,11 +422,6 @@ export default function RecommendPage() {
                                   <Phone size={12} /> {formatMinutes(rec.offer?.voiceMinutes, t)}
                                 </span>
                               </div>
-                            </div>
-
-                            {/* Score bar */}
-                            <div className="progress-bar" style={{ marginBottom: '0.75rem' }}>
-                              <div className="progress-fill" style={{ width: `${rec.score}%`, background: RANK_GRADIENTS[i] ?? 'var(--accent)' }} />
                             </div>
 
                             {/* Match reasons */}
@@ -484,6 +474,7 @@ export default function RecommendPage() {
                 </Link>
               )}
             </div>
+            )}
 
           </div>
         )}

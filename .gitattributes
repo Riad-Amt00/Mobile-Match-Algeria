@@ -1,0 +1,10 @@
+# Treat scraper test fixtures as vendored data, not part of the project's code stats.
+# These are large raw HTML snapshots used by snapshot tests and should not dominate the GitHub language bar.
+src/lib/scraper/__tests__/fixtures/*.html linguist-vendored
+src/lib/scraper/__tests__/fixtures/*.html linguist-detectable=false
+
+# Treat scraped HTML samples at the project root the same way (if they ever appear again).
+*.html linguist-detectable=false
+
+# Mark the LaTeX thesis as documentation rather than source for stats — keeps the language bar focused on the app.
+memoire/** linguist-documentation

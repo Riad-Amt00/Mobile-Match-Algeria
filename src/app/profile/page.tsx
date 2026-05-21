@@ -19,10 +19,14 @@ export default function ProfilePage() {
   const [saved, setSaved] = useState(false)
   const [budget, setBudget] = useState(2000)
   const [dataGB, setDataGB] = useState(20)
-  const [voice, setVoice] = useState(100)
-  const [sms, setSms] = useState(50)
+  // Calls / SMS are binary in the catalogue (unlimited or none): 0 = "Any", -1 = "Unlimited"
+  const [voice, setVoice] = useState(0)
+  const [sms, setSms] = useState(0)
   const [type, setType] = useState('any')
   const [network, setNetwork] = useState('any')
+  const [operator, setOperator] = useState('any')
+  // Ranked priorities — index 0 = 1st (most weight), 1 = 2nd
+  const [priorities, setPriorities] = useState<string[]>(['', ''])
   const [profileLoaded, setProfileLoaded] = useState(false)
   const [notifications, setNotifications] = useState<any[]>([])
   const [notifLoading, setNotifLoading] = useState(true)
@@ -39,10 +43,17 @@ export default function ProfilePage() {
         if (d.profile) {
           if (d.profile.monthlyBudget)  setBudget(d.profile.monthlyBudget)
           if (d.profile.dataUsageGB)    setDataGB(d.profile.dataUsageGB)
-          if (d.profile.voiceMinutes != null) setVoice(d.profile.voiceMinutes)
-          if (d.profile.smsCount != null)     setSms(d.profile.smsCount)
-          if (d.profile.preferredType)  setType(d.profile.preferredType)
-          if (d.profile.preferredNet)   setNetwork(d.profile.preferredNet)
+          setVoice(d.profile.voiceMinutes === -1 ? -1 : 0)
+          setSms(d.profile.smsCount === -1 ? -1 : 0)
+          if (d.profile.preferredType)     setType(d.profile.preferredType)
+          if (d.profile.preferredNet)      setNetwork(d.profile.preferredNet)
+          if (d.profile.preferredOperator) setOperator(d.profile.preferredOperator)
+          if (d.profile.priorities) {
+            // Keep only currently-valid criteria (drops legacy 'calls'/'sms'/'network').
+            const saved = String(d.profile.priorities).split(',')
+              .filter(x => ['price', 'data'].includes(x))
+            setPriorities([saved[0] || '', saved[1] || ''])
+          }
         }
         setProfileLoaded(true)
       })
@@ -61,7 +72,7 @@ export default function ProfilePage() {
       const res = await fetch('/api/profile', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ monthlyBudget: budget, dataUsageGB: dataGB, voiceMinutes: voice, smsCount: sms, preferredType: type, preferredNet: network }),
+        body: JSON.stringify({ monthlyBudget: budget, dataUsageGB: dataGB, voiceMinutes: voice, smsCount: sms, preferredType: type, preferredNet: network, preferredOperator: operator, priorities }),
       })
       if (!res.ok) throw new Error('save failed')
       setSaved(true)
@@ -101,6 +112,25 @@ export default function ProfilePage() {
 
   const rf = (v: number, mn: number, mx: number) =>
     ({ width: '100%', '--fill': `${((v - mn) / (mx - mn) * 100).toFixed(1)}%` } as React.CSSProperties)
+
+  // The two continuous trade-off criteria the user can rank. Calls/SMS (binary) and
+  // Network/Type (categorical) are not rankable — Network and Type are hard filters.
+  const PRIORITY_OPTIONS = [
+    { id: 'price', label: t('recommend.priority.price') },
+    { id: 'data',  label: t('recommend.priority.data') },
+  ]
+
+  // Set the criterion at rank slot `idx`; clear it from any other slot (no dupes).
+  function setPriorityAt(idx: number, value: string) {
+    setPriorities(prev => {
+      const next = [...prev]
+      const previous = next[idx]
+      next[idx] = value
+      // Swap with whatever slot already holds this criterion — never lock the user in.
+      if (value) next.forEach((p, i) => { if (i !== idx && p === value) next[i] = previous })
+      return next
+    })
+  }
 
   const unreadCount = notifications.filter(n => !n.isRead).length
 
@@ -166,22 +196,50 @@ export default function ProfilePage() {
                 <input type="range" min={0} max={200} step={1} value={dataGB} onChange={e => setDataGB(+e.target.value)} style={rf(dataGB, 0, 200)} />
               </div>
 
-              {/* Voice */}
-              <div>
-                <label style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, fontWeight: 600, marginBottom: 8, color: 'var(--text-primary)' }}>
-                  <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Phone size={13} /> {t('profile.callMinutes')}</span>
-                  <span style={{ color: 'var(--accent)' }}>{voice >= 500 ? t('common.unlimited') : `${voice} ${t('common.min')}`}</span>
-                </label>
-                <input type="range" min={0} max={500} step={10} value={voice} onChange={e => setVoice(+e.target.value)} style={rf(voice, 0, 500)} />
+              {/* Ranked priorities — feeds the recommendation engine's graduated bonus */}
+              <div style={{ padding: '0.875rem 1rem', background: 'var(--bg-subtle)', borderRadius: 10, border: '1px solid var(--border-subtle)' }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
+                  <Target size={13} style={{ color: 'var(--accent)' }} /> {t('recommend.topPriority')}
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {[0, 1].map(idx => (
+                    <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <div style={{
+                        width: 24, height: 24, borderRadius: '50%', flexShrink: 0,
+                        background: idx === 0 ? 'var(--accent)' : 'var(--accent-muted)',
+                        color: idx === 0 ? '#fff' : 'var(--accent)',
+                        opacity: idx === 2 ? 0.65 : 1,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontSize: 12, fontWeight: 800,
+                      }}>{idx + 1}</div>
+                      <select
+                        value={priorities[idx] || ''}
+                        onChange={e => setPriorityAt(idx, e.target.value)}
+                        style={{
+                          flex: 1, padding: '7px 10px', borderRadius: 8,
+                          background: 'var(--bg-elevated)', border: '1px solid var(--border-base)',
+                          color: priorities[idx] ? 'var(--text-primary)' : 'var(--text-muted)',
+                          fontSize: 13, fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer',
+                        }}
+                      >
+                        <option value="">{t('recommend.priorityChoose')}</option>
+                        {PRIORITY_OPTIONS.map(o => (
+                          <option key={o.id} value={o.id}>{o.label}</option>
+                        ))}
+                      </select>
+                    </div>
+                  ))}
+                </div>
               </div>
 
-              {/* SMS */}
+              {/* Operator */}
               <div>
-                <label style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, fontWeight: 600, marginBottom: 8, color: 'var(--text-primary)' }}>
-                  <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><MessageSquare size={13} /> {t('profile.smsMonth')}</span>
-                  <span style={{ color: 'var(--accent)' }}>{sms >= 500 ? t('common.unlimited') : `${sms}`}</span>
-                </label>
-                <input type="range" min={0} max={500} step={10} value={sms} onChange={e => setSms(+e.target.value)} style={rf(sms, 0, 500)} />
+                <label style={{ fontSize: 13, fontWeight: 600, display: 'block', marginBottom: 8, color: 'var(--text-primary)' }}>{t('recommend.operator')}</label>
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                  {[{ id: 'any', label: t('type.any') }, { id: 'djezzy', label: 'Djezzy' }, { id: 'ooredoo', label: 'Ooredoo' }, { id: 'mobilis', label: 'Mobilis' }].map(o => (
+                    <button key={o.id} onClick={() => setOperator(o.id)} className={`filter-pill ${operator === o.id ? 'active' : ''}`} style={{ fontSize: 12 }}>{o.label}</button>
+                  ))}
+                </div>
               </div>
 
               {/* Plan type */}
@@ -200,6 +258,30 @@ export default function ProfilePage() {
                 <div style={{ display: 'flex', gap: 6 }}>
                   {[{ id: 'any', label: t('type.any') }, { id: '4G', label: '4G' }, { id: '5G', label: '5G' }].map(n => (
                     <button key={n.id} onClick={() => setNetwork(n.id)} className={`filter-pill ${network === n.id ? 'active' : ''}`} style={{ fontSize: 12 }}>{n.label}</button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Calls — binary: Any / Unlimited */}
+              <div>
+                <label style={{ fontSize: 13, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8, color: 'var(--text-primary)' }}>
+                  <Phone size={13} /> {t('recommend.priority.calls')}
+                </label>
+                <div style={{ display: 'flex', gap: 6 }}>
+                  {[{ v: 0, label: t('common.noPreference') }, { v: -1, label: t('common.unlimited') }].map(o => (
+                    <button key={o.v} onClick={() => setVoice(o.v)} className={`filter-pill ${voice === o.v ? 'active' : ''}`} style={{ fontSize: 12 }}>{o.label}</button>
+                  ))}
+                </div>
+              </div>
+
+              {/* SMS — binary: Any / Unlimited */}
+              <div>
+                <label style={{ fontSize: 13, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8, color: 'var(--text-primary)' }}>
+                  <MessageSquare size={13} /> {t('recommend.priority.sms')}
+                </label>
+                <div style={{ display: 'flex', gap: 6 }}>
+                  {[{ v: 0, label: t('common.noPreference') }, { v: -1, label: t('common.unlimited') }].map(o => (
+                    <button key={o.v} onClick={() => setSms(o.v)} className={`filter-pill ${sms === o.v ? 'active' : ''}`} style={{ fontSize: 12 }}>{o.label}</button>
                   ))}
                 </div>
               </div>

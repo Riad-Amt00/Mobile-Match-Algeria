@@ -8,7 +8,7 @@ import { AnimatePresence, motion, type Variants } from 'framer-motion'
 import {
   Smartphone, Bell, User, LogOut, Menu, X as XIcon, ChevronDown,
   Bookmark, Shield, Settings, BarChart3, Target, Check, Trash2,
-  Sun, Moon, LayoutGrid,
+  Sun, Moon, LayoutGrid, PiggyBank, HelpCircle,
 } from 'lucide-react'
 import { useLang } from '@/lib/lang-context'
 import type { Lang } from '@/lib/i18n'
@@ -118,8 +118,10 @@ export function Navbar() {
 
   function getNotifHref(n: any): string | null {
     if (n.offerId) return `/offers/${n.offerId}`
-    if (n.type === 'scrape_failed' || n.type === 'new_offer') return '/admin?tab=history'
+    // Admin-only operational notifications → scrape history
+    if (n.type === 'scrape_failed' || n.type === 'scrape_complete') return '/admin?tab=history'
     if (n.type === 'recommendation') return '/recommend'
+    if (n.type === 'new_offer' || n.type === 'price_drop') return '/offers'
     return null
   }
 
@@ -160,7 +162,9 @@ export function Navbar() {
     { href: '/offers', icon: <LayoutGrid size={14} />, label: t('nav.browse') },
     { href: '/recommend', icon: <Target size={14} />, label: t('nav.recommend') },
     { href: '/compare', icon: <BarChart3 size={14} />, label: t('nav.compare') },
+    { href: '/savings', icon: <PiggyBank size={14} />, label: t('nav.savings') },
     ...(isLoggedIn ? [{ href: '/saved', icon: <Bookmark size={14} />, label: t('nav.saved') }] : []),
+    { href: '/help', icon: <HelpCircle size={14} />, label: t('nav.help') },
   ]
 
   const isActive = (href: string) => pathname === href

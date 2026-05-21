@@ -10,6 +10,7 @@ import {
   Star, TrendingDown, Loader2, Signal, LayoutGrid,
   TrendingUp, AlertCircle, Map, ExternalLink,
 } from 'lucide-react'
+import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useToast } from '@/components/toast'
@@ -276,6 +277,41 @@ export default function OfferDetailPage() {
             </div>
           </div>
         </div>
+
+        {/* Price history */}
+        {(() => {
+          const hist = [...(offer.priceHistory ?? [])].reverse() // oldest → newest
+          if (hist.length === 0) return null
+          const chartData = hist.map((h: any) => ({
+            date: new Date(h.recordedAt).toLocaleDateString('fr-DZ', { day: '2-digit', month: 'short' }),
+            price: h.priceDA,
+          }))
+          return (
+            <div className="card" style={{ padding: '1.5rem', marginTop: '1.5rem' }}>
+              <h2 style={{ fontSize: '0.9375rem', fontWeight: 800, marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: 8, color: 'var(--text-primary)' }}>
+                <BarChart2 size={16} style={{ color: 'var(--accent)' }} /> {t('detail.priceHistory')}
+              </h2>
+              {hist.length < 2 ? (
+                <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>
+                  {t('detail.priceStable')} {chartData[0]?.date}.
+                </p>
+              ) : (
+                <ResponsiveContainer width="100%" height={220}>
+                  <LineChart data={chartData} margin={{ top: 8, right: 16, bottom: 4, left: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border-subtle)" />
+                    <XAxis dataKey="date" tick={{ fontSize: 11, fill: 'var(--text-muted)' }} />
+                    <YAxis tick={{ fontSize: 11, fill: 'var(--text-muted)' }} width={52} unit=" DA" />
+                    <Tooltip
+                      formatter={(v: any) => [`${Number(v).toLocaleString()} DA`, t('compare.price')]}
+                      contentStyle={{ fontSize: 12, borderRadius: 8, border: '1px solid var(--border-base)', background: 'var(--bg-elevated)' }}
+                    />
+                    <Line type="monotone" dataKey="price" stroke="var(--accent)" strokeWidth={2.5} dot={{ r: 3 }} activeDot={{ r: 5 }} />
+                  </LineChart>
+                </ResponsiveContainer>
+              )}
+            </div>
+          )
+        })()}
 
         {/* Included features */}
         {(() => {

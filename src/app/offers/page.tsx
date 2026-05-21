@@ -6,12 +6,29 @@ import Link from 'next/link'
 import { motion, type Variants } from 'framer-motion'
 import {
   Filter, ChevronDown, Zap, BarChart3, SearchX, LayoutGrid, Info, ChevronLeft, ChevronRight,
+  Search, X, HelpCircle,
 } from 'lucide-react'
 import { useSession } from 'next-auth/react'
 import { useToast } from '@/components/toast'
 import { OfferCard, type Offer } from '@/components/offer-card'
 import { formatDA, formatData } from '@/lib/utils'
 import { useLang } from '@/lib/lang-context'
+import { parseSearchTokens, type SearchToken } from '@/lib/search-tokens'
+
+// Human label for one parsed search token — used by the chip row under the input.
+function tokenLabel(tok: SearchToken, t: (k: any) => string): string {
+  switch (tok.kind) {
+    case 'data':      return `≈ ${tok.value} GB`
+    case 'price':     return `≈ ${tok.value} DA`
+    case 'sms':       return `${tok.value}+ SMS`
+    case 'minutes':   return `${tok.value}+ min`
+    case 'network':   return tok.value
+    case 'unlimited': return t('common.unlimited')
+    case 'operator':  return tok.value.charAt(0).toUpperCase() + tok.value.slice(1)
+    case 'type':      return t(tok.value === 'PREPAID' ? 'type.prepaid' : 'type.postpaid')
+    case 'text':      return `"${tok.value}"`
+  }
+}
 
 const gridVariants: Variants = {
   hidden: {},
@@ -47,6 +64,9 @@ export default function OffersPage() {
   const [totalOffers, setTotalOffers] = useState(0)
   const [totalPages, setTotalPages] = useState(1)
   const [lastVerified, setLastVerified] = useState<string | null>(null)
+  const [search, setSearch] = useState('')
+  const [debouncedSearch, setDebouncedSearch] = useState('')
+  const [helpOpen, setHelpOpen] = useState(false)
   const { t } = useLang()
   const { data: session, status } = useSession()
   const { success, error: toastError, warning, info } = useToast()
@@ -58,6 +78,12 @@ export default function OffersPage() {
       .then(d => { if (d.lastUpdated) setLastVerified(d.lastUpdated) })
       .catch(() => {})
   }, [])
+
+  // Debounce the search input — avoids a request on every keystroke
+  useEffect(() => {
+    const id = setTimeout(() => setDebouncedSearch(search), 350)
+    return () => clearTimeout(id)
+  }, [search])
 
   useEffect(() => {
     if (status === 'authenticated') {
@@ -80,6 +106,8 @@ export default function OffersPage() {
               smsCount: profile.smsCount ?? 0,
               type: profile.preferredType ?? 'any',
               network: profile.preferredNet ?? 'any',
+              operator: profile.preferredOperator ?? 'any',
+              priorities: profile.priorities ? String(profile.priorities).split(',').filter(Boolean) : [],
             }),
           }).then(r => r.json())
         })
@@ -143,6 +171,7 @@ export default function OffersPage() {
       if (maxPrice < 10000) params.set('maxPrice', String(maxPrice))
       if (minData > 0) params.set('minData', String(minData))
       if (activeNetwork !== 'all') params.set('network', activeNetwork)
+      if (debouncedSearch.trim()) params.set('search', debouncedSearch.trim())
       params.set('page', String(targetPage))
       const res = await fetch(`/api/offers?${params}`)
       const data = await res.json()
@@ -154,7 +183,7 @@ export default function OffersPage() {
     } finally {
       setLoading(false)
     }
-  }, [activeType, activeOperator, maxPrice, minData, activeNetwork])
+  }, [activeType, activeOperator, maxPrice, minData, activeNetwork, debouncedSearch])
 
   // Reset to page 1 whenever filters change (fetchOffers ref changes)
   useEffect(() => { setPage(1); fetchOffers(1) }, [fetchOffers])
@@ -183,6 +212,110 @@ export default function OffersPage() {
 
       {/* Main content */}
       <main style={{ padding: compareList.length > 0 ? '0 1.5rem 7rem' : '0 1.5rem 4rem', maxWidth: 1280, margin: '0 auto' }}>
+
+        {/* Guided search — example chips, input, parsed-token chips, help popover */}
+        <div style={{ marginBottom: '1.5rem' }}>
+          {/* Example chips: only shown when the input is empty, to seed the user */}
+          {!search && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10, flexWrap: 'wrap' }}>
+              <span style={{ fontSize: 13, color: 'var(--text-primary)', fontWeight: 700 }}>{t('search.tryLabel')}</span>
+              {[t('search.exampleData'), t('search.exampleUnlimited'), t('search.examplePostpaid'), t('search.exampleSocial')].map(ex => (
+                <button key={ex} type="button" onClick={() => setSearch(ex)} style={{
+                  padding: '4px 12px', borderRadius: 'var(--radius-full)',
+                  background: 'var(--bg-subtle)', border: '1px solid var(--border-base)',
+                  fontSize: 13, fontWeight: 500, color: 'var(--text-primary)', cursor: 'pointer', fontFamily: 'inherit',
+                }}>{ex}</button>
+              ))}
+            </div>
+          )}
+
+          {/* Input row — input + clearly visible Help button as a sibling */}
+          <div style={{ display: 'flex', gap: 8, alignItems: 'stretch' }}>
+            <div style={{ position: 'relative', flex: 1 }}>
+              <Search size={18} style={{ position: 'absolute', left: 16, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', pointerEvents: 'none' }} />
+              <input
+                type="search"
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                placeholder={t('offers.searchPlaceholder')}
+                style={{
+                  width: '100%',
+                  padding: search ? '0.75rem 2.75rem 0.75rem 2.75rem' : '0.75rem 2.75rem',
+                  fontSize: 14, fontFamily: 'inherit',
+                  background: 'var(--bg-elevated)', border: '1px solid var(--border-base)',
+                  borderRadius: 12, color: 'var(--text-primary)', outline: 'none',
+                }}
+              />
+              {search && (
+                <button type="button" onClick={() => setSearch('')} aria-label="Clear search" style={{
+                  position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)',
+                  background: 'var(--bg-subtle)', border: 'none', borderRadius: '50%',
+                  width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  cursor: 'pointer', color: 'var(--text-secondary)',
+                }}>
+                  <X size={14} />
+                </button>
+              )}
+            </div>
+            {/* Help toggle — pulled OUT of the input so it's clearly visible */}
+            <button type="button" onClick={() => setHelpOpen(o => !o)} aria-label={t('search.help')} style={{
+              padding: '0 16px', borderRadius: 12,
+              background: helpOpen ? 'var(--accent)' : 'var(--accent-muted)',
+              border: '1px solid var(--accent-border)',
+              color: helpOpen ? 'white' : 'var(--accent)',
+              cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6,
+              fontSize: 14, fontWeight: 700, fontFamily: 'inherit', flexShrink: 0,
+              transition: 'background 0.15s',
+            }}>
+              <HelpCircle size={18} /> <span>{t('search.helpButton')}</span>
+            </button>
+          </div>
+
+          {/* Parsed tokens: show the user how their query was interpreted */}
+          {(() => {
+            const tokens = parseSearchTokens(search)
+            if (tokens.length === 0) return null
+            return (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
+                <span style={{ fontSize: 13, color: 'var(--text-primary)', fontWeight: 700 }}>{t('search.parsedAs')}</span>
+                {tokens.map((tok, i) => (
+                  <span key={i} style={{
+                    padding: '3px 10px', borderRadius: 'var(--radius-full)',
+                    background: 'var(--accent-muted)', color: 'var(--accent)',
+                    border: '1px solid var(--accent-border)',
+                    fontSize: 12.5, fontWeight: 700,
+                  }}>
+                    {tokenLabel(tok, t)}
+                  </span>
+                ))}
+              </div>
+            )
+          })()}
+
+          {/* Help popover */}
+          {helpOpen && (
+            <div style={{
+              marginTop: 10, padding: '1rem 1.25rem', borderRadius: 10,
+              background: 'var(--bg-elevated)', border: '1px solid var(--border-base)',
+              fontSize: 14, color: 'var(--text-primary)', fontWeight: 500, lineHeight: 1.6,
+            }}>
+              <div style={{ fontWeight: 800, marginBottom: 10, color: 'var(--text-primary)', fontSize: 15 }}>{t('search.helpTitle')}</div>
+              <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '6px 16px' }}>
+                <li>{t('search.helpData')}</li>
+                <li>{t('search.helpPrice')}</li>
+                <li>{t('search.helpCalls')}</li>
+                <li>{t('search.helpSms')}</li>
+                <li>{t('search.helpNetwork')}</li>
+                <li>{t('search.helpOperator')}</li>
+                <li>{t('search.helpType')}</li>
+                <li>{t('search.helpUnlimited')}</li>
+              </ul>
+              <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid var(--border-subtle)', fontSize: 13, color: 'var(--text-secondary)', fontWeight: 500 }}>
+                {t('search.helpCombine')}
+              </div>
+            </div>
+          )}
+        </div>
 
         {/* Filter bar */}
         <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap' }}>

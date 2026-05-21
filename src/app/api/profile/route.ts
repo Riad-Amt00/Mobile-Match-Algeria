@@ -19,12 +19,22 @@ export async function PUT(req: NextRequest) {
 
   try {
     const body = await req.json()
-    const { monthlyBudget, dataUsageGB, voiceMinutes, smsCount, preferredType, preferredNet } = body
+    const { monthlyBudget, dataUsageGB, voiceMinutes, smsCount, preferredType, preferredNet, preferredOperator, priorities } = body
+
+    // Ranked priorities arrive as a string array; stored comma-separated.
+    const prioritiesStr = Array.isArray(priorities)
+      ? priorities.filter(Boolean).slice(0, 3).join(',')
+      : typeof priorities === 'string'
+        ? priorities
+        : undefined
+
+    const data = { monthlyBudget, dataUsageGB, voiceMinutes, smsCount, preferredType, preferredNet, preferredOperator,
+      ...(prioritiesStr !== undefined ? { priorities: prioritiesStr } : {}) }
 
     const profile = await db.userProfile.upsert({
       where: { userId: session.user.id },
-      update: { monthlyBudget, dataUsageGB, voiceMinutes, smsCount, preferredType, preferredNet },
-      create: { userId: session.user.id, monthlyBudget, dataUsageGB, voiceMinutes, smsCount, preferredType, preferredNet },
+      update: data,
+      create: { userId: session.user.id, ...data },
     })
 
     return NextResponse.json({ profile })

@@ -8,13 +8,23 @@ Building on the state of the art surveyed in Chapter~1, this chapter formalises 
 
 \section{Requirements Gathering}
 
-\subsection{Methodology}
+\subsection{Methodology — Secondary Documentary Research}
 
-Requirements were elicited through two complementary methods. First, the three operator websites (Mobilis, Djezzy, Ooredoo) were systematically examined to identify the information currently available to consumers and the limitations of each operator's self-presentation. Second, the international comparison platforms reviewed in Chapter~1 were analysed to extract implicit requirements from observed best practices and identified gaps. This dual approach grounded the requirement set in both the specific constraints of the Algerian market and the established conventions of the broader plan-comparison domain.
+The needs-analysis phase of this project follows a documentary-research methodology grounded in the official publications of the Algerian telecommunications sector, supplemented by one regional report. Three country-specific sources form the primary foundation:
+
+\begin{itemize}
+  \item The \textbf{ARPCE annual report and quarterly observatories on the Algerian telecommunications market} (the national regulator) provide the most current subscriber counts (more than 54~million mobile subscribers in Q1 2025), the market shares of the three operators, average revenue per user, and the breakdown of prepaid and postpaid subscriptions \parencite{ARPCE2025, ARPCE2024}.
+  \item The \textbf{DataReportal \textit{Digital 2025: Algeria}} country survey provides the average monthly mobile-data consumption per user, the time spent on mobile services, and the internet-penetration figures specific to Algeria \parencite{DataReportal2025}.
+  \item The \textbf{Mordor Intelligence Algeria Telecom Market} sectoral analysis covers the 2025--2030 outlook for the Algerian market, with growth projections and competitive dynamics \parencite{Mordor2025}.
+\end{itemize}
+
+These three country-specific reports are complemented by the \textbf{GSMA Intelligence \textit{Mobile Economy MENA}} report \parencite{GSMA2024}, used here as a regional reference for the 4G and 5G penetration rates and the smartphone-adoption trend, with Algeria appearing as one country within the MENA aggregate. GSMA is deliberately positioned as a supplement rather than a primary source because its analysis is regional rather than national, and the country-specific reports above are the load-bearing references for the needs-analysis claims.
+
+These secondary indicators substitute for a primary user survey within the project timeline and provide a defensible, citable empirical foundation for the requirement set. A complementary structural analysis of the three operator websites (Mobilis, Djezzy, Ooredoo) and of the international comparison platforms reviewed in Chapter~1 was conducted to identify the information currently exposed to consumers and the user-interface conventions established by the comparison-platform domain. A formal usability study with end users is acknowledged as a limitation of this work and is proposed in the Perspectives chapter.
 
 \subsection{Functional Requirements}
 
-Table~\ref{tab:fr} lists the nine functional requirements elicited, ordered by priority.
+Table~\ref{tab:fr} lists the twelve functional requirements elicited, ordered by priority.
 
 \begin{table}[H]
   \caption{Functional requirements}
@@ -28,19 +38,25 @@ Table~\ref{tab:fr} lists the nine functional requirements elicited, ordered by p
     \hline
     FR2 & Filter the plan catalogue by operator, plan type (prepaid, postpaid, data-only), maximum price, minimum data volume, and network generation. & All users \\
     \hline
-    FR3 & Select up to three plans and view them in a side-by-side comparison table with best-value highlighting per attribute row. & All users \\
+    FR3 & Search the plan catalogue through a structured free-text query (operator name, data volume, price range, keyword features such as ``unlimited'' or ``streaming''), with the parsed query tokens visualised to the user. & All users \\
     \hline
-    FR4 & Define a usage profile (budget, data, voice, SMS, preferred type, preferred network) and receive a ranked list of the three best-matching plans produced by the scoring engine. & Registered User \\
+    FR4 & Select up to three plans and view them in a side-by-side comparison table together with per-metric bar charts for price and data volume. & All users \\
     \hline
-    FR5 & Bookmark any plan from the offers page, access all bookmarked plans from a dedicated saved-plans page, and remove individual bookmarks. & Registered User \\
+    FR5 & Define a usage profile (budget, data, voice, SMS, preferred type, preferred network, preferred operator, ranked priorities) and receive a ranked list of the three best-matching plans produced by the recommendation engine. & Registered User \\
     \hline
-    FR6 & Receive in-app notifications when new plans are added to the catalogue; mark individual or all notifications as read; delete individual notifications. & Registered User \\
+    FR6 & Compute and display the monthly, annual and percentage savings obtained by switching from the user's current monthly bill to the best-matching plan in the catalogue. & All users \\
     \hline
-    FR7 & Automatically scrape offer data from the three operator websites on a daily schedule and update the database with new, changed, and deactivated plans. & System \\
+    FR7 & Bookmark any plan from the offers page, access all bookmarked plans from a dedicated saved-plans page, and remove individual bookmarks. & Registered User \\
     \hline
-    FR8 & Trigger manual scrape runs, view detailed per-operator scrape logs, monitor platform statistics, and manage system notifications from the admin dashboard. & Administrator \\
+    FR8 & Receive in-app notifications when new plans are added to the catalogue, when the user's recommended plan changes, or when the price of a saved plan drops. Notifications can be marked as read individually or all at once and deleted individually. & Registered User \\
     \hline
-    FR9 & Register a new account, log in with email and password, and log out. Passwords must be stored using a one-way hashing algorithm. & All users \\
+    FR9 & Provide a guided help page that documents each of the five core features (search, recommendations, comparison, filters, saved plans) with step-by-step instructions and annotated screenshots. & All users \\
+    \hline
+    FR10 & Automatically scrape offer data from the three operator websites on a scheduled basis and update the database with newly added, modified, and deactivated plans. & System \\
+    \hline
+    FR11 & Trigger manual scrape runs, view detailed per-operator scrape logs, monitor platform statistics, and manage system notifications from the admin dashboard. & Administrator \\
+    \hline
+    FR12 & Register a new account, log in with email and password, and log out. Passwords must be stored using a one-way hashing algorithm. & All users \\
     \hline
   \end{tabular}
 \end{table}
@@ -69,6 +85,83 @@ Table~\ref{tab:nfr} lists the five non-functional requirements that constrain th
     \hline
   \end{tabular}
 \end{table}
+
+\subsection{Project Planning and Schedule}
+
+The project was carried out over six months in accordance with the timeline defined in the subject fiche. Figure~\ref{fig:gantt} synthesises the main phases and their temporal distribution as a Gantt chart. Three categories of activity are distinguished by colour: the analysis-and-design activities (orange), the development activities (blue), and the verification, documentation, and finalisation activities (green). Several activities overlap in time, reflecting the iterative nature of the development cycle adopted: the thesis writing in particular was conducted in parallel with the implementation work to keep the written description aligned with the running system.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+  x=1.6cm, y=0.55cm,
+  taskA/.style={rectangle, fill=orange!35, draw=orange!75, thick, minimum height=0.4cm},
+  taskD/.style={rectangle, fill=blue!25, draw=blue!70, thick, minimum height=0.4cm},
+  taskV/.style={rectangle, fill=green!30, draw=green!70!black, thick, minimum height=0.4cm},
+  axis/.style={thick, black!70},
+  monthlabel/.style={font=\small\bfseries, anchor=south, text=black!80},
+  tasklabel/.style={font=\small, anchor=east, text=black!80}
+]
+  % Month header
+  \foreach \m/\name in {1/Month\ 1, 2/Month\ 2, 3/Month\ 3, 4/Month\ 4, 5/Month\ 5, 6/Month\ 6} {
+    \node[monthlabel] at (\m-0.5, 0.4) {\name};
+  }
+  % Vertical month gridlines
+  \foreach \m in {0,1,2,3,4,5,6} {
+    \draw[gray!30, dashed] (\m, 0.4) -- (\m, -11);
+  }
+  % Top and bottom axis
+  \draw[axis] (0, 0.2) -- (6, 0.2);
+  \draw[axis] (0, -10.6) -- (6, -10.6);
+
+  % ── ANALYSIS & DESIGN (orange) ────────────────────────────────────────
+  % A1: Documentary needs analysis (M1)
+  \node[tasklabel] at (-0.05, -1) {A1. Documentary needs analysis};
+  \node[taskA, minimum width=1.6cm, anchor=west] at (0, -1) {};
+  % A2: System design (UML, architecture, UI/UX) (M1-M2)
+  \node[tasklabel] at (-0.05, -2) {A2. System design (UML, UI/UX)};
+  \node[taskA, minimum width=3.2cm, anchor=west] at (0, -2) {};
+
+  % ── DEVELOPMENT (blue) ────────────────────────────────────────────────
+  % D1: Backend + database (M2-M3)
+  \node[tasklabel] at (-0.05, -3) {D1. Backend \& database (Prisma)};
+  \node[taskD, minimum width=3.2cm, anchor=west] at (1.0, -3) {};
+  % D2: Scraping module (M3)
+  \node[tasklabel] at (-0.05, -4) {D2. Scraping module (Playwright)};
+  \node[taskD, minimum width=1.6cm, anchor=west] at (2.0, -4) {};
+  % D3: Frontend & i18n (M3-M5)
+  \node[tasklabel] at (-0.05, -5) {D3. Frontend pages \& i18n};
+  \node[taskD, minimum width=4.8cm, anchor=west] at (2.0, -5) {};
+  % D4: Recommendation engine (M4-M5)
+  \node[tasklabel] at (-0.05, -6) {D4. Recommendation engine};
+  \node[taskD, minimum width=3.2cm, anchor=west] at (3.0, -6) {};
+  % D5: Notifications + savings + help (M5)
+  \node[tasklabel] at (-0.05, -7) {D5. Notifications, savings, help};
+  \node[taskD, minimum width=1.6cm, anchor=west] at (4.0, -7) {};
+
+  % ── VERIFICATION (green) ──────────────────────────────────────────────
+  % V1: Unit tests + load tests (M5-M6)
+  \node[tasklabel] at (-0.05, -8) {V1. Unit tests \& load tests};
+  \node[taskV, minimum width=3.2cm, anchor=west] at (4.0, -8) {};
+  % V2: Thesis writing (M3-M6)
+  \node[tasklabel] at (-0.05, -9) {V2. Thesis writing};
+  \node[taskV, minimum width=6.4cm, anchor=west] at (2.0, -9) {\scriptsize iterative};
+  % V3: Documentation \& finalisation (M6)
+  \node[tasklabel] at (-0.05, -10) {V3. Documentation \& finalisation};
+  \node[taskV, minimum width=1.6cm, anchor=west] at (5.0, -10) {};
+
+  % ── Legend (below the chart) ──────────────────────────────────────────
+  \node[taskA, minimum width=0.45cm] at (0.4, -11.6) {};
+  \node[font=\scriptsize, anchor=west] at (0.7, -11.6) {Analysis \& design};
+  \node[taskD, minimum width=0.45cm] at (2.4, -11.6) {};
+  \node[font=\scriptsize, anchor=west] at (2.7, -11.6) {Development};
+  \node[taskV, minimum width=0.45cm] at (4.2, -11.6) {};
+  \node[font=\scriptsize, anchor=west] at (4.5, -11.6) {Verification \& writing};
+\end{tikzpicture}
+\caption{Gantt chart of the six-month project schedule}
+\label{fig:gantt}
+\end{figure}
+
+The analysis-and-design phase concentrated on the first two months and produced the documentary needs analysis (Section~2.1.1), the functional and non-functional requirements (Section~2.1.2), the UML use-case and class models (Sections~2.3 and~2.5), the three-tier architecture (Section~2.6), and the UI/UX design principles (Section~2.7). The development phase ran from Month~2 to Month~5 and produced the back-end, the scraping module, the front-end pages, the recommendation engine, and the savings, notifications, and help features. The verification phase opened in Month~5 with the unit-test suite and the load-test campaign, and Month~6 was dedicated to documentation, polishing, and the finalisation of the present mémoire. Thesis writing was conducted iteratively from Month~3 onwards in parallel with the implementation, in line with the IFAG charte's recommendation that the mémoire and the manuals be drafted progressively as the project advances.
 
 \section{System Actors}
 
@@ -100,48 +193,54 @@ The main use cases of the system are organised around three actors. Figure~\ref{
 \begin{tikzpicture}[
   actor/.style={rectangle, draw=black!60, fill=gray!10, rounded corners=3pt,
                 minimum width=2.4cm, minimum height=0.65cm, align=center, font=\small\bfseries},
-  uc/.style={ellipse, draw=black!70, fill=blue!6, minimum width=4.0cm, minimum height=0.75cm,
+  uc/.style={ellipse, draw=black!70, fill=blue!6, minimum width=4.4cm, minimum height=0.72cm,
              align=center, font=\small},
-  ucadm/.style={ellipse, draw=black!70, fill=orange!10, minimum width=4.0cm, minimum height=0.75cm,
+  ucadm/.style={ellipse, draw=black!70, fill=orange!10, minimum width=4.4cm, minimum height=0.72cm,
                 align=center, font=\small},
   sys/.style={rectangle, draw=black!50, dashed, rounded corners=5pt, inner sep=10pt},
   assoc/.style={thick, black!55},
   gen/.style={thick, black!70, -{Triangle[open, length=6pt, width=6pt]}}
 ]
   % System boundary (all actors on the LEFT, use cases on the RIGHT)
-  \node[sys, minimum width=9cm, minimum height=10.2cm] (sys) at (6.5,-4.5) {};
+  \node[sys, minimum width=9.4cm, minimum height=13.6cm] (sys) at (6.7,-6.4) {};
   \node[font=\small\bfseries, anchor=north west] at (sys.north west) {\textit{Mobile Match Algeria}};
 
-  % Use cases
-  \node[uc]    (uc1) at (6.5,-0.8) {Browse \& Filter Offers};
-  \node[uc]    (uc2) at (6.5,-2.1) {Compare Plans (side-by-side)};
-  \node[uc]    (uc3) at (6.5,-3.4) {Get Recommendations};
-  \node[uc]    (uc4) at (6.5,-4.7) {Save \& Manage Plans};
-  \node[uc]    (uc5) at (6.5,-6.0) {Edit Usage Profile};
-  \node[ucadm] (uc6) at (6.5,-7.4) {Trigger Scrape Run};
-  \node[ucadm] (uc7) at (6.5,-8.6) {View Scrape Logs \& History};
+  % Use cases (10 total — visitor-level on top, registered in middle, admin at bottom)
+  \node[uc]    (uc1) at (6.7,-0.8)  {Browse \& Filter Offers};
+  \node[uc]    (uc2) at (6.7,-2.0)  {Advanced Search};
+  \node[uc]    (uc3) at (6.7,-3.2)  {Compare Plans (table + charts)};
+  \node[uc]    (uc4) at (6.7,-4.4)  {Use Savings Calculator};
+  \node[uc]    (uc5) at (6.7,-5.6)  {View Help / Tutorial};
+  \node[uc]    (uc6) at (6.7,-6.8)  {Get Recommendations};
+  \node[uc]    (uc7) at (6.7,-8.0)  {Save \& Manage Plans};
+  \node[uc]    (uc8) at (6.7,-9.2)  {Edit Usage Profile};
+  \node[ucadm] (uc9) at (6.7,-10.6) {Trigger Scrape Run};
+  \node[ucadm] (uc10) at (6.7,-11.9) {View Scrape Logs \& Statistics};
 
   % Actors — all on the LEFT in a vertical column
-  \node[actor] (visitor) at (0.2,-1.45) {Visitor};
-  \node[actor] (user)    at (0.2,-4.7)  {Registered\\User};
-  \node[actor] (admin)   at (0.2,-8.0)  {Administrator};
+  \node[actor] (visitor) at (0.2,-2.6)  {Visitor};
+  \node[actor] (user)    at (0.2,-7.4)  {Registered\\User};
+  \node[actor] (admin)   at (0.2,-11.3) {Administrator};
 
   % Generalisation arrows (open triangle = is-a; no label)
   \draw[gen] (user.north)  -- (visitor.south);
   \draw[gen] (admin.north) -- (user.south);
 
-  % Visitor associations
+  % Visitor associations (visitor-level use cases — UC1..UC5)
   \draw[assoc] (visitor.east) -- (uc1.west);
   \draw[assoc] (visitor.east) -- (uc2.west);
+  \draw[assoc] (visitor.east) -- (uc3.west);
+  \draw[assoc] (visitor.east) -- (uc4.west);
+  \draw[assoc] (visitor.east) -- (uc5.west);
 
-  % Registered User associations
-  \draw[assoc] (user.east) -- (uc3.west);
-  \draw[assoc] (user.east) -- (uc4.west);
-  \draw[assoc] (user.east) -- (uc5.west);
+  % Registered User associations (UC6..UC8)
+  \draw[assoc] (user.east) -- (uc6.west);
+  \draw[assoc] (user.east) -- (uc7.west);
+  \draw[assoc] (user.east) -- (uc8.west);
 
-  % Administrator associations
-  \draw[assoc] (admin.east) -- (uc6.west);
-  \draw[assoc] (admin.east) -- (uc7.west);
+  % Administrator associations (UC9..UC10)
+  \draw[assoc] (admin.east) -- (uc9.west);
+  \draw[assoc] (admin.east) -- (uc10.west);
 \end{tikzpicture}
 \caption{Top-level use case diagram for Mobile Match Algeria}
 \label{fig:usecase-main}
@@ -157,19 +256,25 @@ Table~\ref{tab:usecases} describes each primary use case, the actor who triggers
     \hline
     \textbf{ID} & \textbf{Use Case} & \textbf{Actor(s)} & \textbf{Description} \\
     \hline
-    UC1 & Browse \& Filter Offers    & All users         & Access the offers page and apply any combination of filters (operator, type, price, data, network); the system retrieves matching plans and renders them as interactive cards. \\
+    UC1 & Browse \& Filter Offers     & All users         & Access the offers page and apply any combination of filters (operator, plan type, price, data, network); the system retrieves matching plans and renders them as interactive cards. \\
     \hline
-    UC2 & Compare Plans              & All users         & Select up to three plans and view them in a side-by-side table with best-value highlighting per attribute row. Requires at least two plans selected. \\
+    UC2 & Advanced Search             & All users         & Enter a free-text query describing the desired plan; the system parses the query into structured tokens (operator, data volume, price range, feature keywords) and filters the catalogue accordingly. The parsed tokens are displayed as chips so the user sees how the query was interpreted. \\
     \hline
-    UC3 & Get Recommendations        & Registered User   & Submit a usage profile and receive a ranked list of the three best-matching plans produced by the scoring engine, with a score breakdown for each result. \\
+    UC3 & Compare Plans               & All users         & Select up to three plans and view them in a side-by-side table together with per-metric bar charts for price and data volume. Requires at least two plans selected. \\
     \hline
-    UC4 & Save \& Manage Plans       & Registered User   & Bookmark any plan from the offers page, access all saved plans from a dedicated page, compare them, or remove individual bookmarks. \\
+    UC4 & Use Savings Calculator      & All users         & Enter the user's current monthly bill and usage needs; the system identifies the best-matching plan and computes the monthly, annual, and percentage savings obtained by switching. \\
     \hline
-    UC5 & Edit Usage Profile         & Registered User   & Update usage preferences (budget, data volume, voice minutes, SMS allowance, plan type, network) from the profile page. The updated profile is applied the next time UC3 is invoked. \\
+    UC5 & View Help / Tutorial        & All users         & Open a guided tutorial page describing the five core features with step-by-step instructions and annotated screenshots. \\
     \hline
-    UC6 & Trigger Scrape Run         & Administrator     & Initiate a scrape run for one or all operators from the admin dashboard; the system updates the catalogue, creates notifications for new offers, and records a ScrapeLog entry. \\
+    UC6 & Get Recommendations         & Registered User   & Submit a usage profile and receive a ranked list of the three best-matching plans produced by the tiered-ranking recommendation engine, with the match reasons displayed alongside each result. \\
     \hline
-    UC7 & View Scrape Logs \& History & Administrator    & Consult the full scrape history log, inspect per-operator event lines (offers found, inserted, updated, errors), and assess pipeline health to detect failures and evaluate catalogue freshness. \\
+    UC7 & Save \& Manage Plans        & Registered User   & Bookmark any plan from the offers page, access all saved plans from a dedicated page, compare them, or remove individual bookmarks. \\
+    \hline
+    UC8 & Edit Usage Profile          & Registered User   & Update usage preferences (budget, data, voice, SMS, plan type, network, operator, and ranked priorities) from the profile page. The updated profile is applied the next time UC6 is invoked. \\
+    \hline
+    UC9 & Trigger Scrape Run          & Administrator     & Initiate a scrape run for one or all operators from the admin dashboard; the system updates the catalogue, creates notifications for new offers, and records a ScrapeLog entry. \\
+    \hline
+    UC10 & View Scrape Logs \& Statistics & Administrator & Consult the full scrape history log, inspect per-operator event lines (offers found, inserted, updated, errors), and monitor platform statistics (registered users, active offers, scrape success rate). \\
     \hline
   \end{tabular}
 \end{table}
@@ -282,47 +387,51 @@ The client sends a POST request to \texttt{/api/recommendations} with the user's
 
 \subsection{Conceptual Schema}
 
-{\sloppy The data model comprises seven application-defined entities: \texttt{Operator}, \texttt{Offer}, \texttt{User}, \texttt{UserProfile}, \texttt{SavedOffer}, \texttt{Notification}, and \texttt{ScrapeLog}. Authentication infrastructure models managed by NextAuth.js (\texttt{Account}, \texttt{Session}) are excluded from the application diagram. Figure~\ref{fig:erd} presents the entity-relationship diagram.\par}
+{\sloppy The data model comprises eight application-defined entities: \texttt{Operator}, \texttt{Offer}, \texttt{PriceHistory}, \texttt{User}, \texttt{UserProfile}, \texttt{SavedOffer}, \texttt{Notification}, and \texttt{ScrapeLog}. Authentication-infrastructure models managed by NextAuth.js (\texttt{Account}, \texttt{Session}, \texttt{VerificationToken}) and the system-level rate-limit table are excluded from the application diagram. Figure~\ref{fig:erd} presents the entity-relationship diagram.\par}
 
 \begin{figure}[H]
 \centering
 \begin{tikzpicture}[
   entity/.style={rectangle, draw=black!80, fill=blue!8, rounded corners=3pt,
-                 minimum width=2.6cm, minimum height=0.65cm, align=center, font=\small\bfseries},
+                 minimum width=2.3cm, minimum height=0.65cm, align=center, font=\small\bfseries},
   assoc/.style={rectangle, draw=black!70, fill=orange!10, rounded corners=3pt,
-                minimum width=2.6cm, minimum height=0.65cm, align=center, font=\small},
+                minimum width=2.3cm, minimum height=0.65cm, align=center, font=\small},
   line/.style={thick, black!70}
 ]
-  % ── Row 1: Strong entities ─────────────────────────────────────────────
-  \node[entity] (operator)  at ( 0,   0) {Operator};
-  \node[entity] (offer)     at ( 4.0, 0) {Offer};
-  \node[entity] (user)      at ( 8.0, 0) {User};
+  % ── Row 1: Strong entities (spread evenly to align with the bottom row) ──
+  \node[entity] (operator) at ( 0,   0) {Operator};
+  \node[entity] (offer)    at ( 6,   0) {Offer};
+  \node[entity] (user)     at (12,   0) {User};
 
-  % ── Row 2: Dependent entities ──────────────────────────────────────────
-  \node[assoc]  (scrapelog) at ( 0,  -3) {ScrapeLog};
-  \node[assoc]  (saved)     at ( 4.0,-3) {SavedOffer};
-  \node[assoc]  (profile)   at ( 8.0,-3) {UserProfile};
-  \node[assoc]  (notif)     at (12.0,-3) {Notification};
+  % ── Row 2: Dependent entities (5 columns at x = 0, 3, 6, 9, 12) ────────
+  \node[assoc] (scrapelog) at ( 0,  -3) {ScrapeLog};
+  \node[assoc] (history)   at ( 3,  -3) {PriceHistory};
+  \node[assoc] (saved)     at ( 6,  -3) {SavedOffer};
+  \node[assoc] (profile)   at ( 9,  -3) {UserProfile};
+  \node[assoc] (notif)     at (12,  -3) {Notification};
 
   % ── Relationships ──────────────────────────────────────────────────────
   % Operator → Offer  (1 : N)
-  \draw[line] (operator) -- node[above, font=\scriptsize, pos=0.15]{1}
-                             node[above, font=\scriptsize, pos=0.85]{N} (offer);
-  % Operator → ScrapeLog  (1 : N)
-  \draw[line] (operator) -- node[left, font=\scriptsize, pos=0.15]{1}
-                             node[left, font=\scriptsize, pos=0.85]{N} (scrapelog);
-  % Offer → SavedOffer  (1 : N)
-  \draw[line] (offer)    -- node[right, font=\scriptsize, pos=0.15]{1}
-                             node[right, font=\scriptsize, pos=0.85]{N} (saved);
-  % User → SavedOffer  (1 : N, diagonal)
-  \draw[line] (user)     -- node[above, sloped, font=\scriptsize, pos=0.15]{1}
-                             node[above, sloped, font=\scriptsize, pos=0.85]{N} (saved);
-  % User → UserProfile  (1 : 1)
-  \draw[line] (user)     -- node[left, font=\scriptsize, pos=0.15]{1}
-                             node[left, font=\scriptsize, pos=0.85]{1} (profile);
-  % User → Notification  (1 : N, diagonal)
-  \draw[line] (user)     -- node[above, sloped, font=\scriptsize, pos=0.15]{1}
-                             node[above, sloped, font=\scriptsize, pos=0.85]{N} (notif);
+  \draw[line] (operator) -- node[above, font=\scriptsize, pos=0.10]{1}
+                             node[above, font=\scriptsize, pos=0.90]{N} (offer);
+  % Operator → ScrapeLog  (1 : N, vertical)
+  \draw[line] (operator.south) -- node[right, font=\scriptsize, pos=0.15]{1}
+                                   node[right, font=\scriptsize, pos=0.85]{N} (scrapelog.north);
+  % Offer → PriceHistory  (1 : N, diagonal to the left)
+  \draw[line] (offer.south west) -- node[above, sloped, font=\scriptsize, pos=0.15]{1}
+                                     node[above, sloped, font=\scriptsize, pos=0.85]{N} (history.north east);
+  % Offer → SavedOffer  (1 : N, vertical)
+  \draw[line] (offer.south) -- node[right, font=\scriptsize, pos=0.15]{1}
+                                node[right, font=\scriptsize, pos=0.85]{N} (saved.north);
+  % User → SavedOffer  (1 : N, diagonal to the left)
+  \draw[line] (user.south west) -- node[above, sloped, font=\scriptsize, pos=0.15]{1}
+                                    node[above, sloped, font=\scriptsize, pos=0.85]{N} (saved.north east);
+  % User → UserProfile  (1 : 1, diagonal to the left)
+  \draw[line] (user.south) -- node[right, font=\scriptsize, pos=0.15]{1}
+                               node[right, font=\scriptsize, pos=0.85]{1} (profile.north east);
+  % User → Notification  (1 : N, vertical)
+  \draw[line] (user) -- node[right, font=\scriptsize, pos=0.15]{1}
+                         node[right, font=\scriptsize, pos=0.85]{N} (notif);
 \end{tikzpicture}
 \caption{Entity-relationship diagram of the Mobile Match Algeria data model}
 \label{fig:erd}
@@ -340,22 +449,26 @@ The Prisma schema defines the relational structure. Table~\ref{tab:entities} sum
     \hline
     \textbf{Entity}  & \textbf{Key attributes} & \textbf{Relationships} \\
     \hline
-    Operator    & id, name, slug, logoUrl, primaryColor, websiteUrl & 1:N Offer; 1:N ScrapeLog \\
+    Operator     & id, name, slug, logoUrl, primaryColor, websiteUrl & 1:N Offer; 1:N ScrapeLog \\
     \hline
-    Offer       & id, name, slug, type, priceDA, dataGB, voiceMinutes, smsCount, validityDays, network, isActive & N:1 Operator; N:M User (via SavedOffer) \\
+    Offer        & id, name, slug, type, priceDA, dataGB, voiceMinutes, smsCount, validityDays, network, features, isActive, sourceUrl, scrapedAt & N:1 Operator; 1:N PriceHistory; N:M User (via SavedOffer) \\
     \hline
-    User        & id, name, email, passwordHash, role & 1:1 UserProfile; 1:N SavedOffer; 1:N Notification \\
+    PriceHistory & id, offerId, priceDA, recordedAt & N:1 Offer \\
     \hline
-    UserProfile & id, monthlyBudget, dataUsageGB, voiceMinutes, smsCount, preferredType, preferredNet & 1:1 User \\
+    User         & id, name, email, emailVerified, passwordHash, role & 1:1 UserProfile; 1:N SavedOffer; 1:N Notification \\
     \hline
-    SavedOffer  & id, savedAt & N:1 User; N:1 Offer \\
+    UserProfile  & id, userId, monthlyBudget, dataUsageGB, voiceMinutes, smsCount, preferredType, preferredNet, preferredOperator, priorities & 1:1 User \\
     \hline
-    Notification & id, title, message, isRead, createdAt & N:1 User \\
+    SavedOffer   & id, userId, offerId, savedAt & N:1 User; N:1 Offer \\
     \hline
-    ScrapeLog   & id, operatorId, status, offersFound, offersAdded, offersUpdated, errorMessage, duration & N:1 Operator \\
+    Notification & id, userId, title, message, type, isRead, offerId, createdAt & N:1 User \\
+    \hline
+    ScrapeLog    & id, operatorId, status, offersFound, offersAdded, offersUpdated, offersDeactivated, errorMessage, details, duration, startedAt, completedAt & N:1 Operator \\
     \hline
   \end{tabular}
 \end{table}
+
+With the data model now defined, the next question is how the application code is organised around it. The eight entities of Table~\ref{tab:entities} naturally cluster into three groups: the catalogue layer (\texttt{Operator}, \texttt{Offer}, \texttt{PriceHistory}, \texttt{ScrapeLog}), the user layer (\texttt{User}, \texttt{UserProfile}, \texttt{SavedOffer}, \texttt{Notification}), and the relations that bridge them. The next section describes the three-tier architecture that exposes these entities to the application's presentation, business-logic, and data-access layers.
 
 \section{System Architecture}
 
@@ -380,23 +493,23 @@ Figure~\ref{fig:arch-overview} illustrates the high-level component architecture
   % ── Tier 1 — Presentation ──────────────────────────────────────────
   \node[tierbox,  fill=blue!6]   (box1) at (7.0, 4.0) {};
   \node[tierlabel, fill=blue!18, anchor=west]  at ([xshift=2mm]box1.west) {Presentation\\Tier};
-  \node[comp, fill=blue!14] at (5.0, 4.0) {Offers Page};
-  \node[comp, fill=blue!14] at (8.5, 4.0) {Compare Page};
-  \node[comp, fill=blue!14] at (12.0, 4.0) {Admin Dashboard};
+  \node[comp, fill=blue!14] at (5.0, 4.0) {Offers / Search};
+  \node[comp, fill=blue!14] at (8.5, 4.0) {Compare / Savings};
+  \node[comp, fill=blue!14] at (12.0, 4.0) {Recommend / Admin};
 
   % ── Tier 2 — Logic / API ───────────────────────────────────────────
   \node[tierbox,  fill=green!5]  (box2) at (7.0, 2.0) {};
   \node[tierlabel, fill=green!18, anchor=west] at ([xshift=2mm]box2.west) {Logic Tier\\(API)};
-  \node[comp, fill=green!14] at (5.0, 2.0) {/api/offers};
+  \node[comp, fill=green!14] at (5.0, 2.0) {/api/offers \& search};
   \node[comp, fill=green!14] at (8.5, 2.0) {/api/recommendations};
-  \node[comp, fill=green!14] at (12.0, 2.0) {Scraper + Cron};
+  \node[comp, fill=green!14] at (12.0, 2.0) {Scraper + cron};
 
   % ── Tier 3 — Data ──────────────────────────────────────────────────
   \node[tierbox,  fill=orange!5] (box3) at (7.0, 0.0) {};
   \node[tierlabel, fill=orange!20, anchor=west] at ([xshift=2mm]box3.west) {Data Tier};
   \node[comp, fill=orange!14] at (5.0, 0.0) {Prisma ORM};
-  \node[comp, fill=orange!14] at (8.5, 0.0) {SQLite Database};
-  \node[comp, fill=orange!14] at (12.0, 0.0) {ScrapeLog};
+  \node[comp, fill=orange!14] at (8.5, 0.0) {SQLite database};
+  \node[comp, fill=orange!14] at (12.0, 0.0) {PriceHistory / ScrapeLog};
 
   % ── Connecting arrows (one per gap, bidirectional) ─────────────────
   \draw[biarrow] (7.0, 3.2) -- node[right=2mm, font=\scriptsize]{HTTP requests / JSON responses} (7.0, 2.8);
@@ -418,26 +531,32 @@ Table~\ref{tab:api-routes-design} lists the main API routes, their HTTP methods,
     \hline
     \textbf{Route} & \textbf{Method(s)} & \textbf{Function} \\
     \hline
-    \texttt{/api/offers}          & GET                & List and filter offers; also serves by \texttt{ids} for comparison \\
+    \texttt{/api/offers}              & GET                & List and filter active offers; supports a structured \texttt{search} parameter; also serves by \texttt{ids} for comparison (bypasses \texttt{isActive}) \\
     \hline
-    \texttt{/api/offers/[id]}     & GET, PATCH, DELETE & Retrieve offer detail with similar offers; admin-only toggle of \texttt{isActive} (PATCH) or soft-delete (DELETE) \\
+    \texttt{/api/offers/[id]}         & GET, PATCH, DELETE & Retrieve offer detail with similar offers; admin-only toggle of \texttt{isActive} (PATCH) or soft-delete (DELETE) \\
     \hline
-    \texttt{/api/saved-offers}    & GET, POST          & List saved offer IDs; toggle save/unsave for authenticated user \\
+    \texttt{/api/saved-offers}        & GET, POST          & List saved offer IDs; toggle save/unsave for authenticated user \\
     \hline
-    \texttt{/api/recommendations} & POST               & Return top-3 scored plans for the submitted user profile \\
+    \texttt{/api/recommendations}     & POST               & Return top-3 tier-ranked plans for the submitted user profile (rate-limited: 60 requests per minute per IP) \\
     \hline
-    \texttt{/api/notifications}   & GET, PATCH, DELETE & List, mark-all-read, or delete a notification \\
+    \texttt{/api/notifications}       & GET, PATCH, DELETE & List user notifications; mark one or all as read; delete one \\
     \hline
-    \texttt{/api/profile}         & GET, PUT           & Retrieve or update the authenticated user's profile \\
+    \texttt{/api/profile}             & GET, PUT           & Retrieve or update the authenticated user's profile (priorities, preferred operator, budget, needs) \\
     \hline
-    \texttt{/api/admin/stats}      & GET                & Platform statistics (users, active offers, scrape sessions, operator health) \\
+    \texttt{/api/auth/register}       & POST               & Create a user account (rate-limited: 5 requests per 15 minutes per IP) \\
     \hline
-    \texttt{/api/admin/scrape}     & POST               & Trigger a full scrape run across all three operators \\
+    \texttt{/api/auth/{[}...nextauth{]}} & GET, POST       & NextAuth.js sign-in / sign-out / session endpoints \\
     \hline
-    \texttt{/api/stats}           & GET                & Public platform statistics (offer count, operator count) \\
+    \texttt{/api/admin/stats}         & GET                & Platform statistics (users, active offers, scrape sessions, operator health) \\
+    \hline
+    \texttt{/api/admin/claim}         & POST               & One-time admin role claim using the server-side \texttt{ADMIN\_CLAIM\_CODE} environment variable \\
+    \hline
+    \texttt{/api/stats}               & GET                & Public platform statistics (offer count, operator count) \\
     \hline
   \end{tabular}
 \end{table}
+
+The route map of Table~\ref{tab:api-routes-design} defines the contract the front-end consumes. Each presentation-tier page introduced in the next section calls one or more of these routes: the offers grid binds to \texttt{/api/offers}, the comparison view to the same endpoint with an \texttt{ids} parameter, the recommendation page to \texttt{/api/recommendations}, the profile and saved-plans pages to \texttt{/api/profile} and \texttt{/api/saved-offers} respectively, and the admin dashboard to the \texttt{/api/admin/*} family. The UI/UX principles that follow are the user-side counterpart to this contract.
 
 \section{UI/UX Design}
 
@@ -447,45 +566,63 @@ The interface design of \textit{Mobile Match Algeria} is guided by five principl
 
 \subsection{Key Interface Screens}
 
-The application comprises six main screens, whose appearance is illustrated by the screenshots embedded in Chapter~3, Section~3.5.
+The application comprises nine main screens, whose appearance is illustrated by the screenshots embedded in Chapter~3, Section~3.5.
 
 \begin{enumerate}
-  \item \textbf{Home page} — Language-selection landing page presenting feature highlights (plan comparison, personalised recommendations, saved favourites, live data) and operator logos. Authenticated users are redirected directly to the offers page.
-  \item \textbf{Offers page} — Grid of offer cards with operator filter tabs, plan type pills, and an advanced filter panel (price, data, network). A sticky bottom bar appears when plans are selected for comparison.
-  \item \textbf{Comparison page} — Side-by-side table with row-level highlighting for the best value per attribute across price, data, voice, SMS, and validity.
-  \item \textbf{Recommendations page} — Usage profile form (sliders for budget, data, voice, SMS; toggles for type and network) followed by a ranked list of matched plans with score explanations.
+  \item \textbf{Home page} — Language-selection landing page presenting feature highlights and operator logos. Authenticated users are redirected directly to the offers page.
+  \item \textbf{Offers page} — Grid of offer cards with operator filter tabs, plan-type pills, an advanced filter panel (price, data, network), and a structured search input above the grid that displays parsed query tokens as chips. A sticky bottom bar appears when plans are selected for comparison.
+  \item \textbf{Comparison page} — Side-by-side table together with per-metric bar charts (price and data volume) for the selected plans.
+  \item \textbf{Recommendations page} — Usage-profile form (budget, data, voice, SMS toggles, plan type, network, operator, ranked priorities) and the ranked list of three matched plans displayed with rank badges after the user submits the form.
+  \item \textbf{Savings calculator page} — Three inputs (current monthly bill, data need, calls need) that produce the best-matching plan with the resulting monthly, annual, and percentage savings.
+  \item \textbf{Saved-plans page} — Grid of plans bookmarked by the user, with a direct path to the comparison view and per-card removal.
+  \item \textbf{Help / tutorial page} — Five sections (search, recommend, compare, filters, saved) each containing a description, step-by-step instructions, annotated screenshots, and a link to the corresponding page. Sections requiring authentication carry a sign-in badge.
   \item \textbf{Login and Registration} — Authentication screens for account creation and sign-in, with client-side validation and inline error feedback.
-  \item \textbf{Admin dashboard} — Four statistics cards (active offers, registered users, scrape sessions, scrape success rate), operator health panel with per-operator offer counts and last-scrape timestamps, detailed scrape history log, and a notifications tab for system and recommendation alerts.
+  \item \textbf{Admin dashboard} — Statistics cards (active offers, registered users, scrape sessions, scrape success rate), operator health panel, per-family plan breakdown, detailed scrape history log, and a notifications tab for system events.
 \end{enumerate}
 
-\section{Technology Stack Justification}
+\section{Justification of the Technology Choices}
 
-Table~\ref{tab:tech-choices} presents the technology choices made for this project alongside the main alternatives considered, with the rationale for each decision.
+Two principles guided every choice in the technology stack: keep the front-end and the back-end in a single project so that type definitions travel through every layer without manual synchronisation, and select the lightest tool that fully solves the problem rather than the most fashionable one. Table~\ref{tab:tech-choices} consolidates each retained tool together with the alternatives that were genuinely considered and the reasons that decided the choice. Two cross-references point to chapters where the depth is greatest: the browser-automation row refers to Chapter~1 §1.3, where the full scraping-tool landscape is evaluated; the database row refers to the load-test results in Chapter~4 §4.3, which anchor the SQLite choice empirically.
 
 \begin{table}[H]
-  \caption{Technology stack choices and justifications}
+  \caption{Technology stack --- chosen tool, considered alternatives, and reasons for selection}
   \label{tab:tech-choices}
-  \centering\small
-  \begin{tabular}{|p{3.2cm}|p{2.3cm}|p{3.2cm}|p{5.0cm}|}
+  \centering\footnotesize
+  \begin{tabular}{|p{2.3cm}|p{2.0cm}|p{2.6cm}|p{7.2cm}|}
     \hline
-    \textbf{Component}   & \textbf{Chosen}       & \textbf{Alternative}      & \textbf{Rationale} \\
+    \textbf{Component} & \textbf{Chosen} & \textbf{Alternatives considered} & \textbf{Reasons for selection} \\
     \hline
-    Full-stack framework & Next.js 16            & Nuxt (Vue), SvelteKit     & Mature ecosystem, unified front/back codebase, strong TypeScript support \\
+    Full-stack framework & Next.js 16 & Nuxt (Vue), SvelteKit, Express + React separated &
+    Single project for both front-end (React server components in \texttt{page.tsx}) and back-end (\texttt{route.ts} handlers); App Router file-system routing; native server-side rendering and incremental static regeneration; TypeScript types flow from Prisma through API handlers into React components without manual export. Nuxt and SvelteKit are comparable on features but offer smaller ecosystems for the specific authentication and ORM libraries required \parencite{NextJSDocs2024}. \\
     \hline
-    Language             & TypeScript            & JavaScript                & Compile-time type safety reduces runtime errors \\
+    ORM & Prisma 7 & TypeORM, Drizzle, raw SQL &
+    The single \texttt{schema.prisma} file is the unique source of truth for the data model: types are auto-generated, migrations are derived mechanically, and any column change propagates at compile time. Prisma~7's driver-adapter system gives a clean migration path to PostgreSQL by swapping the adapter alone. Raw SQL forces duplicate type definitions in two places with no static sync guarantee; TypeORM and Drizzle keep declarations inside application code rather than in a dedicated schema file \parencite{PrismaDocs2024}. \\
     \hline
-    ORM                  & Prisma                & TypeORM, raw SQL          & Auto-generated types, readable schema DSL, migration tooling \\
+    Database & SQLite & PostgreSQL, MySQL &
+    The most-deployed database engine in the world; embedded in every smartphone and modern browser \parencite{Mitchell2018}. Load tests (Ch4 §4.3) sustain 215~req/s on the offers endpoint with zero errors at fifty concurrent connections; the recommendation endpoint hits its CPU-bound ceiling of 60~req/s before the database becomes a bottleneck. PostgreSQL or MySQL would add a daemon, credentials, and a non-trivial deployment footprint for no measurable benefit at the project's scale. \\
     \hline
-    Database             & SQLite                & PostgreSQL, MySQL         & Zero-config deployment for single-server use; sufficient for current scale \\
+    Authentication & NextAuth.js v5 & Custom JWT, Passport.js, Clerk, Auth0 &
+    Purpose-built for Next.js: JWT sessions out of the box, native Prisma-adapter integration, fully self-hosted in the project repository. Custom JWT rejected because authentication is too security-critical to write from scratch. Passport.js abstractions assume a separate back-end and contradict the unified Next.js model. Clerk and Auth0 introduce a recurring fee plus a transfer of user data to a third-party identity store, which is incompatible with an academic deliverable. \\
     \hline
-    Authentication       & NextAuth.js           & Passport.js, custom JWT   & Tight Next.js integration, built-in session management \\
+    Browser automation & Playwright (headless Microsoft Edge) & Puppeteer, Selenium, plain HTTP, Scrapy, crawlee, OCR, paid scraping APIs &
+    A real-browser fingerprint defeats operator anti-bot layers that reject plain HTTP. Spaced retries (0\,s, 7\,s, 18\,s) and a per-operator circuit breaker ride out intermittent operator-server resets. Full alternatives evaluation in Chapter~1 §1.3. \\
     \hline
-    Styling              & CSS custom properties & Tailwind CSS, CSS Modules & Fine-grained theming (dark mode), no build dependency \\
+    Language & TypeScript & JavaScript &
+    Compile-time type safety across 8 entities and 11 API routes; editor-level refactoring catches schema-drift errors before run-time; types travel through Prisma, API handlers, and React components without manual export. \\
     \hline
-    Animations           & Framer Motion         & React Spring, CSS only    & Declarative, performant, minimal boilerplate \\
+    Unit testing & Vitest & Jest, Mocha + Chai &
+    Native ESM and TypeScript support without an additional Babel pipeline; configuration shared with the project's Vite build; the 99-test suite completes in approximately two seconds. \\
+    \hline
+    Styling & CSS custom properties & Tailwind CSS, CSS Modules &
+    Operator-coloured theming via inheritance from a single \texttt{--accent} variable per card; the comparison columns are tinted to match. Tailwind would require dynamic class composition or arbitrary-value classes that defeat its design-system purpose; CSS Modules introduce build-time class-name mangling that does not coexist gracefully with Next.js server components. \\
+    \hline
+    Animations & Framer Motion & React Spring, plain CSS keyframes &
+    Declarative \texttt{motion.*} props integrate with React component lifecycles; physics-based defaults match the visual polish of the operator brand pages and require considerably less effort than hand-written keyframes for equivalent quality. \\
     \hline
   \end{tabular}
 \end{table}
+
+Every row above represents a deliberate decision rather than a default, and each is anchored either by measured evidence (load-test numbers for SQLite, test-suite duration for Vitest) or by a structural argument that ties the tool to a specific requirement of the project (operator anti-bot for Playwright, schema as single source of truth for Prisma, security surface for NextAuth.js). The cross-reference pattern --- consolidated reasoning here, depth deferred to the corresponding chapter --- keeps this section dense and scannable without losing analytical content.
 
 \section*{Chapter Summary}
 
