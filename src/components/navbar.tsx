@@ -8,7 +8,7 @@ import { AnimatePresence, motion, type Variants } from 'framer-motion'
 import {
   Smartphone, Bell, User, LogOut, Menu, X as XIcon, ChevronDown,
   Bookmark, Shield, Settings, BarChart3, Target, Check, Trash2,
-  Sun, Moon, LayoutGrid, PiggyBank, HelpCircle,
+  Sun, Moon, LayoutGrid, HelpCircle,
 } from 'lucide-react'
 import { useLang } from '@/lib/lang-context'
 import type { Lang } from '@/lib/i18n'
@@ -162,7 +162,6 @@ export function Navbar() {
     { href: '/offers', icon: <LayoutGrid size={14} />, label: t('nav.browse') },
     { href: '/recommend', icon: <Target size={14} />, label: t('nav.recommend') },
     { href: '/compare', icon: <BarChart3 size={14} />, label: t('nav.compare') },
-    { href: '/savings', icon: <PiggyBank size={14} />, label: t('nav.savings') },
     ...(isLoggedIn ? [{ href: '/saved', icon: <Bookmark size={14} />, label: t('nav.saved') }] : []),
     { href: '/help', icon: <HelpCircle size={14} />, label: t('nav.help') },
   ]

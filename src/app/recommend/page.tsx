@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { useSession } from 'next-auth/react'
 import { motion } from 'framer-motion'
 import {
-  Zap, Wifi, Phone, TrendingUp, CheckCircle, AlertCircle, ArrowLeft,
+  Zap, Wifi, Phone, TrendingDown, CheckCircle, AlertCircle, ArrowLeft,
   Target, BarChart2, MessageSquare, Lock, Loader2,
 } from 'lucide-react'
 
@@ -439,9 +439,24 @@ export default function RecommendPage() {
                             </div>
 
                             {rec.savings > 0 && (
-                              <div style={{ marginTop: '0.75rem', fontSize: 12, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 5 }}>
-                                <TrendingUp size={12} />
-                                {t('recommend.savesBefore')}{formatDA(rec.savings * 12)}{t('recommend.savesAfter')}
+                              <div style={{
+                                marginTop: '0.85rem',
+                                padding: '0.65rem 0.85rem',
+                                background: 'rgba(34,197,94,0.07)',
+                                border: '1px solid rgba(34,197,94,0.20)',
+                                borderRadius: 8,
+                                display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap',
+                              }}>
+                                <TrendingDown size={15} style={{ color: 'var(--color-success)', flexShrink: 0 }} />
+                                <span style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.45 }}>
+                                  <strong style={{ color: 'var(--color-success)', fontSize: 14.5 }}>
+                                    {formatDA(rec.savings * 12)}
+                                  </strong>{' '}{t('savings.perYear')}
+                                  <span style={{ color: 'var(--text-muted)' }}>
+                                    {' · '}{formatDA(rec.savings)} {t('savings.perMonth')}
+                                    {' · '}{Math.round((rec.savings / budget) * 100)}% {t('savings.reduction')}
+                                  </span>
+                                </span>
                               </div>
                             )}
                           </div>

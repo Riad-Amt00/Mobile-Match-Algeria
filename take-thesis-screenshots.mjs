@@ -119,19 +119,7 @@ try {
   await page.evaluate(() => window.scrollTo(0, 0))
   await shot('screenshot_help', { x: 0, y: 0, width: 1440, height: 900 })
 
-  // ── 9) screenshot_savings — savings calculator page
-  await page.goto('http://localhost:3000/savings')
-  await page.waitForTimeout(3500)
-  // Enter a sample current bill so the calculator returns a non-empty result
-  try {
-    const currentBill = page.locator('input[type=number]').first()
-    await currentBill.fill('3000')
-    await page.waitForTimeout(800)
-  } catch {}
-  await page.evaluate(() => window.scrollTo(0, 0))
-  await shot('screenshot_savings')
-
-  // ── 10) screenshot_saved — saved-plans page (requires bookmarked plans)
+  // ── 9) screenshot_saved — saved-plans page (requires bookmarked plans)
   // Bookmark up to 3 offers via the API for the admin account, then visit /saved
   try {
     const cookies = await ctx.cookies()

@@ -241,7 +241,7 @@ Two short user-facing features sit on top of the same recommendation backbone in
 
 \paragraph{Comparative bar charts.} The comparison page renders, in addition to the side-by-side specification table, two per-metric bar charts comparing the selected plans on price (lower is better) and data volume (higher is better, with the sentinel value $-1$ shown as \guillemotleft{}$\infty$\guillemotright{}). Each plan's bar is coloured according to its operator using the palette defined in \texttt{src/lib/utils.ts}, and the corresponding columns of the table are tinted to match. The charts use the \texttt{recharts} library and are rendered client-side.
 
-\paragraph{Savings calculator.} A dedicated page (\texttt{/savings}) implements the FICHE deliverable \guillemotleft{}calculateur d'économies potentielles\guillemotright{}. The user enters four values: the current monthly bill (continuous slider), the data need (continuous slider in GB), and two binary preferences for calls and SMS expressed as Any / Unlimited toggle pills --- the same control used on the \texttt{/recommend} page, to keep the input model coherent with the rest of the application and with the binary representation of calls and SMS in the database. The page calls the existing recommendations endpoint with the current bill as the budget; the result card displays the best-matching offer together with the monthly saving, the annual saving ($\times$~12), and the percentage reduction. When the current bill is already cheaper than every catalogue offer the page shows an \guillemotleft{}already optimal\guillemotright{} state instead of negative savings.
+\paragraph{Savings calculator.} The FICHE deliverable \guillemotleft{}calculateur d'économies potentielles\guillemotright{} is implemented as an integrated indicator on each recommendation card rather than as a standalone page, because the recommendation flow already gathers every input the calculation requires: the user's monthly budget, the data need, and the binary calls and SMS preferences. For every ranked plan whose price is below the user's monthly budget, the card displays the monthly saving (\texttt{budget} $-$ \texttt{offer.priceDA}), the annual saving (monthly saving~$\times$~12) and the percentage reduction relative to the budget. The indicator is rendered as a tinted panel below the match-reasons block and is hidden when the user's budget is already at or below the plan's price, avoiding misleading zero or negative savings values. Folding the calculation into the recommendation card removes a redundant entry point while preserving the deliverable's behaviour and three-component output.
 
 \section{Notification System}
 
@@ -343,16 +343,6 @@ The admin dashboard (Figure~\ref{fig:ss-admin}) is accessible only to users with
   \label{fig:ss-admin}
 \end{figure}
 
-\paragraph{Savings calculator page.}
-The dedicated savings calculator (Figure~\ref{fig:ss-savings}) addresses the fiche deliverable \guillemotleft{}calculateur d'économies potentielles\guillemotright{}. The user enters their current monthly bill and an estimate of their needs; the page calls the same recommendations endpoint with the current bill as the budget and renders the single best-matching plan together with the resulting monthly saving, the annual saving (saving $\times$~12), and the percentage reduction relative to the current bill.
-
-\begin{figure}[H]
-  \centering
-  \includegraphics[width=0.95\textwidth]{images/screenshot_savings}
-  \caption{Savings calculator --- best-matching plan with monthly, annual, and percentage savings}
-  \label{fig:ss-savings}
-\end{figure}
-
 \paragraph{Saved-plans page.}
 The saved-plans page (Figure~\ref{fig:ss-saved}) lists every plan the authenticated user has bookmarked from the offers page or from a recommendation result. Each card carries an unsave button and a direct path to the comparison view, which auto-selects the saved plans for side-by-side analysis.
 
@@ -383,7 +373,7 @@ The guided help page (Figure~\ref{fig:ss-help}) documents the five core features
   \label{fig:ss-help}
 \end{figure}
 
-The nine screens described above expose the application to users; the next two sections describe the protections that surround that exposure --- the security mechanisms enforced on every request, and the deployment configuration under which the protections operate.
+The eight screens described above expose the application to users; the next two sections describe the protections that surround that exposure --- the security mechanisms enforced on every request, and the deployment configuration under which the protections operate.
 
 \section{Security}
 
@@ -418,4 +408,4 @@ Table~\ref{tab:security} summarises the security mechanisms applied across the a
 
 \section*{Chapter Summary}
 
-This chapter has described the full implementation of \textit{Mobile Match Algeria}: the development environment, the automated scraping pipeline with its per-family deactivation guard and its validation infrastructure, the REST API and its cross-operator comparison routing, the two-layer recommendation engine combining hard filters and tiered ranking, the structured search engine with explainable chip output, the comparative visualisation and the savings calculator, the split-stream notification system, the nine key user-interface screens, the security architecture, and the deployment configuration. Chapter~4 evaluates these implementations against the project objectives, validates the recommendation engine on representative test cases, reports the load-testing results, and documents the identified limitations.
+This chapter has described the full implementation of \textit{Mobile Match Algeria}: the development environment, the automated scraping pipeline with its per-family deactivation guard and its validation infrastructure, the REST API and its cross-operator comparison routing, the two-layer recommendation engine combining hard filters and tiered ranking, the structured search engine with explainable chip output, the comparative visualisation and the integrated savings indicator, the split-stream notification system, the eight key user-interface screens, the security architecture, and the deployment configuration. Chapter~4 evaluates these implementations against the project objectives, validates the recommendation engine on representative test cases, reports the load-testing results, and documents the identified limitations.

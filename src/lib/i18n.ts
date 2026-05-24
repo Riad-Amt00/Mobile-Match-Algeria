@@ -4,7 +4,6 @@ export const translations = {
     'nav.browse':      'Browse',
     'nav.recommend':   'Recommendations',
     'nav.compare':     'Compare',
-    'nav.savings':     'Savings',
     'nav.help':        'Help',
     'help.title':                    'How to use Mobile Match',
     'help.subtitle':                 'A quick guide to every feature.',
@@ -46,21 +45,10 @@ export const translations = {
     'nav.register':    'Register',
     'nav.signOut':     'Sign out',
 
-    // ─── Savings calculator ────────────────────────────────────────────────
-    'savings.title':           'Savings',
-    'savings.titleHighlight':  'Calculator',
-    'savings.subtitle':        'See how much you could save each year by switching to a better-value plan.',
-    'savings.currentBill':     'Your current monthly bill',
-    'savings.dataNeed':        'Data you need',
-    'savings.callsNeed':       'Calls you need',
-    'savings.resultTitle':     'You could save',
+    // ─── Savings indicator (integrated into recommendation cards) ──────────
     'savings.perYear':         'per year',
     'savings.perMonth':        'per month',
-    'savings.reduction':       'lower than your bill',
-    'savings.bestPlan':        'Recommended plan',
-    'savings.viewPlan':        'View plan',
-    'savings.alreadyOptimal':  "You're already on a competitive plan — no cheaper option matches your needs.",
-    'savings.noMatch':         'No plan matches those needs within that bill. Try raising the bill or lowering your needs.',
+    'savings.reduction':       'lower than your budget',
 
     // ─── Home hero ─────────────────────────────────────────────────────────
     'home.badge':      "Algeria's mobile plan comparator",
@@ -208,8 +196,6 @@ export const translations = {
     'recommend.updateResults':   'Update results',
     'recommend.compareSideBySide': 'Compare side-by-side →',
     'recommend.unlimitedCalls':  'Unlimited calls',
-    'recommend.savesBefore':     'Saves ~',
-    'recommend.savesAfter':      '/ year vs your budget',
     'recommend.lowMatchWarning': 'These are partial matches only. Try raising your budget or adjusting data requirements.',
     'recommend.matchExcellent':  'Excellent',
     'recommend.matchGood':       'Good',
@@ -385,7 +371,6 @@ export const translations = {
     'nav.browse':      'Offres',
     'nav.recommend':   'Recommandations',
     'nav.compare':     'Comparer',
-    'nav.savings':     'Économies',
     'nav.help':        'Aide',
     'help.title':                    'Comment utiliser Mobile Match',
     'help.subtitle':                 'Un guide rapide pour chaque fonctionnalité.',
@@ -427,21 +412,10 @@ export const translations = {
     'nav.register':    "S'inscrire",
     'nav.signOut':     'Se déconnecter',
 
-    // ─── Savings calculator ────────────────────────────────────────────────
-    'savings.title':           'Calculateur',
-    'savings.titleHighlight':  "d'économies",
-    'savings.subtitle':        'Découvrez combien vous pourriez économiser chaque année en passant à un forfait plus avantageux.',
-    'savings.currentBill':     'Votre facture mensuelle actuelle',
-    'savings.dataNeed':        'Data dont vous avez besoin',
-    'savings.callsNeed':       'Appels dont vous avez besoin',
-    'savings.resultTitle':     'Vous pourriez économiser',
+    // ─── Savings indicator (integrated into recommendation cards) ──────────
     'savings.perYear':         'par an',
     'savings.perMonth':        'par mois',
-    'savings.reduction':       'de moins que votre facture',
-    'savings.bestPlan':        'Forfait recommandé',
-    'savings.viewPlan':        'Voir le forfait',
-    'savings.alreadyOptimal':  'Vous êtes déjà sur un forfait compétitif — aucune option moins chère ne correspond à vos besoins.',
-    'savings.noMatch':         'Aucun forfait ne correspond à ces besoins pour cette facture. Augmentez la facture ou réduisez vos besoins.',
+    'savings.reduction':       'de moins que votre budget',
 
     // ─── Home hero ─────────────────────────────────────────────────────────
     'home.badge':      'Comparateur de forfaits mobiles en Algérie',
@@ -589,8 +563,6 @@ export const translations = {
     'recommend.updateResults':   'Mettre à jour les résultats',
     'recommend.compareSideBySide': 'Comparer côte à côte →',
     'recommend.unlimitedCalls':  'Appels illimités',
-    'recommend.savesBefore':     'Économise ~',
-    'recommend.savesAfter':      '/ an vs votre budget',
 
     // ─── Saved page ────────────────────────────────────────────────────────
     'saved.title':      'Offres sauvegardées',
@@ -766,7 +738,6 @@ export const translations = {
     'nav.browse':      'العروض',
     'nav.recommend':   'التوصيات',
     'nav.compare':     'مقارنة',
-    'nav.savings':     'التوفير',
     'nav.help':        'المساعدة',
     'help.title':                    'كيفية استخدام Mobile Match',
     'help.subtitle':                 'دليل سريع لكل ميزة.',
@@ -808,21 +779,10 @@ export const translations = {
     'nav.register':    'إنشاء حساب',
     'nav.signOut':     'تسجيل الخروج',
 
-    // ─── Savings calculator ────────────────────────────────────────────────
-    'savings.title':           'حاسبة',
-    'savings.titleHighlight':  'التوفير',
-    'savings.subtitle':        'اكتشف كم يمكنك أن توفّر سنويًا بالانتقال إلى عرض بقيمة أفضل.',
-    'savings.currentBill':     'فاتورتك الشهرية الحالية',
-    'savings.dataNeed':        'البيانات التي تحتاجها',
-    'savings.callsNeed':       'المكالمات التي تحتاجها',
-    'savings.resultTitle':     'يمكنك أن توفّر',
+    // ─── Savings indicator (integrated into recommendation cards) ──────────
     'savings.perYear':         'سنويًا',
     'savings.perMonth':        'شهريًا',
-    'savings.reduction':       'أقل من فاتورتك',
-    'savings.bestPlan':        'العرض الموصى به',
-    'savings.viewPlan':        'عرض الخطة',
-    'savings.alreadyOptimal':  'أنت بالفعل على عرض تنافسي — لا يوجد خيار أرخص يطابق احتياجاتك.',
-    'savings.noMatch':         'لا يوجد عرض يطابق هذه الاحتياجات ضمن هذه الفاتورة. ارفع قيمة الفاتورة أو قلّل احتياجاتك.',
+    'savings.reduction':       'أقل من ميزانيتك',
 
     // ─── Home hero ─────────────────────────────────────────────────────────
     'home.badge':      'مقارن عروض الهاتف في الجزائر',
@@ -970,8 +930,6 @@ export const translations = {
     'recommend.updateResults':   'تحديث النتائج',
     'recommend.compareSideBySide': 'مقارنة جانبية ←',
     'recommend.unlimitedCalls':  'مكالمات غير محدودة',
-    'recommend.savesBefore':     'يوفر ~',
-    'recommend.savesAfter':      '/ سنة مقابل ميزانيتك',
 
     // ─── Saved page ────────────────────────────────────────────────────────
     'saved.title':      'العروض المحفوظة',
