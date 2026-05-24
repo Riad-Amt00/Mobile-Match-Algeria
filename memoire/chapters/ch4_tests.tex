@@ -130,15 +130,21 @@ These six limitations feed directly into the Perspectives chapter that follows t
 
 \section{Documentation}
 
-The project ships four documentation artefacts, each addressing a different audience.
+The project ships four documentation artefacts, each addressing a different audience and a different layer of the deliverable. Table~\ref{tab:documentation} summarises them.
 
-\paragraph{User guide.} Integrated into the running application as the \texttt{/help} page accessible from the main navigation bar. It is organised into five sections --- search, recommendations, comparison, filters, and saved plans --- each containing a textual description, numbered step-by-step instructions, annotated screenshots captured automatically from the live application, and a link to the corresponding page. Sections requiring authentication carry a \guillemotleft{}sign-in required\guillemotright{} badge.
-
-\paragraph{Administrator manual.} Covers the admin-dashboard workflows: triggering scrape runs, reading scrape logs, interpreting operator-health status indicators, managing notifications, and monitoring platform statistics. It also documents the environment-variable configuration (\texttt{DATABASE\_URL}, \texttt{NEXTAUTH\_SECRET}, \texttt{NEXTAUTH\_URL}, \texttt{ADMIN\_CLAIM\_CODE}), the one-time admin-claim flow, and the procedure for running the scraper in manual mode via the command line.
-
-\paragraph{API reference.} A concise route-level reference is provided as Table~3.2 in Chapter~3. For each route, it lists the HTTP methods, the required authentication, the accepted query parameters or request-body fields, and the rate-limit policy where applicable. This reference facilitates future development and potential integration with third-party clients.
-
-\paragraph{Source-code repository.} The complete source code, the LaTeX source of this mémoire, and the regeneration scripts for the figures and screenshots are publicly available at \url{https://github.com/Riad-Amt00/Mobile-Match-Algeria}. The repository's \texttt{README.md} carries the installation and run instructions, the demo accounts seeded by \texttt{prisma/seed.ts}, the environment variables expected by the application, and the build commands for both the Next.js application and the LaTeX mémoire. The directory layout follows standard Next.js conventions (\texttt{src/app/}, \texttt{src/lib/}, \texttt{prisma/}, \texttt{public/}), with \texttt{memoire/} for the present document and \texttt{scripts/} for auxiliary database-audit and user-deletion utilities.
+\begin{table}[H]
+  \caption{Documentation artefacts produced alongside the system}
+  \label{tab:documentation}
+  \centering\small
+  \begin{tabular}{|p{2.7cm}|p{2.5cm}|p{8.3cm}|}
+    \hline
+    \textbf{Artefact} & \textbf{Audience} & \textbf{Content and location} \\ \hline
+    User guide          & End users          & Embedded in the running application at \texttt{/help} (linked from the main navbar). Five sections --- search, recommendations, comparison, filters, and saved plans --- each with description, step-by-step instructions, annotated screenshots, and a link to the corresponding page; auth-only sections carry a \guillemotleft{}sign-in required\guillemotright{} badge. \\ \hline
+    Administrator manual & Administrators     & Covers admin-dashboard workflows (triggering scrape runs, reading scrape logs, operator-health indicators, notifications, platform statistics); environment-variable configuration (\texttt{DATABASE\_URL}, \texttt{NEXTAUTH\_SECRET}, \texttt{NEXTAUTH\_URL}, \texttt{ADMIN\_CLAIM\_CODE}); the one-time admin-claim flow; and the manual scraper run from the command line. \\ \hline
+    API reference        & Future developers  & Route-level reference provided as Table~3.2 in Chapter~3: HTTP methods, required authentication, accepted query parameters or body fields, and rate-limit policy where applicable. \\ \hline
+    Source-code repository & Reviewers, jury & Public Git repository \url{https://github.com/Riad-Amt00/Mobile-Match-Algeria}. The \texttt{README.md} carries the installation and run instructions, the seeded demo accounts, the expected environment variables, and the build commands for both the Next.js application and the \LaTeX{} mémoire. Layout follows standard Next.js conventions (\texttt{src/app/}, \texttt{src/lib/}, \texttt{prisma/}, \texttt{public/}); \texttt{memoire/} holds the present document and \texttt{scripts/} the database-audit and user-deletion utilities. \\ \hline
+  \end{tabular}
+\end{table}
 
 \section*{Chapter Summary}
 

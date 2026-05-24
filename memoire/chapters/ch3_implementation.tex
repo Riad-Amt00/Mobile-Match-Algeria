@@ -57,38 +57,26 @@ The data-aggregation module resides in \texttt{src/lib/scraper/} and follows a s
 
 \subsection{Scraping Algorithm}
 
-Figure~\ref{fig:scraper-algo} presents the algorithm executed by the orchestrator for a single operator.
+Table~\ref{tab:scraper-algo} presents the algorithm executed by the orchestrator for a single operator (input: \textit{operator}, \textit{scraper\_fn}; output: \textit{ScrapeResult}).
 
-\begin{figure}[H]
-\centering
-\begin{tikzpicture}[
-  box/.style={rectangle, draw=black!70, fill=gray!6, rounded corners=3pt,
-              minimum width=13cm, minimum height=0.7cm, align=left,
-              font=\small, inner sep=5pt},
-  head/.style={rectangle, draw=black, fill=black!85, rounded corners=3pt,
-               minimum width=13cm, minimum height=0.7cm, align=left,
-               font=\small\bfseries\color{white}, inner sep=5pt},
-  arrow/.style={-{Stealth[length=4pt]}, thick, gray!70},
-  node distance=0.18cm
-]
-  \node[head]  (h)  {Algorithm: Automated Scraping Pipeline \hfill \textit{Input: operator, scraper\_fn \quad Output: ScrapeResult}};
-  \node[box, below=of h]  (s1)  {\textbf{1.} Record \textit{startedAt}; create ScrapeLog with status = RUNNING};
-  \node[box, below=of s1] (s2)  {\textbf{2.} Invoke \textit{scraper\_fn}: fetch operator page through a real headless Edge browser (spaced retries + circuit breaker), parse HTML with Cheerio, normalise attributes via \texttt{validate.ts}};
-  \node[box, below=of s2] (s3)  {\textbf{3.} Filter out offers missing all data, voice, and SMS values};
-  \node[box, below=of s3] (s4)  {\textbf{4.} For each valid offer:};
-  \node[box, below=of s4] (s4a) {\quad\quad \textbf{a.} Compute slug = slugify(offer.name)};
-  \node[box, below=of s4a](s4b) {\quad\quad \textbf{b.} If slug exists in DB $\Rightarrow$ UPDATE record (insert PriceHistory if priceDA changed); else $\Rightarrow$ INSERT \& notify users};
-  \node[box, below=of s4b](s5)  {\textbf{5.} Per-family deactivation: group scraped offers by source URL (one URL = one plan family)};
-  \node[box, below=of s5] (s5a) {\quad\quad For each non-empty family: set isActive = false for DB offers of that URL absent from scrape};
-  \node[box, below=of s5a](s6)  {\textbf{6.} Update ScrapeLog: status = SUCCESS, duration, offersAdded, offersUpdated, offersDeactivated};
-  \node[box, below=of s6] (s7)  {\textbf{7.} Return ScrapeResult \quad\quad \textit{On error: status = FAILED, log errorMessage}};
-
-  \foreach \a/\b in {h/s1, s1/s2, s2/s3, s3/s4, s4/s4a, s4a/s4b, s4b/s5, s5/s5a, s5a/s6, s6/s7}
-    \draw[arrow] (\a.south) -- (\b.north);
-\end{tikzpicture}
-\caption{Algorithm of the automated scraping pipeline}
-\label{fig:scraper-algo}
-\end{figure}
+\begin{table}[H]
+  \caption{Algorithm of the automated scraping pipeline}
+  \label{tab:scraper-algo}
+  \centering\small
+  \begin{tabular}{|p{0.8cm}|p{12.5cm}|}
+    \hline
+    \textbf{Step} & \textbf{Action} \\
+    \hline
+    1   & Record \textit{startedAt}; create ScrapeLog with status = RUNNING. \\ \hline
+    2   & Invoke \textit{scraper\_fn}: fetch the operator page through a real headless Edge browser (spaced retries + circuit breaker), parse HTML with Cheerio, normalise attributes via \texttt{validate.ts}. \\ \hline
+    3   & Filter out offers missing all data, voice, and SMS values. \\ \hline
+    4a  & For each valid offer, compute \texttt{slug = slugify(offer.name)}. \\ \hline
+    4b  & If the slug exists in DB $\Rightarrow$ UPDATE record (insert \texttt{PriceHistory} if \texttt{priceDA} changed); else $\Rightarrow$ INSERT and notify users. \\ \hline
+    5   & Per-family deactivation: group scraped offers by source URL (one URL~=~one plan family); for each non-empty family, set \texttt{isActive=false} for DB offers of that URL absent from the scrape. \\ \hline
+    6   & Update ScrapeLog: status = SUCCESS, duration, \texttt{offersAdded}, \texttt{offersUpdated}, \texttt{offersDeactivated}. \\ \hline
+    7   & Return ScrapeResult. \emph{On error: status = FAILED, log \texttt{errorMessage}.} \\ \hline
+  \end{tabular}
+\end{table}
 
 A key precision mechanism is the \textbf{per-family deactivation} at step~5. Rather than comparing global offer counts — which would incorrectly block cleanup when the total scrape count differs from the database total due to unrelated family changes — the orchestrator groups the scraped offers by their source URL. Each URL corresponds to exactly one plan family (for example, one page for LEGEND, one for CAMPUCE, one for DjezzyNet). For each family that returned at least one offer in the current run, any database record sharing that source URL but absent from the current scrape is marked inactive. This detects removed plans precisely at the family level, independently of what other families returned in the same run.
 
@@ -147,60 +135,83 @@ User authentication is implemented with \textit{NextAuth.js} using the Credentia
 
 \subsection{Two-Layer Decision Model}
 
-The recommendation engine is implemented in \texttt{src/lib/recommendation.ts}. It separates the recommendation problem into two distinct layers: a categorical filtering layer that excludes offers incompatible with the user's hard constraints, and a tiered-ranking layer that orders the remaining offers according to the user's primary and secondary continuous priorities. The second layer is an applied form of \textbf{lexicographic preference ordering with bounded relaxation}, a well-established technique in multi-criteria decision making \parencite{Fishburn1974, Roberts1979}: the contribution of this work is the adaptation of that technique to a cold-start consumer-plan context, not the algorithm itself. The final defensible design (Figure~\ref{fig:rec-algo}) was reached after several rejected attempts (Section~3.4.4), each of which exposed a specific failure mode of the previous one.
+The recommendation engine is implemented in \texttt{src/lib/recommendation.ts}. It separates the recommendation problem into two distinct layers: a categorical filtering layer that excludes offers incompatible with the user's hard constraints, and a tiered-ranking layer that orders the remaining offers according to the user's primary and secondary continuous priorities. The second layer is an applied form of \textbf{lexicographic preference ordering with bounded relaxation}, a well-established technique in multi-criteria decision making \parencite{Fishburn1974, Roberts1979}: the contribution of this work is the adaptation of that technique to a cold-start consumer-plan context, not the algorithm itself. The final defensible design (Table~\ref{tab:rec-algo}) was reached after several rejected attempts (Section~3.4.3), each of which exposed a specific failure mode of the previous one.
 
-\begin{figure}[H]
-\centering
-\begin{tikzpicture}[
-  box/.style={rectangle, draw=black!70, fill=gray!6, rounded corners=3pt,
-              minimum width=13cm, minimum height=0.7cm, align=left,
-              font=\small, inner sep=5pt},
-  head/.style={rectangle, draw=black, fill=black!85, rounded corners=3pt,
-               minimum width=13cm, minimum height=0.7cm, align=left,
-               text width=12.2cm,
-               font=\small\bfseries\color{white}, inner sep=5pt},
-  arrow/.style={-{Stealth[length=4pt]}, thick, gray!70},
-  node distance=0.18cm
-]
-  \node[head]  (h)  {Algorithm: Tiered Ranking with Hard Filters \\ \normalfont\textit{\scriptsize Input: offers[ ], needs, priorities[ ] \quad Output: Recommendation[ ]}};
-  \node[box, below=of h]  (s1)  {\textbf{1.} Hard-filter layer (categorical constraints):};
-  \node[box, below=of s1] (s1a) {\quad\quad \textbf{a.} \textit{Budget ceiling}: discard offers where priceDA $>$ needs.budget};
-  \node[box, below=of s1a](s1b) {\quad\quad \textbf{b.} \textit{Operator}: discard offers whose operator does not match the user's preference (if any)};
-  \node[box, below=of s1b](s1c) {\quad\quad \textbf{c.} \textit{Plan type, network, calls, SMS}: discard offers that do not satisfy the user's categorical preferences};
-  \node[box, below=of s1c](s2)  {\textbf{2.} For each surviving offer, compute per-criterion merit $m \in [0,1]$:};
-  \node[box, below=of s2] (s2a) {\quad\quad \textbf{a.} \textit{price}: $m_1 = \mathrm{clamp01}(\mathrm{priceDA} / \mathrm{needs.budget})$ — closeness to target price};
-  \node[box, below=of s2a](s2b) {\quad\quad \textbf{b.} \textit{data}: $m_2 = \mathrm{clamp01}(\mathrm{dataGB} / \mathrm{needs.dataGB})$ — coverage of declared need};
-  \node[box, below=of s2b](s3)  {\textbf{3.} Tiered ranking (let $P_1, P_2$ = user's first and second priorities):};
-  \node[box, below=of s3] (s3a) {\quad\quad \textbf{a.} \textit{Tier}: $\mathrm{tier} = \mathrm{round}(m_{P_1} \times 4) / 4 \;\in\; \{0,\,0.25,\,0.5,\,0.75,\,1\}$};
-  \node[box, below=of s3a](s3b) {\quad\quad \textbf{b.} \textit{Composite key}: $C = \mathrm{tier} + 0.24 \times m_{P_2}$ \quad (the within-tier term is strictly $< 0.25$, so it cannot cross a tier boundary)};
-  \node[box, below=of s3b](s4)  {\textbf{4.} Sort by composite key, ties broken by base fitness score};
-  \node[box, below=of s4] (s5)  {\textbf{5.} Diversity rule: if top-3 are from a single operator and the next operator's best result is $\geq 85\,\%$ of the third's composite, swap it in};
-  \node[box, below=of s5] (s6)  {\textbf{6.} Return the top-N results with matchReasons[ ]};
+\begin{table}[H]
+  \caption{Tiered-ranking recommendation algorithm}
+  \label{tab:rec-algo}
+  \centering\small
+  \begin{tabular}{|p{0.8cm}|p{12.5cm}|}
+    \hline
+    \textbf{Step} & \textbf{Action} \\
+    \hline
+    1a  & \textit{Budget ceiling}: discard offers where \texttt{priceDA $>$ needs.budget}. \\ \hline
+    1b  & \textit{Operator}: discard offers whose operator does not match the user's preference (if any). \\ \hline
+    1c  & \textit{Plan type, network, calls, SMS}: discard offers that do not satisfy the user's categorical preferences. \\ \hline
+    2a  & Compute the price merit $m_1 = \mathrm{clamp01}(\mathrm{priceDA} / \mathrm{needs.budget})$ --- closeness to target price. \\ \hline
+    2b  & Compute the data merit $m_2 = \mathrm{clamp01}(\mathrm{dataGB} / \mathrm{needs.dataGB})$ --- coverage of declared need. \\ \hline
+    3a  & Tier ($P_1$ = primary priority): $\mathrm{tier} = \mathrm{round}(m_{P_1} \times 4) / 4 \in \{0,\,0.25,\,0.5,\,0.75,\,1\}$. \\ \hline
+    3b  & Composite key ($P_2$ = secondary): $C = \mathrm{tier} + 0.24 \times m_{P_2}$ (within-tier term $<0.25$, never crosses a tier boundary). \\ \hline
+    4   & Sort by composite key; ties broken by the base fitness score. \\ \hline
+    5   & Diversity rule: if the top three are from a single operator and the next operator's best result is $\geq 85\,\%$ of the third's composite, swap it in. \\ \hline
+    6   & Return the top-$N$ results with \texttt{matchReasons[~]}. \\ \hline
+  \end{tabular}
+\end{table}
 
-  \foreach \a/\b in {h/s1, s1/s1a, s1a/s1b, s1b/s1c, s1c/s2, s2/s2a, s2a/s2b, s2b/s3, s3/s3a, s3a/s3b, s3b/s4, s4/s5, s5/s6}
-    \draw[arrow] (\a.south) -- (\b.north);
-\end{tikzpicture}
-\caption{Tiered-ranking recommendation algorithm}
-\label{fig:rec-algo}
-\end{figure}
+\subsection{Hard Filters and Tiered Ranking}
 
-\subsection{Hard Filters as Categorical Constraints}
+The hard-filter layer treats every categorical preference as a binary go / no-go condition rather than a scoring contribution: any offer that fails a constraint is discarded outright. Table~\ref{tab:hard-filters} lists the four constraint categories applied at this layer. The continuous trade-offs (price, data) are deliberately excluded from this layer because they belong to the ranking stage.
 
-The hard-filter layer treats the user's categorical preferences as binary go / no-go conditions rather than scoring contributions. Concretely, if the user has expressed a preferred operator (other than \guillemotleft{}any\guillemotright{}), only offers from that operator are kept; the same logic applies to plan type (prepaid / postpaid / data-only), network generation (4G / 5G), and the unlimited-calls and unlimited-SMS toggles. The budget acts as a price ceiling: offers above it are excluded entirely. This separation reflects the structural difference between continuous trade-offs (rankable) and categorical choices (filterable).
+\begin{table}[H]
+  \caption{Hard-filter constraints applied at the categorical layer}
+  \label{tab:hard-filters}
+  \centering\small
+  \begin{tabular}{|p{3.0cm}|p{10.3cm}|}
+    \hline
+    \textbf{Constraint} & \textbf{Rule} \\ \hline
+    Budget ceiling & Discard offers where \texttt{priceDA $>$ needs.budget}. \\ \hline
+    Operator       & If a preferred operator is set ($\neq$ \guillemotleft{}any\guillemotright{}), keep only its offers. \\ \hline
+    Plan type, network & Keep only offers matching the requested type (prepaid / postpaid / data-only) and network generation (4G / 5G). \\ \hline
+    Calls and SMS  & If the \guillemotleft{}unlimited\guillemotright{} toggle is set, keep only offers with the corresponding unlimited sentinel (\texttt{-1}). \\ \hline
+  \end{tabular}
+\end{table}
 
-\subsection{Tiered Ranking with Explicit Priority Elicitation}
+The ranking layer then asks the user to rank two criteria from the set \{price, data\} rather than to assign numeric weights, a known difficulty in multi-criteria decision contexts where users have well-defined preferences but cannot accurately quantify the corresponding weights \parencite{Roberts1979}. Each rankable criterion is scored as a need-relative ratio rather than a pool-normalised one, so a catalogue outlier (a 10~DA plan with no data) cannot distort the ranking for users with a typical budget. The two key parameters of the algorithm and their justifications are summarised in Table~\ref{tab:rec-params}.
 
-Rather than asking the user to assign numeric weights to each criterion — a known difficulty in multi-criteria decision contexts where users have well-defined preferences but cannot accurately quantify the corresponding weights \parencite{Roberts1979} — the engine asks the user to rank two criteria from the rankable set \{price, data\}. The first-ranked priority strictly determines an offer tier, and the second-ranked priority orders offers within that tier.
-
-The merit of each rankable criterion is computed as a need-relative ratio, not as a pool-normalised score: this ensures that a catalogue outlier (for example, an absurdly cheap 10~DA plan with no data) cannot distort the ranking for users with a typical budget. The tier function \texttt{round($m_1 \times 4$) / 4} produces five discrete tier centres (0, 0.25, 0.5, 0.75, 1) covering the merit space in equal intervals of width $h = 0.25$. \textbf{Five centres rather than three or seven} was retained for two reasons: a smaller catalogue (~100 plans) does not statistically support finer-grained partitioning, and a larger number of tiers would shrink each tier toward a single offer, defeating the within-tier ordering purpose. \textbf{The secondary-merit multiplier of $0.24$} is set strictly below the tier width $h = 0.25$ to guarantee that no within-tier improvement on the secondary criterion can lift an offer past a higher tier; the small safety margin (0.24 < 0.25) absorbs floating-point rounding and keeps the boundary inviolate. The user's primary priority therefore strictly dominates the result, while the secondary priority still influences the final order.
+\begin{table}[H]
+  \caption{Justification of the key parameters of the tiered-ranking layer}
+  \label{tab:rec-params}
+  \centering\small
+  \begin{tabular}{|p{3.0cm}|p{10.3cm}|}
+    \hline
+    \textbf{Parameter} & \textbf{Why this value} \\ \hline
+    Five tier centres ($h = 0.25$) & A smaller catalogue (~100 plans) does not statistically support finer partitioning; a larger number of tiers would shrink each tier toward a single offer and defeat the within-tier ordering. \\ \hline
+    Secondary multiplier $= 0.24$ & Strictly below the tier width $h = 0.25$: guarantees that no within-tier improvement on the secondary criterion can lift an offer past a higher tier; the $0.01$ safety margin absorbs floating-point rounding. \\ \hline
+  \end{tabular}
+\end{table}
 
 \subsection{Iterative Design History}
 
-The tiered model presented above was reached only after four earlier designs had been rejected. The first prototype added a flat $+12 / +8 / +4$ bonus to a hundred-point base fitness score for each ranked priority; the bonus was too small to overcome the base score, so the recommendations always followed price regardless of the user's choice. The second prototype replaced the bonus with a weighted sum of merits, with weights of 60\,\% on the primary and 40\,\% on the secondary; this allowed a great score on one criterion to compensate for a poor score on the other, contradicting the user's stated priority. The third prototype replaced the weighted sum with a weighted geometric mean of merits; tuning the weights merely shifted the symptom between \guillemotleft{}follows only price\guillemotright{} and \guillemotleft{}follows only data\guillemotright{} without ever producing a clean primary-then-secondary order. A fourth prototype attempted tiered ranking with a tier step of $0.1$, which made the cheapest tier so narrow that it contained only micro-plans, producing degenerate results. The final design (tier step $0.25$, with a multiplier of $0.24$ for the secondary) was retained: it reliably produces \guillemotleft{}follow the first priority, then get as close as possible to the second\guillemotright{}, which matches the user's stated mental model.
+The tiered model was reached only after four earlier designs were rejected, each exposing a specific failure mode of the previous one. Table~\ref{tab:rec-history} summarises the five iterations.
 
-To illustrate the failure mode of the weighted geometric mean concretely, consider a user with budget 1\,400~DA, data need 20~GB, and priority ranking \texttt{[price, data]}. Two candidate offers are: $O_A$ at 200~DA / 3~GB and $O_B$ at 1\,400~DA / 25~GB. The need-relative merits are $m_{\mathrm{price}}(O_A) = 200/1400 \approx 0.14$, $m_{\mathrm{data}}(O_A) = 3/20 = 0.15$; $m_{\mathrm{price}}(O_B) = 1400/1400 = 1.00$, $m_{\mathrm{data}}(O_B) = 25/20 \to 1.00$ (clamped). With weights $(0.6, 0.4)$ and the geometric-mean composite $m_1^{0.6} \cdot m_2^{0.4}$, the model returns $0.143$ for $O_A$ and $1.000$ for $O_B$, ranking $O_B$ first --- precisely contradicting the user's stated primary preference for the price criterion, which would prefer $O_A$ since it sits closest to the lower-price end. The tiered model places $O_A$ in tier $0.00$ and $O_B$ in tier $1.00$; because the user's primary priority is price (lower merit is better in the engine's internal direction), tier $0.00$ leads strictly and $O_A$ is ranked first. The two models produce opposite top results from the same inputs --- which is the symptom the iterative process was eliminating.
+\begin{table}[H]
+  \caption{Iterative design history of the recommendation engine}
+  \label{tab:rec-history}
+  \centering\small
+  \begin{tabular}{|p{0.6cm}|p{4.5cm}|p{8.5cm}|}
+    \hline
+    \textbf{\#} & \textbf{Design} & \textbf{Why rejected} \\ \hline
+    1 & Flat bonus ($+12/+8/+4$) on a 100-pt fitness score & Bonus too small to overcome the base score; recommendations always followed price regardless of user choice. \\ \hline
+    2 & Weighted sum of merits ($0.6, 0.4$) & A great score on one criterion compensated for a poor score on the other, contradicting the user's stated priority. \\ \hline
+    3 & Weighted geometric mean & Tuning the weights merely shifted the symptom between \guillemotleft{}follows only price\guillemotright{} and \guillemotleft{}follows only data\guillemotright{} without ever producing a clean primary-then-secondary order. \\ \hline
+    4 & Tiered ranking with tier step $h = 0.1$ & Cheapest tier so narrow it contained only micro-plans, producing degenerate results. \\ \hline
+    5 & \textbf{Tiered ranking, $h = 0.25$, secondary multiplier $0.24$ (retained)} & Reliably produces \guillemotleft{}follow the first priority, then get as close as possible to the second\guillemotright{}, matching the user's mental model. \\ \hline
+  \end{tabular}
+\end{table}
 
-The engine is called from two distinct contexts: the \texttt{/api/recommendations} route handler executes the algorithm synchronously in response to an explicit user request from the recommendations page (rate-limited at sixty requests per minute per IP), and the scraper orchestrator runs it in batch after each successful scrape cycle to dispatch personalised \texttt{recommendation} notifications when a user's top match has changed. The engine covers the case where the user has filled out a profile and wants the system to choose for them; the complementary case --- the user has a query in mind and wants the catalogue filtered by it --- is handled by the structured search interface described next.
+To illustrate the rejection of design~3 concretely, consider a user with budget 1\,400~DA, data need 20~GB, priorities \texttt{[price, data]}, and two candidate offers $O_A$ (200~DA / 3~GB) and $O_B$ (1\,400~DA / 25~GB). The geometric-mean composite $m_1^{0.6} \cdot m_2^{0.4}$ returns $0.14$ for $O_A$ and $1.00$ for $O_B$, ranking $O_B$ first --- directly contradicting the user's stated primary preference for price. The tiered model places $O_A$ in tier $0.00$ and $O_B$ in tier $1.00$; the primary priority strictly determines the tier, so $O_A$ leads. The two models produce opposite top results from the same inputs --- which is the failure mode the iterative process was eliminating.
+
+The engine is called from two distinct contexts: the \texttt{/api/recommendations} route handler executes the algorithm synchronously in response to an explicit user request (rate-limited at sixty requests per minute per IP), and the scraper orchestrator runs it in batch after each successful scrape cycle to dispatch personalised \texttt{recommendation} notifications when a user's top match has changed. The engine covers the case where the user has filled out a profile and wants the system to choose for them; the complementary case --- the user has a query in mind and wants the catalogue filtered by it --- is handled by the structured search interface described next.
 
 \section{Structured Search Engine}
 
@@ -274,106 +285,91 @@ The separation was introduced specifically to fix two defects in an earlier sing
 
 \section{Frontend --- Key Interfaces}
 
-The application comprises nine primary screens covering the full user journey from discovery to account management. This section describes the main screens and illustrates their appearance in the running application.
+The application comprises nine primary screens covering the full user journey from discovery to account management. Table~\ref{tab:ui-screens} maps each screen to its route, audience, and main interactive elements; the corresponding screenshots are then grouped below.
 
-\paragraph{Home page and offer browsing.}
-The home page (Figure~\ref{fig:ss-home}) serves as the entry point for unauthenticated users. It presents a language selector (English, French, or Arabic), four feature highlight tiles, and the three operator logos. Selecting a language stores the preference and redirects immediately to the offers catalogue. Authenticated users bypass this screen entirely and are redirected directly to the offers page.
+\begin{table}[H]
+  \caption{Key user-interface screens of the application}
+  \label{tab:ui-screens}
+  \centering\small
+  \begin{tabular}{|p{2.6cm}|p{2.5cm}|p{1.6cm}|p{6.4cm}|}
+    \hline
+    \textbf{Screen} & \textbf{Route} & \textbf{Audience} & \textbf{Main elements} \\ \hline
+    Home               & \texttt{/}           & Public  & Language selector (EN / FR / AR), four feature tiles, three operator logos; authenticated users bypass this screen and land directly on \texttt{/offers}. \\ \hline
+    Offers catalogue   & \texttt{/offers}     & Public  & Grid of offer cards, operator filter tabs, plan-type pills, collapsible advanced filter panel, structured search bar with \guillemotleft{}Read as\guillemotright{} chips, sticky bottom bar when plans are selected for comparison. \\ \hline
+    Comparison         & \texttt{/compare}    & Public  & Side-by-side specification table tinted in operator colours, plus per-metric bar charts (price, data, and annual savings when launched from recommendations). \\ \hline
+    Recommendations    & \texttt{/recommend}  & Account & Usage-profile form (budget, data, calls / SMS toggles, type / network / operator filters, two priority slots); on submit, three ranked cards with badges (🥇🥈🥉) and human-readable match reasons. \\ \hline
+    Login / Register   & \texttt{/login}, \texttt{/register} & Public & Email + password (registration adds a name); client-side validation; inline error messages without page reload. \\ \hline
+    Admin dashboard    & \texttt{/admin}      & Admin   & Four statistics cards, operator health panel, per-family plan breakdown (live / fallback / fixed), scrape history log, admin notifications tab. \\ \hline
+    Saved plans        & \texttt{/saved}      & Account & Grid of bookmarked plans with unsave action and a direct route to the comparison view that auto-selects the saved plans. \\ \hline
+    User profile       & \texttt{/profile}    & Account & Persisted usage profile (budget, data, calls / SMS, type, network, preferred operator, ranked priorities); bidirectionally synchronised with the recommendations page. \\ \hline
+    Help / tutorial    & \texttt{/help}       & Public  & Five-section scrollable guide (search, recommendations, comparison, filters, saved plans) with annotated screenshots and a \guillemotleft{}sign-in required\guillemotright{} badge where applicable. \\ \hline
+  \end{tabular}
+\end{table}
 
 \begin{figure}[H]
   \centering
-  \includegraphics[width=0.95\textwidth]{images/screenshot_home}
-  \caption{Home page of Mobile Match Algeria}
+  \includegraphics[width=0.86\textwidth]{images/screenshot_home}
+  \caption{Home page}
   \label{fig:ss-home}
 \end{figure}
 
-\paragraph{Offers page with structured search.}
-The offers page (Figure~\ref{fig:ss-offers}) is the application's main discovery surface. It renders a grid of offer cards with operator filter tabs, plan-type pills, and a collapsible advanced filter panel (price, data, network). Above the grid, a structured search input parses the user's query into typed tokens (operator, data volume, price range, feature keywords) and displays each parsed token as a \guillemotleft{}Read as\guillemotright{} chip so the user sees how the query was interpreted. When plans are selected for comparison, a fixed-bottom sticky bar appears (Figure~\ref{fig:compare-bar}) displaying the selection count and a navigation button.
-
 \begin{figure}[H]
   \centering
-  \includegraphics[width=0.95\textwidth]{images/screenshot_offers}
-  \caption{Offers page showing plan catalogue, structured search, and operator filter tabs}
+  \includegraphics[width=0.86\textwidth]{images/screenshot_offers}
+  \caption{Offers page --- catalogue, structured search, and operator filter tabs}
   \label{fig:ss-offers}
 \end{figure}
 
 \begin{figure}[H]
   \centering
-  \includegraphics[width=0.95\textwidth]{images/compare_bar}
-  \caption{Sticky comparison bar --- appears at the bottom when plans are selected}
+  \includegraphics[width=0.74\textwidth]{images/compare_bar}
+  \caption{Sticky comparison bar --- appears when plans are selected}
   \label{fig:compare-bar}
 \end{figure}
 
-\paragraph{Comparison page.}
-The comparison page (Figure~\ref{fig:ss-compare}) reads the plan IDs from the URL query string and fetches the corresponding offers from the \texttt{/api/offers?ids=...} endpoint. It renders a structured side-by-side specification table, with each column tinted in the operator's brand colour, accompanied by per-metric bar charts for price and data volume, plus a third bar chart for annual savings (against the user's monthly budget) when the comparison was launched from the recommendations page.
-
 \begin{figure}[H]
   \centering
-  \includegraphics[width=0.95\textwidth]{images/screenshot_compare}
+  \includegraphics[width=0.86\textwidth]{images/screenshot_compare}
   \caption{Side-by-side comparison page with operator-tinted columns and bar charts}
   \label{fig:ss-compare}
 \end{figure}
 
-\paragraph{Recommendations page.}
-The recommendations page (Figure~\ref{fig:ss-recommend}) presents a usage-profile form with the budget and data needs, toggle pills for calls and SMS (no preference / unlimited), filter pills for plan type, network, and operator, and the two priority slots (first and second) used by the tiered-ranking engine. On submission, the form sends a POST request to \texttt{/api/recommendations} and renders the three best-matched plans annotated with rank badges (🥇🥈🥉) and the human-readable match reasons.
-
 \begin{figure}[H]
   \centering
-  \includegraphics[width=0.95\textwidth]{images/screenshot_recommend}
+  \includegraphics[width=0.86\textwidth]{images/screenshot_recommend}
   \caption{Recommendations page --- profile form, priority slots, and ranked results}
   \label{fig:ss-recommend}
 \end{figure}
 
-\paragraph{Login and registration.}
-Figure~\ref{fig:ss-login} shows the authentication screens. The login page accepts an email address and password; the registration page adds a name field. Both forms perform client-side validation before submitting. Incorrect credentials trigger a non-destructive inline error message without reloading the page.
-
 \begin{figure}[H]
   \centering
-  \includegraphics[width=0.95\textwidth]{images/screenshot_login}
-  \caption{Login page}
-  \label{fig:ss-login}
-\end{figure}
-
-\paragraph{Admin dashboard.}
-The admin dashboard (Figure~\ref{fig:ss-admin}) is accessible only to users with the \texttt{ADMIN} role, verified server-side on every request. It presents four statistics cards (active offers, registered users, scrape sessions, scrape success rate), an operator health panel with the last scrape status and offer count per operator, a per-family plan breakdown that colour-codes each scraped plan family as live, fallback, or fixed data after every run, a scrape history log with detailed per-operator event lines, and a notifications tab listing every system event sent to the administrator.
-
-\begin{figure}[H]
-  \centering
-  \includegraphics[width=0.95\textwidth]{images/screenshot_admin}
+  \includegraphics[width=0.86\textwidth]{images/screenshot_admin}
   \caption{Admin dashboard --- statistics, operator health panel, and scrape log}
   \label{fig:ss-admin}
 \end{figure}
 
-\paragraph{Saved-plans page.}
-The saved-plans page (Figure~\ref{fig:ss-saved}) lists every plan the authenticated user has bookmarked from the offers page or from a recommendation result. Each card carries an unsave button and a direct path to the comparison view, which auto-selects the saved plans for side-by-side analysis.
-
 \begin{figure}[H]
   \centering
-  \includegraphics[width=0.95\textwidth]{images/screenshot_saved}
+  \includegraphics[width=0.86\textwidth]{images/screenshot_saved}
   \caption{Saved-plans page --- bookmarked offers grouped for quick comparison}
   \label{fig:ss-saved}
 \end{figure}
 
-\paragraph{User-profile page.}
-The user-profile page (Figure~\ref{fig:ss-profile}) exposes the persisted usage profile used by the recommendation engine: monthly budget, data need, calls and SMS toggles, preferred plan type, network generation, preferred operator, and the two ranked priorities (price / data). Saving the profile from this page is bidirectionally synchronised with the recommendations page so that priorities updated on either screen apply to both.
-
 \begin{figure}[H]
   \centering
-  \includegraphics[width=0.95\textwidth]{images/screenshot_profile}
+  \includegraphics[width=0.86\textwidth]{images/screenshot_profile}
   \caption{User-profile page --- usage profile and ranked priorities}
   \label{fig:ss-profile}
 \end{figure}
 
-\paragraph{Help / tutorial page.}
-The guided help page (Figure~\ref{fig:ss-help}) documents the five core features of the platform — structured search, recommendations, comparison, filters, and saved plans — in a single scrollable view. Each section pairs a textual description with numbered step-by-step instructions, an annotated screenshot captured automatically from the live application, and a link to the corresponding page. Sections requiring authentication carry a \guillemotleft{}sign-in required\guillemotright{} badge.
-
 \begin{figure}[H]
   \centering
-  \includegraphics[width=0.95\textwidth]{images/screenshot_help}
+  \includegraphics[width=0.86\textwidth]{images/screenshot_help}
   \caption{Help / tutorial page --- five feature sections with annotated screenshots}
   \label{fig:ss-help}
 \end{figure}
 
-The eight screens described above expose the application to users; the next two sections describe the protections that surround that exposure --- the security mechanisms enforced on every request, and the deployment configuration under which the protections operate.
+The screens above expose the application to users; the next two sections describe the protections that surround that exposure --- the security mechanisms enforced on every request, and the deployment configuration under which the protections operate.
 
 \section{Security}
 
