@@ -133,6 +133,14 @@ export default function CompareContent({ initialIds, fromRecommend, fromSaved }:
     // formatData renders sub-1GB volumes as "256 MB" instead of "0.25618 GB".
     label: o.dataGB === -1 ? '∞' : formatData(o.dataGB, t),
   }))
+  // Annual saving versus the priciest plan in the current selection — answers
+  // "how much money per year does picking this plan save me over the most
+  // expensive option in this comparison?" The priciest plan sits at 0.
+  const priciest = offers.length ? Math.max(...offers.map((o: any) => o.priceDA)) : 0
+  const savingsChart = offers.map((o: any) => {
+    const annualSaving = (priciest - o.priceDA) * 12
+    return { name: chartName(o), value: annualSaving, label: formatDA(annualSaving) }
+  })
   // Ranked comparison → gold/silver/bronze; normal comparison → distinct per-slot hues.
   const chartColors = fromRecommend ? RANK_COLORS : SLOT_COLORS
   // Per-offer identity colour, reused to tint that offer's whole table column.
@@ -335,6 +343,7 @@ export default function CompareContent({ initialIds, fromRecommend, fromSaved }:
             <div style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap' }}>
               <MiniChart title={t('compare.chartPrice')} data={priceChart} betterWhen="low" colors={chartColors} />
               <MiniChart title={t('compare.chartData')} data={dataChart} betterWhen="high" colors={chartColors} />
+              <MiniChart title={t('compare.chartSavings')} data={savingsChart} betterWhen="high" colors={chartColors} />
             </div>
           </div>
         )}
