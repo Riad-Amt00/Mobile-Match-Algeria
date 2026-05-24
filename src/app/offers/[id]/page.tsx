@@ -8,7 +8,7 @@ import {
   ArrowLeft, Wifi, Phone, MessageSquare, Calendar, Zap,
   CheckCircle, Bookmark, BookmarkCheck, BarChart2,
   Star, TrendingDown, Loader2, Signal, LayoutGrid,
-  TrendingUp, AlertCircle, Map, ExternalLink,
+  TrendingUp, AlertCircle,
 } from 'lucide-react'
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts'
 import { useSession } from 'next-auth/react'
@@ -16,7 +16,7 @@ import { useRouter } from 'next/navigation'
 import { useToast } from '@/components/toast'
 import {
   formatDA, formatData, formatMinutes, formatSms, formatValidity,
-  getPricePerGB, OPERATOR_LOGOS, COVERAGE_URLS, parseFeatures, cleanOfferName,
+  getPricePerGB, OPERATOR_LOGOS, parseFeatures, cleanOfferName,
 } from '@/lib/utils'
 import { useLang } from '@/lib/lang-context'
 
@@ -161,21 +161,6 @@ export default function OfferDetailPage() {
                   </span>
                 )}
               </div>
-
-              {COVERAGE_URLS[slug] && (
-                <div style={{ marginBottom: '1.5rem' }}>
-                  <a
-                    href={COVERAGE_URLS[slug]}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12.5, fontWeight: 600, color: 'var(--accent)', textDecoration: 'none', padding: '4px 10px', borderRadius: 20, background: 'var(--accent-muted)', border: '1px solid var(--accent-border)', transition: 'opacity 0.15s' }}
-                    onMouseEnter={e => (e.currentTarget.style.opacity = '0.75')}
-                    onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
-                  >
-                    <Map size={11} /> {t('detail.coverageMap')} <ExternalLink size={10} />
-                  </a>
-                </div>
-              )}
 
               {/* Price */}
               <div>
