@@ -40,7 +40,7 @@ Table~\ref{tab:fr} lists the twelve functional requirements elicited, ordered by
     \hline
     FR3 & Search the plan catalogue through a structured free-text query (operator name, data volume, price range, keyword features such as ``unlimited'' or ``streaming''), with the parsed query tokens visualised to the user. & All users \\
     \hline
-    FR4 & Select up to three plans and view them in a side-by-side comparison table together with per-metric bar charts for price, data volume, and annual saving against the priciest plan in the selection. & All users \\
+    FR4 & Select up to three plans and view them in a side-by-side comparison table together with per-metric bar charts for price and data volume; a third bar chart for annual savings (against the user's monthly budget) is added when the comparison was launched from the recommendations page. & All users \\
     \hline
     FR5 & Define a usage profile (budget, data, voice, SMS, preferred type, preferred network, preferred operator, ranked priorities) and receive a ranked list of the three best-matching plans produced by the recommendation engine. & Registered User \\
     \hline
@@ -260,7 +260,7 @@ Table~\ref{tab:usecases} describes each primary use case, the actor who triggers
     \hline
     UC2 & Advanced Search             & All users         & Enter a free-text query describing the desired plan; the system parses the query into structured tokens (operator, data volume, price range, feature keywords) and filters the catalogue accordingly. The parsed tokens are displayed as chips so the user sees how the query was interpreted. \\
     \hline
-    UC3 & Compare Plans               & All users         & Select up to three plans and view them in a side-by-side table together with per-metric bar charts for price, data volume, and annual saving against the priciest plan in the selection. Requires at least two plans selected. \\
+    UC3 & Compare Plans               & All users         & Select up to three plans and view them in a side-by-side table together with per-metric bar charts for price and data volume; if launched from the recommendations page, a third bar chart shows annual savings against the user's monthly budget. Requires at least two plans selected. \\
     \hline
     UC4 & See Potential Savings       & Registered User   & After running a recommendation, view on each ranked plan the monthly, annual, and percentage savings obtained by switching, computed automatically from the user's monthly budget. \\
     \hline
@@ -571,7 +571,7 @@ The application comprises nine main screens, whose appearance is illustrated by 
 \begin{enumerate}
   \item \textbf{Home page} — Language-selection landing page presenting feature highlights and operator logos. Authenticated users are redirected directly to the offers page.
   \item \textbf{Offers page} — Grid of offer cards with operator filter tabs, plan-type pills, an advanced filter panel (price, data, network), and a structured search input above the grid that displays parsed query tokens as chips. A sticky bottom bar appears when plans are selected for comparison.
-  \item \textbf{Comparison page} — Side-by-side table together with three per-metric bar charts (price, data volume, and annual saving vs the priciest plan in the selection) for the selected plans.
+  \item \textbf{Comparison page} — Side-by-side table together with per-metric bar charts (price and data volume) for the selected plans, plus an annual-savings bar chart when the comparison was launched from the recommendations page.
   \item \textbf{Recommendations page} — Usage-profile form (budget, data, voice, SMS toggles, plan type, network, operator, ranked priorities) and the ranked list of three matched plans displayed with rank badges; each ranked card carries an integrated savings indicator showing the monthly, annual, and percentage saving obtained by switching to that plan from the user's monthly budget.
   \item \textbf{Saved-plans page} — Grid of plans bookmarked by the user, with a direct path to the comparison view and per-card removal.
   \item \textbf{Help / tutorial page} — Five sections (search, recommend, compare, filters, saved) each containing a description, step-by-step instructions, annotated screenshots, and a link to the corresponding page. Sections requiring authentication carry a sign-in badge.

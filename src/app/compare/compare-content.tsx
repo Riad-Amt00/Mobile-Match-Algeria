@@ -84,6 +84,10 @@ export default function CompareContent({ initialIds, fromRecommend, fromSaved }:
   const [allOffers, setAllOffers] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [picker, setPicker] = useState<{ slot: number; operator: string | null } | null>(null)
+  // Monthly budget from the user's saved profile — only fetched when the user
+  // arrives from /recommend, since that's the only context where the savings
+  // chart is shown.
+  const [budget, setBudget] = useState<number | null>(null)
 
   useEffect(() => {
     const ids = initialIds.split(',').filter(Boolean)
@@ -100,6 +104,17 @@ export default function CompareContent({ initialIds, fromRecommend, fromSaved }:
       setLoading(false)
     }).catch(() => setLoading(false))
   }, [initialIds])
+
+  useEffect(() => {
+    if (!fromRecommend) return
+    fetch('/api/profile')
+      .then(r => (r.ok ? r.json() : null))
+      .then(d => {
+        const b = d?.profile?.monthlyBudget
+        if (typeof b === 'number' && b > 0) setBudget(b)
+      })
+      .catch(() => {})
+  }, [fromRecommend])
 
   const addOffer = (id: string) => {
     if (offers.length >= 3) return
@@ -133,14 +148,16 @@ export default function CompareContent({ initialIds, fromRecommend, fromSaved }:
     // formatData renders sub-1GB volumes as "256 MB" instead of "0.25618 GB".
     label: o.dataGB === -1 ? '∞' : formatData(o.dataGB, t),
   }))
-  // Annual saving versus the priciest plan in the current selection — answers
-  // "how much money per year does picking this plan save me over the most
-  // expensive option in this comparison?" The priciest plan sits at 0.
-  const priciest = offers.length ? Math.max(...offers.map((o: any) => o.priceDA)) : 0
-  const savingsChart = offers.map((o: any) => {
-    const annualSaving = (priciest - o.priceDA) * 12
-    return { name: chartName(o), value: annualSaving, label: formatDA(annualSaving) }
-  })
+  // Annual savings against the user's monthly budget — only built when the
+  // comparison was launched from /recommend (so a budget is available) and
+  // shows what each plan would save the user per year if they switched.
+  const showSavingsChart = fromRecommend && budget !== null && offers.length >= 2
+  const savingsChart = showSavingsChart
+    ? offers.map((o: any) => {
+        const annualSaving = Math.max(0, (budget! - o.priceDA) * 12)
+        return { name: chartName(o), value: annualSaving, label: formatDA(annualSaving) }
+      })
+    : []
   // Ranked comparison → gold/silver/bronze; normal comparison → distinct per-slot hues.
   const chartColors = fromRecommend ? RANK_COLORS : SLOT_COLORS
   // Per-offer identity colour, reused to tint that offer's whole table column.
@@ -343,7 +360,9 @@ export default function CompareContent({ initialIds, fromRecommend, fromSaved }:
             <div style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap' }}>
               <MiniChart title={t('compare.chartPrice')} data={priceChart} betterWhen="low" colors={chartColors} />
               <MiniChart title={t('compare.chartData')} data={dataChart} betterWhen="high" colors={chartColors} />
-              <MiniChart title={t('compare.chartSavings')} data={savingsChart} betterWhen="high" colors={chartColors} />
+              {showSavingsChart && (
+                <MiniChart title={t('compare.chartSavings')} data={savingsChart} betterWhen="high" colors={chartColors} />
+              )}
             </div>
           </div>
         )}

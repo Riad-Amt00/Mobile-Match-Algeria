@@ -9,7 +9,6 @@ import {
   Target, BarChart2, MessageSquare, Lock, Loader2,
 } from 'lucide-react'
 
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, LabelList } from 'recharts'
 import { formatDA, formatData, formatMinutes, RANK_GRADIENTS, RANK_COLORS, cleanOfferName } from '@/lib/utils'
 import { useLang } from '@/lib/lang-context'
 
@@ -466,45 +465,6 @@ export default function RecommendPage() {
                     </motion.div>
                   ))}
                 </motion.div>
-              )}
-
-              {results.length >= 2 && results.some(r => r.savings > 0) && (
-                <div className="card" style={{ padding: '1.5rem', marginTop: '1.25rem' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: '0.25rem' }}>
-                    <TrendingDown size={16} style={{ color: 'var(--color-success)' }} />
-                    <h3 style={{ fontSize: 14, fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>
-                      {t('recommend.savingsChartTitle')}
-                    </h3>
-                  </div>
-                  <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: '0 0 1rem' }}>
-                    {t('recommend.savingsChartHint')}
-                  </p>
-                  <ResponsiveContainer width="100%" height={200}>
-                    <BarChart
-                      data={results.map((r, i) => ({
-                        name: `#${i + 1} ${cleanOfferName(r.offer?.name || '').slice(0, 14)}`,
-                        value: Math.max(0, r.savings * 12),
-                        label: formatDA(Math.max(0, r.savings * 12)),
-                      }))}
-                      margin={{ top: 22, right: 8, bottom: 4, left: 8 }}
-                    >
-                      <XAxis dataKey="name" tick={{ fontSize: 10, fill: 'var(--text-muted)' }} interval={0} />
-                      <YAxis hide domain={[0, 'dataMax']} />
-                      <Tooltip
-                        cursor={{ fill: 'var(--bg-subtle)' }}
-                        formatter={(_v: any, _n: any, p: any) => [p?.payload?.label ?? '', '']}
-                        contentStyle={{ fontSize: 12, borderRadius: 8, border: '1px solid var(--border-base)', background: 'var(--bg-elevated)' }}
-                        labelStyle={{ fontWeight: 700 }}
-                      />
-                      <Bar dataKey="value" radius={[4, 4, 0, 0]}>
-                        {results.map((_, i) => (
-                          <Cell key={i} fill={RANK_COLORS[i] ?? 'var(--accent)'} />
-                        ))}
-                        <LabelList dataKey="label" position="top" style={{ fontSize: 10, fontWeight: 700, fill: 'var(--text-secondary)' }} />
-                      </Bar>
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
               )}
 
               {results.length > 0 && results[0].score < 50 && (

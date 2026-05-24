@@ -131,7 +131,7 @@ export const translations = {
     'compare.chartPrice':        'Price (DA)',
     'compare.chartData':         'Data (GB)',
     'compare.chartValue':        'Value (GB / 1000 DA)',
-    'compare.chartSavings':      'Annual saving vs priciest (DA)',
+    'compare.chartSavings':      'Annual savings',
     'compare.type':              'Type',
     'compare.price':             'Price',
     'compare.data':              'Data',
@@ -197,8 +197,6 @@ export const translations = {
     'recommend.updateResults':   'Update results',
     'recommend.compareSideBySide': 'Compare side-by-side →',
     'recommend.unlimitedCalls':  'Unlimited calls',
-    'recommend.savingsChartTitle': 'Annual savings comparison',
-    'recommend.savingsChartHint':  'How much each top-ranked plan would save you per year against your monthly budget.',
     'recommend.lowMatchWarning': 'These are partial matches only. Try raising your budget or adjusting data requirements.',
     'recommend.matchExcellent':  'Excellent',
     'recommend.matchGood':       'Good',
@@ -501,7 +499,7 @@ export const translations = {
     'compare.chartPrice':        'Prix (DA)',
     'compare.chartData':         'Data (Go)',
     'compare.chartValue':        'Rapport (Go / 1000 DA)',
-    'compare.chartSavings':      'Économie annuelle vs plus cher (DA)',
+    'compare.chartSavings':      'Économies annuelles',
     'compare.type':              'Type',
     'compare.price':             'Prix',
     'compare.data':              'Data',
@@ -567,8 +565,6 @@ export const translations = {
     'recommend.updateResults':   'Mettre à jour les résultats',
     'recommend.compareSideBySide': 'Comparer côte à côte →',
     'recommend.unlimitedCalls':  'Appels illimités',
-    'recommend.savingsChartTitle': 'Comparaison des économies annuelles',
-    'recommend.savingsChartHint':  "Économie annuelle de chaque forfait du top par rapport à votre budget mensuel.",
 
     // ─── Saved page ────────────────────────────────────────────────────────
     'saved.title':      'Offres sauvegardées',
@@ -871,7 +867,7 @@ export const translations = {
     'compare.chartPrice':        'السعر (دج)',
     'compare.chartData':         'البيانات (جيغا)',
     'compare.chartValue':        'القيمة (جيغا / 1000 دج)',
-    'compare.chartSavings':      'التوفير السنوي مقابل الأغلى (دج)',
+    'compare.chartSavings':      'التوفير السنوي',
     'compare.type':              'النوع',
     'compare.price':             'السعر',
     'compare.data':              'البيانات',
@@ -937,8 +933,6 @@ export const translations = {
     'recommend.updateResults':   'تحديث النتائج',
     'recommend.compareSideBySide': 'مقارنة جانبية ←',
     'recommend.unlimitedCalls':  'مكالمات غير محدودة',
-    'recommend.savingsChartTitle': 'مقارنة التوفير السنوي',
-    'recommend.savingsChartHint':  'مقدار التوفير السنوي لكل عرض من العروض الموصى بها مقارنةً بميزانيتك الشهرية.',
 
     // ─── Saved page ────────────────────────────────────────────────────────
     'saved.title':      'العروض المحفوظة',
