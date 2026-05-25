@@ -1,288 +1,138 @@
-﻿% ─────────────────────────────────────────────────────────────────────────────
-% back/annexes.tex — Annexes A through E
+% ─────────────────────────────────────────────────────────────────────────────
+% back/annexes.tex — Annexes A (User Manual) and B (Application Screenshots)
 % ─────────────────────────────────────────────────────────────────────────────
 
 \appendix
 \renewcommand{\chaptername}{Annexe}
 
 % ─────────────────────────────────────────────────────────────────────────────
-\chapter{UML Diagrams}
-\label{annexe:uml}
+\chapter{User Manual}
+\label{annexe:manual}
 % ─────────────────────────────────────────────────────────────────────────────
 
-This annexe contains the full set of UML diagrams produced during the analysis and design phase of the project. The diagrams presented in the main body of the thesis (Chapter~2) are condensed versions intended to fit within the page layout; the diagrams here show the complete models.
+This annexe gathers the user-facing manual of \textit{Mobile Match Algeria} in a single place. The same content is also rendered inside the running application at \texttt{/help}, accessible from the navbar of every page. The manual is organised by actor role --- Visitor, Registered User, and Administrator --- so each reader can navigate directly to the workflows relevant to them. The screenshots referenced throughout this manual are collected in Annexe~B.
 
-\bigskip
-\noindent\textbf{Figure A.1} — Complete use case diagram including all actors, all use cases, and actor generalisation relationships.
+\section{Visitor (no account required)}
 
-\begin{figure}[H]
-\centering
-\begin{tikzpicture}[
-  actor/.style={rectangle, draw=black!60, fill=gray!10, rounded corners=3pt,
-                minimum width=2.4cm, minimum height=0.6cm, align=center, font=\scriptsize\bfseries},
-  uc/.style={ellipse, draw=black!70, fill=blue!5, minimum width=4.5cm, minimum height=0.7cm,
-             align=center, font=\scriptsize},
-  ucadm/.style={ellipse, draw=black!70, fill=orange!8, minimum width=4.5cm, minimum height=0.7cm,
-                align=center, font=\scriptsize},
-  sys/.style={rectangle, draw=black!50, dashed, rounded corners=5pt, inner sep=8pt},
-  assoc/.style={thick, black!50},
-  gen/.style={thick, black!70, -{Triangle[open, length=5pt, width=5pt]}}
-]
-  \node[sys, minimum width=11cm, minimum height=15.0cm] (sys) at (5.5,-7.4) {};
-  \node[font=\scriptsize\bfseries, anchor=north west] at (sys.north west) {\textit{Mobile Match Algeria — System Boundary}};
+A visitor can use the platform without registering. The following workflows are available:
 
-  % Visitor-level use cases (UC1..UC6)
-  \node[uc] (uc1)  at (5.5,-0.7)  {Browse \& Filter Offers};
-  \node[uc] (uc2)  at (5.5,-1.85) {Advanced Search};
-  \node[uc] (uc3)  at (5.5,-3.0)  {View Offer Details};
-  \node[uc] (uc4)  at (5.5,-4.15) {Compare Plans (table + charts)};
-  \node[uc] (uc5)  at (5.5,-5.3)  {See Potential Savings};
-  \node[uc] (uc6)  at (5.5,-6.45) {View Help / Tutorial};
-  % Registered User use cases (UC7..UC10)
-  \node[uc] (uc7)  at (5.5,-7.7)  {Get Personalised Recommendations};
-  \node[uc] (uc8)  at (5.5,-8.85) {Save / Unsave a Plan};
-  \node[uc] (uc9)  at (5.5,-10.0) {View Saved Plans};
-  \node[uc] (uc10) at (5.5,-11.15){Edit Usage Profile};
-  \node[uc] (uc11) at (5.5,-12.3) {View \& Manage Notifications};
-  % Admin-only use cases (UC12..UC13)
-  \node[ucadm] (uc12) at (5.5,-13.55) {Trigger Scrape Run};
-  \node[ucadm] (uc13) at (5.5,-14.7)  {View Scrape Logs \& Statistics};
+\begin{enumerate}
+  \item \textbf{Browse the catalogue.} Open \texttt{/offers} from the navbar. The grid lists every active plan grouped by operator. Filter pills above the grid restrict the view to a single operator or a single plan type (prepaid, postpaid, data-only). The advanced-filter panel exposes price, data-volume, and network-generation ranges (Figure~\ref{fig:ss-offers}).
+  \item \textbf{Search.} Type a free-text query in the search bar above the grid; the query is parsed into typed tokens (operator, data volume, price range, plan type, network) and the matching tokens are displayed as \guillemotleft{}Read as\guillemotright{} chips immediately under the input. A \guillemotleft{}?\guillemotright{} popover next to the input lists the recognised token kinds with examples.
+  \item \textbf{View an offer in detail.} Click any plan card to open the dedicated detail page \texttt{/offers/[id]} (Figure~\ref{fig:ss-offer-detail}). The detail page shows the full plan specification, the price-history line chart, and the matching operator's brand colours.
+  \item \textbf{Compare up to three plans.} Tick the \guillemotleft{}Compare\guillemotright{} button on each plan card; a sticky bottom bar appears once at least two plans are selected. Click \guillemotleft{}Compare\guillemotright{} on the sticky bar to open \texttt{/compare}, which presents a side-by-side specification table and per-metric bar charts for price and data volume (Figure~\ref{fig:ss-compare}). An additional annual-savings chart appears when the comparison is launched from the recommendations page.
+  \item \textbf{See the integrated help.} The \texttt{/help} page (Figure~\ref{fig:ss-help}) contains five sections (search, recommendations, compare, filters, saved) each with description, step-by-step instructions, and annotated screenshots. Sections that require authentication are marked with a \guillemotleft{}sign-in required\guillemotright{} badge.
+\end{enumerate}
 
-  % Actors (left side)
-  \node[actor] (visitor) at (-0.5,-3.6)  {Visitor};
-  \node[actor] (user)    at (-0.5,-9.45) {Registered\\User};
-  \node[actor] (admin)   at (-0.5,-14.1) {Administrator};
+\section{Registered User}
 
-  % Generalisation arrows (open triangle = is-a / inherits)
-  \draw[gen] (user.north)  -- (visitor.south);
-  \draw[gen] (admin.north) -- (user.south);
+Creating an account at \texttt{/register} (Figure~\ref{fig:ss-register}) and signing in at \texttt{/login} (Figure~\ref{fig:ss-login}) unlocks the personalised workflows:
 
-  % Visitor associations
-  \draw[assoc] (visitor.east) -- (uc1.west);
-  \draw[assoc] (visitor.east) -- (uc2.west);
-  \draw[assoc] (visitor.east) -- (uc3.west);
-  \draw[assoc] (visitor.east) -- (uc4.west);
-  \draw[assoc] (visitor.east) -- (uc5.west);
-  \draw[assoc] (visitor.east) -- (uc6.west);
+\begin{enumerate}
+  \item \textbf{Edit the usage profile.} Open \texttt{/profile} (Figure~\ref{fig:ss-profile}) and set the monthly budget, expected data usage, calls and SMS toggles (any / unlimited), preferred plan type, preferred network generation, preferred operator, and the two-slot priority ranking (1st = primary, 2nd = secondary; choose between price and data). The same form is also exposed inline on the recommendations page.
+  \item \textbf{Get personalised recommendations.} Open \texttt{/recommend} (Figure~\ref{fig:ss-recommend}). Adjust the usage-profile form if needed, then click \guillemotleft{}Run recommendation\guillemotright{}. The engine returns the three best-matched plans as ranked cards (gold / silver / bronze) with the match reasons and an integrated savings indicator showing the monthly, annual, and percentage saving against the user's budget.
+  \item \textbf{Save plans for later.} Click the bookmark icon on any plan card or detail page to add the plan to the saved list. The saved list is available at \texttt{/saved} (Figure~\ref{fig:ss-saved}) and can be sent directly to the comparison page in one click.
+  \item \textbf{Read notifications.} The navbar bell shows the count of unread notifications. Clicking the bell expands the notification feed; clicking any individual notification routes the user to the most relevant page (offer detail, recommendations page, or admin history depending on the type) and marks the row as read.
+\end{enumerate}
 
-  % Registered User additional associations
-  \draw[assoc] (user.east) -- (uc7.west);
-  \draw[assoc] (user.east) -- (uc8.west);
-  \draw[assoc] (user.east) -- (uc9.west);
-  \draw[assoc] (user.east) -- (uc10.west);
-  \draw[assoc] (user.east) -- (uc11.west);
+\section{Administrator}
 
-  % Admin additional (exclusive) associations
-  \draw[assoc] (admin.east) -- (uc12.west);
-  \draw[assoc] (admin.east) -- (uc13.west);
-\end{tikzpicture}
-\caption{Complete use case diagram --- actor generalisation and all use cases}
-\label{fig:usecase-full}
-\end{figure}
+The administrator role is granted by claiming a one-time code at \texttt{/admin/claim}. Once granted, the administrator inherits all the registered-user workflows and adds the following operational workflows:
 
-\noindent\textbf{Figure A.2} — Class diagram showing all model classes, their attributes, and their associations.
-
-\begin{figure}[H]
-\centering
-\begin{tikzpicture}[
-  cls/.style={rectangle, draw=black!80, fill=white, align=left, font=\scriptsize, inner sep=0pt},
-  hdr/.style={fill=blue!15, font=\scriptsize\bfseries, align=center, minimum height=0.52cm, minimum width=3.6cm},
-  row/.style={fill=white, minimum height=0.40cm, minimum width=3.6cm, align=left, inner sep=3pt},
-  assoc/.style={thick, ->, black!65}
-]
-  %% ── Row 1: Operator · Offer · User · Notification ─────────────────────────
-  \matrix[cls, ampersand replacement=\&] (op) at (0,0) {
-    \node[hdr]{Operator}; \\
-    \node[row]{id: String (PK)}; \\
-    \node[row]{name, slug}; \\
-    \node[row]{primaryColor, website}; \\
-  };
-  \matrix[cls, ampersand replacement=\&] (offer) at (3.9,0) {
-    \node[hdr]{Offer}; \\
-    \node[row]{id: String (PK)}; \\
-    \node[row]{name, slug, type, network}; \\
-    \node[row]{priceDA, dataGB, voiceMin}; \\
-    \node[row]{smsCount, validityDays}; \\
-    \node[row]{features, isActive}; \\
-    \node[row]{sourceUrl, scrapedAt}; \\
-  };
-  \matrix[cls, ampersand replacement=\&] (user) at (7.8,0) {
-    \node[hdr]{User}; \\
-    \node[row]{id: String (PK)}; \\
-    \node[row]{name, email (unique)}; \\
-    \node[row]{emailVerified: DateTime}; \\
-    \node[row]{passwordHash, role}; \\
-    \node[row]{createdAt, updatedAt}; \\
-  };
-  \matrix[cls, ampersand replacement=\&] (notif) at (11.7,0) {
-    \node[hdr]{Notification}; \\
-    \node[row]{id: String (PK)}; \\
-    \node[row]{userId (FK)}; \\
-    \node[row]{title, message, type}; \\
-    \node[row]{isRead: Boolean}; \\
-    \node[row]{offerId, createdAt}; \\
-  };
-
-  %% ── Row 2: ScrapeLog · PriceHistory · SavedOffer · UserProfile ────────────
-  \matrix[cls, ampersand replacement=\&] (scrape) at (0,-5.0) {
-    \node[hdr]{ScrapeLog}; \\
-    \node[row]{id: String (PK)}; \\
-    \node[row]{operatorId (FK)}; \\
-    \node[row]{status, duration}; \\
-    \node[row]{offersFound/Added/Updated}; \\
-    \node[row]{offersDeactivated, details}; \\
-    \node[row]{errorMessage, startedAt}; \\
-  };
-  \matrix[cls, ampersand replacement=\&] (history) at (3.9,-5.0) {
-    \node[hdr]{PriceHistory}; \\
-    \node[row]{id: String (PK)}; \\
-    \node[row]{offerId (FK)}; \\
-    \node[row]{priceDA: Float}; \\
-    \node[row]{recordedAt: DateTime}; \\
-  };
-  \matrix[cls, ampersand replacement=\&] (saved) at (7.8,-5.0) {
-    \node[hdr]{SavedOffer}; \\
-    \node[row]{id: String (PK)}; \\
-    \node[row]{userId (FK)}; \\
-    \node[row]{offerId (FK)}; \\
-    \node[row]{savedAt: DateTime}; \\
-  };
-  \matrix[cls, ampersand replacement=\&] (profile) at (11.7,-5.0) {
-    \node[hdr]{UserProfile}; \\
-    \node[row]{id: String (PK)}; \\
-    \node[row]{userId (FK, unique)}; \\
-    \node[row]{monthlyBudget, dataUsageGB}; \\
-    \node[row]{voiceMinutes, smsCount}; \\
-    \node[row]{preferredType, preferredNet}; \\
-    \node[row]{preferredOperator, priorities}; \\
-  };
-
-  %% ── Associations ──────────────────────────────────────────────────────────
-  % Operator → Offer  (1 to N)
-  \draw[assoc] (op.east) --
-    node[above, font=\scriptsize, pos=0.15]{1}
-    node[above, font=\scriptsize, pos=0.85]{N}
-    (offer.west);
-  % Operator → ScrapeLog  (1 to N)
-  \draw[assoc] (op.south) --
-    node[left, font=\scriptsize, pos=0.15]{1}
-    node[left, font=\scriptsize, pos=0.85]{N}
-    (scrape.north);
-  % Offer → PriceHistory  (1 to N) — direct below
-  \draw[assoc] (offer.south) --
-    node[left, font=\scriptsize, pos=0.15]{1}
-    node[left, font=\scriptsize, pos=0.85]{N}
-    (history.north);
-  % Offer → SavedOffer  (1 to N) — diagonal
-  \draw[assoc] (offer.south east) --
-    node[above, sloped, font=\scriptsize, pos=0.15]{1}
-    node[above, sloped, font=\scriptsize, pos=0.85]{N}
-    (saved.north west);
-  % User → SavedOffer  (1 to N) — diagonal
-  \draw[assoc] (user.south west) --
-    node[above, sloped, font=\scriptsize, pos=0.15]{1}
-    node[above, sloped, font=\scriptsize, pos=0.85]{N}
-    (saved.north east);
-  % User → UserProfile  (1 to 1)
-  \draw[assoc] (user.south east) --
-    node[above, sloped, font=\scriptsize, pos=0.15]{1}
-    node[above, sloped, font=\scriptsize, pos=0.85]{1}
-    (profile.north west);
-  % User → Notification  (1 to N) — horizontal
-  \draw[assoc] (user.east) --
-    node[above, font=\scriptsize, pos=0.15]{1}
-    node[above, font=\scriptsize, pos=0.85]{N}
-    (notif.west);
-\end{tikzpicture}
-\caption{Class diagram of the Mobile Match Algeria data model}
-\label{fig:class-diagram}
-\end{figure}
-
-\noindent\textbf{Figure A.3} — Sequence diagram for the user registration and login flow.
-
-\begin{figure}[H]
-\centering
-\begin{tikzpicture}[
-  actor/.style={rectangle, draw=black!70, fill=gray!15, minimum width=3cm,
-                minimum height=0.55cm, align=center, font=\small\bfseries},
-  msg/.style={-{Stealth[length=4pt]}, thick},
-  retmsg/.style={-{Stealth[length=4pt]}, thick, dashed},
-  note/.style={font=\scriptsize, fill=yellow!20, draw=gray!60,
-               rounded corners=2pt, inner sep=3pt, align=left}
-]
-  \node[actor] (client) at (0,0)    {Browser};
-  \node[actor] (api)    at (5.5,0)  {NextAuth API};
-  \node[actor] (db)     at (11,0)   {Database};
-
-  \foreach \x in {0,5.5,11} \draw[gray!50, thick] (\x,-0.35) -- (\x,-11.0);
-
-  %% ── Registration ──────────────────────────────────────────────────────────
-  \node[font=\small\bfseries, gray!70] at (-2.4,-0.9) {Register};
-  \draw[msg]    (0,-1.1)  -- (5.5,-1.1)
-    node[midway, above, font=\scriptsize]{POST /api/auth/register \{name, email, password\}};
-  \draw[msg]    (5.5,-2.0) -- (11,-2.0)
-    node[midway, above, font=\scriptsize]{SELECT: check email uniqueness};
-  \draw[retmsg] (11,-2.7)  -- (5.5,-2.7)
-    node[midway, above, font=\scriptsize]{Not found — OK};
-  \node[note, anchor=west] at (5.8,-3.5)  {Hash password (bcrypt, cost=12)};
-  \draw[msg]    (5.5,-4.3) -- (11,-4.3)
-    node[midway, above, font=\scriptsize]{INSERT User \{name, email, passwordHash\}};
-  \draw[retmsg] (5.5,-5.1) -- (0,-5.1)
-    node[midway, above, font=\scriptsize]{201 Created — redirect to /login};
-
-  %% ── Separator ─────────────────────────────────────────────────────────────
-  \draw[dashed, gray!60] (-1.0,-5.8) -- (12.0,-5.8);
-
-  %% ── Login ─────────────────────────────────────────────────────────────────
-  \node[font=\small\bfseries, gray!70] at (-2.4,-6.4) {Login};
-  \draw[msg]    (0,-6.6)   -- (5.5,-6.6)
-    node[midway, above, font=\scriptsize]{POST /api/auth/signin \{email, password\}};
-  \draw[msg]    (5.5,-7.5) -- (11,-7.5)
-    node[midway, above, font=\scriptsize]{SELECT User WHERE email = ?};
-  \draw[retmsg] (11,-8.2)  -- (5.5,-8.2)
-    node[midway, above, font=\scriptsize]{User record + passwordHash};
-  \node[note, anchor=west] at (5.8,-9.0)  {bcrypt.compare(password, hash)};
-  \node[note, anchor=west] at (5.8,-9.7)  {Sign JWT \{role, id, secret\}};
-  \draw[retmsg] (5.5,-10.5) -- (0,-10.5)
-    node[midway, above, font=\scriptsize]{200 OK + Set-Cookie: session JWT};
-  \node[note, anchor=west] at (0.3,-11.2) {Redirect to /offers};
-\end{tikzpicture}
-\caption{Sequence diagram --- user registration and login flow}
-\label{fig:seq-auth}
-\end{figure}
+\begin{enumerate}
+  \item \textbf{Open the admin dashboard.} Navigate to \texttt{/admin} (Figure~\ref{fig:ss-admin}). The dashboard groups four statistics cards (active offers, registered users, scrape sessions, scrape success rate), an operator-health panel showing the live / fallback / fixed counts per operator, a per-family plan breakdown, and a scrape-history log.
+  \item \textbf{Trigger a manual scrape run.} The \guillemotleft{}Run scrape\guillemotright{} button at the top of the admin dashboard invokes the scraper orchestrator for all three operators. The run completes in approximately 20 to 60 seconds depending on operator-side latency.
+  \item \textbf{Inspect a scrape run.} Each row of the scrape history can be expanded to reveal the per-family event log (offers added, updated, deactivated, parser warnings, fetch errors). Failed runs are marked in red and produce a \texttt{scrape\_failed} administrator notification.
+  \item \textbf{Configure the environment.} Three environment variables must be set before the application is started: \texttt{DATABASE\_URL} (path to the SQLite file), \texttt{NEXTAUTH\_SECRET} (JWT signing key), and \texttt{NEXTAUTH\_URL} (base URL). A fourth variable, \texttt{ADMIN\_CLAIM\_CODE}, controls the one-time admin-claim flow.
+\end{enumerate}
 
 % ─────────────────────────────────────────────────────────────────────────────
-\chapter{Data Model Summary}
-\label{annexe:schema}
+\chapter{Application Screenshots}
+\label{annexe:screenshots}
 % ─────────────────────────────────────────────────────────────────────────────
 
-The data model is defined in \texttt{prisma/schema.prisma} using the Prisma schema language. It consists of eight application-defined entities whose primary fields and relations are summarised in Table~\ref{tab:schema-entities}. Authentication-infrastructure models managed by NextAuth.js (\texttt{Account}, \texttt{Session}, \texttt{VerificationToken}) and the system-level \texttt{RateLimit} table are excluded from this summary. The full schema file is available in the project repository.
+This annexe collects the full set of application screenshots referenced by the user manual in Annexe~A. The screenshots were captured from the running development build in May 2026.
 
-\begin{table}[H]
-  \caption{Prisma schema entities and primary fields}
-  \label{tab:schema-entities}
-  \centering\small
-  \begin{tabular}{|p{2.4cm}|p{7.5cm}|p{3.5cm}|}
-    \hline
-    \textbf{Entity} & \textbf{Key fields} & \textbf{Relations} \\
-    \hline
-    Operator     & id, name, slug, logoUrl, websiteUrl, primaryColor & Offer, ScrapeLog \\
-    \hline
-    Offer        & id, operatorId, name, slug, type, priceDA, dataGB, voiceMinutes, smsCount, validityDays, network, features, isActive, sourceUrl, scrapedAt & Operator, PriceHistory, SavedOffer \\
-    \hline
-    PriceHistory & id, offerId, priceDA, recordedAt & Offer \\
-    \hline
-    User         & id, name, email, emailVerified, passwordHash, role, createdAt & UserProfile, SavedOffer, Notification \\
-    \hline
-    UserProfile  & id, userId, monthlyBudget, dataUsageGB, voiceMinutes, smsCount, preferredType, preferredNet, preferredOperator, priorities & User \\
-    \hline
-    SavedOffer   & id, userId, offerId, savedAt & User, Offer \\
-    \hline
-    Notification & id, userId, title, message, type, isRead, offerId, createdAt & User \\
-    \hline
-    ScrapeLog    & id, operatorId, status, offersFound, offersAdded, offersUpdated, offersDeactivated, details, errorMessage, duration, startedAt, completedAt & Operator \\
-    \hline
-  \end{tabular}
-\end{table}
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.9\textwidth]{images/screenshot_home}
+  \caption{Home page --- language selector, feature tiles, and operator logos.}
+  \label{fig:ss-home}
+\end{figure}
 
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.9\textwidth]{images/screenshot_offers}
+  \caption{Offers page --- catalogue grid with operator pills and structured search.}
+  \label{fig:ss-offers}
+\end{figure}
 
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.9\textwidth]{images/screenshot_offers_filtered}
+  \caption{Offers page with the advanced filter panel expanded.}
+  \label{fig:ss-offers-filtered}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.9\textwidth]{images/screenshot_offer_detail}
+  \caption{Offer detail page --- full specification and price-history line chart.}
+  \label{fig:ss-offer-detail}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.9\textwidth]{images/screenshot_compare}
+  \caption{Comparison page --- side-by-side specification table and per-metric bar charts.}
+  \label{fig:ss-compare}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.9\textwidth]{images/screenshot_recommend}
+  \caption{Recommendations page --- usage-profile form and ranked plan cards with savings indicator.}
+  \label{fig:ss-recommend}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.9\textwidth]{images/screenshot_profile}
+  \caption{Profile page --- persisted usage profile and ranked priorities.}
+  \label{fig:ss-profile}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.9\textwidth]{images/screenshot_saved}
+  \caption{Saved-plans page --- bookmarked offers with a direct path to comparison.}
+  \label{fig:ss-saved}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.9\textwidth]{images/screenshot_help}
+  \caption{Help / tutorial page --- five-section integrated user guide with annotated screenshots.}
+  \label{fig:ss-help}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.65\textwidth]{images/screenshot_login}
+  \caption{Login page --- email and password authentication with inline validation.}
+  \label{fig:ss-login}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.65\textwidth]{images/screenshot_register}
+  \caption{Registration page --- account creation with client-side validation and inline error feedback.}
+  \label{fig:ss-register}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.9\textwidth]{images/screenshot_admin}
+  \caption{Admin dashboard --- statistics cards, operator-health panel, per-family breakdown, and scrape history log.}
+  \label{fig:ss-admin}
+\end{figure}
