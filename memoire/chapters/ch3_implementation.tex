@@ -281,7 +281,42 @@ The notification system is split into two distinct streams handled by the same \
 
 The two-stream separation is enforced at the source: every notification-dispatch function in the scraper orchestrator (\texttt{notifyUsers}, \texttt{notifyAdmins}, \texttt{notifyAdminsFailure}) filters the recipient set by the \texttt{User.role} field before writing any row. Each notification type also drives the click-through routing applied by the navbar bell and the admin panel: user-stream notifications navigate to the offer detail page or to \texttt{/recommend} depending on the type, while administrator-stream notifications navigate to \texttt{/admin?tab=history}.
 
-The separation was introduced specifically to fix two defects in an earlier single-stream design. Without role filters on the dispatch functions, an administrator's feed was systematically polluted with consumer-facing alerts produced for every newly scraped offer. More damagingly, both administrator \guillemotleft{}scrape complete\guillemotright{} and user \guillemotleft{}new offer\guillemotright{} events used the same \texttt{type} value, so a non-administrator user clicking on a \guillemotleft{}new offer\guillemotright{} notification was routed to \texttt{/admin?tab=history} — a page they were not permitted to access. The current two-stream design — role-filtered dispatch, distinct \texttt{type} values, and type-aware routing — eliminates both defects by construction.
+The separation was introduced specifically to fix two defects in an earlier single-stream design. Without role filters on the dispatch functions, an administrator's feed was systematically polluted with consumer-facing alerts produced for every newly scraped offer. More damagingly, both administrator \guillemotleft{}scrape complete\guillemotright{} and user \guillemotleft{}new offer\guillemotright{} events used the same \texttt{type} value, so a non-administrator user clicking on a \guillemotleft{}new offer\guillemotright{} notification was routed to \texttt{/admin?tab=history} --- a page they were not permitted to access. The current two-stream design --- role-filtered dispatch, distinct \texttt{type} values, and type-aware routing --- eliminates both defects by construction.
+
+\subsection{End-to-End Notification Scenario}
+
+To make the behaviour of the two streams concrete, Table~\ref{tab:notif-scenario} walks through a single scrape cycle that triggers every notification type at least once. The scenario starts with an administrator (\emph{Alice}) initiating a manual scrape, and ends with two registered users (\emph{Bob}, who has saved a Djezzy plan; and \emph{Carol}, whose usage profile is on file) receiving the corresponding alerts. The actor in each row is the agent that produces the notification; the recipient is the audience that sees it.
+
+\begin{table}[H]
+  \caption{End-to-end notification scenario for one scrape cycle}
+  \label{tab:notif-scenario}
+  \centering\small
+  \begin{tabular}{|p{0.5cm}|p{2.4cm}|p{4.0cm}|p{2.2cm}|p{3.5cm}|}
+    \hline
+    \textbf{\#} & \textbf{Actor / event} & \textbf{Action} & \textbf{Type fired} & \textbf{Recipient(s)} \\
+    \hline
+    1 & Alice (admin)            & Clicks \guillemotleft{}Run scrape\guillemotright{} on the admin dashboard.                                          & ---                     & --- \\
+    \hline
+    2 & Scraper orchestrator     & Fetches the three operator catalogues; inserts two previously unknown Djezzy plans; detects a 200~DA price drop on a Mobilis plan that Bob had saved. & ---                     & --- \\
+    \hline
+    3 & Scrape completion        & Run finishes with status \texttt{SUCCESS}.                                                                     & \texttt{scrape\_complete} & Alice and every other administrator. Routes to \texttt{/admin?tab=history}. \\
+    \hline
+    4 & Insertion of new plan    & For each of the two new Djezzy plans, a row is inserted in \texttt{Offer}.                                     & \texttt{new\_offer}     & Bob, Carol, and every other registered user. Routes to \texttt{/offers/[id]}. \\
+    \hline
+    5 & Price decrease detected  & The saved Mobilis plan's \texttt{priceDA} is rewritten from 1\,500 to 1\,300~DA in the same run.               & \texttt{price\_drop}    & Bob only (because Bob is the only user who had saved that offer). Routes to \texttt{/offers/[id]}. \\
+    \hline
+    6 & Re-ranking pass          & The recommendation engine re-runs against every profile; Carol's previous top-matched plan is overtaken by a newer one. & \texttt{recommendation} & Carol only. Routes to \texttt{/recommend}. \\
+    \hline
+    7 & Notification fan-out     & Notifications are batch-inserted into the \texttt{Notification} table grouped by \texttt{userId}.              & ---                     & --- \\
+    \hline
+    8 & Recipient sees the bell  & Each recipient's navbar bell badge increments by the count of unread rows for their \texttt{userId}.            & ---                     & --- \\
+    \hline
+    9 & Recipient clicks one     & The frontend marks the row as read (PATCH \texttt{/api/notifications}) and navigates by \texttt{type}.          & ---                     & ---                                       \\
+    \hline
+  \end{tabular}
+\end{table}
+
+The scenario exercises every defensive property of the two-stream design at once: row 3 is admin-only because the role filter excludes \texttt{USER}-role recipients; rows 4--6 are user-only because the dispatch functions for those types restrict the recipient query to \texttt{role = 'USER'}; row 5 narrows further by joining against \texttt{SavedOffer.userId} so only users who had actually saved the affected plan receive the alert; and row 6 narrows further still by requiring a saved \texttt{UserProfile}. The click-through routing in row 9 reads the \texttt{type} field of the clicked notification and dispatches accordingly --- an administrator clicking the \texttt{scrape\_complete} row never lands on a user-facing page, and a user clicking the \texttt{new\_offer} row never lands on the admin page.
 
 \section{Frontend --- Key Interfaces}
 
