@@ -4,107 +4,15 @@
 
 \chapter{State of the Art and Core Concepts}
 
-This chapter establishes the theoretical and technical foundation upon which the rest of the work rests. It examines the Algerian mobile telecommunications market, reviews existing comparison platforms at the international level, and surveys the key technical disciplines involved in building this project: web data aggregation, recommendation systems, and modern full-stack web development. The chapter concludes by positioning \textit{Mobile Match Algeria} within the landscape identified through this review.
-
-\section{The Algerian Mobile Telecommunications Market}
-
-\subsection{Market Overview and Key Figures}
-
-Algeria's mobile telecommunications sector is regulated by the Autorité de Régulation de la Poste et des Communications Électroniques (ARPCE). According to ARPCE's most recent quarterly observatory, the country counts more than 54~million mobile subscribers in the first quarter of 2025 --- a 4.4\,\% increase over the same quarter of the previous year --- distributed across three licensed operators: Mobilis, owned by the state-controlled Algérie Télécom group; Djezzy, majority-owned by VEON; and Ooredoo, a subsidiary of the Qatari group Ooredoo \parencite{ARPCE2025, ARPCE2024, Statista2024}. Mobile penetration stands at approximately 106\,\%, reflecting a mature market where many users hold multiple SIM cards.
-
-The network infrastructure has evolved considerably over the past decade. Following the deployment of 4G LTE services in 2016, all three operators have expanded coverage progressively across the country. Djezzy launched commercially limited 5G trials in 2024, positioning itself as the first operator to test fifth-generation technology in Algeria \parencite{GSMA2024}. These developments have accelerated the diversification of plan offerings, as operators compete on price, data volume, and network quality.
-
-\subsection{Offer Complexity and the Consumer Decision Problem}
-
-Each operator publishes a catalogue of prepaid, postpaid, and data-only plans that is updated several times per year. Prices range from a few hundred to several thousand Algerian Dinars per month, depending on the included data volume (from 1~GB to over 200~GB), voice minutes (from limited bundles to unlimited calls), SMS allowances, and validity periods (daily, weekly, monthly, or longer). A consumer wishing to identify the most cost-effective plan for their specific usage profile must visit three separate websites, compare offerings across heterogeneous formats, and account for promotional periods that may alter the base price.
-
-Table~\ref{tab:operator-summary} summarises the main characteristics of each operator's catalogue as of the first quarter of 2026, illustrating the scope of the comparison challenge.
-
-\begin{table}[H]
-  \caption{Summary of operator plan catalogues (Q1 2026)}
-  \label{tab:operator-summary}
-  \centering\small
-  \resizebox{\textwidth}{!}{%
-  \begin{tabular}{|l|c|c|c|}
-    \hline
-    \textbf{Criterion}      & \textbf{Mobilis}        & \textbf{Djezzy}         & \textbf{Ooredoo}        \\
-    \hline
-    Plan types              & Prepaid, Postpaid, Data & Prepaid, Postpaid, Data & Prepaid, Postpaid, Data \\
-    \hline
-    Price range (DA/month)  & 500 – 4\,000            & 250 – 4\,000            & 500 – 4\,000            \\
-    \hline
-    Max data volume         & 400 GB                  & 350 GB                  & 300 GB                  \\
-    \hline
-    5G availability         & Yes (4G/5G)             & No                      & Yes (4G/5G)             \\
-    \hline
-    Public API              & None                    & None                    & None                    \\
-    \hline
-  \end{tabular}}
-\end{table}
-
-\section{Existing Comparison Platforms}
-
-Several international platforms have successfully addressed the plan-comparison problem in their respective markets, and one Algerian multi-vertical comparator addresses part of the same need locally. This section reviews both and then positions \textit{Mobile Match Algeria} against them.
-
-\paragraph{International benchmarks.}
-An analysis of three established international platforms reveals common features, architectural patterns, and limitations that inform the design of the present work.
-
-\textbf{MeilleurMobile} (France) is a leading French aggregator that covers all national operators and virtual operators (MVNOs). It provides a tabular comparison interface, a plan-finder questionnaire, and user reviews. The platform relies primarily on operator partnerships and manual data entry rather than automated scraping, which limits how quickly its catalogue reflects operator-side changes. It does not offer a personalisation engine beyond basic filtering \parencite{MeilleurMobile2024}.
-
-\textbf{WhistleOut} (Australia and the United Kingdom) operates a comparison marketplace that includes both mobile plans and broadband. It features a strong search and filter interface and integrates affiliate referral links. Its data is updated through a combination of operator feeds and editorial review. The platform targets English-speaking markets and its architecture is not publicly documented.
-
-\textbf{CompareTheMobile} (United Kingdom) offers a highly visual comparison interface with side-by-side plan cards and a compatibility checker for handsets. Like its counterparts, it depends on voluntary operator data submission and does not employ automated collection.
-
-\paragraph{An Algerian comparator: Comparili.net.}
-One local platform was identified that addresses part of the same need. \textbf{Comparili.net}, founded in 2020 by three Algerian entrepreneurs, is a multi-vertical comparator that covers business software (CRM, ERP, accounting), web hosting and online services, banking cards, and mobile telephony in a single WordPress-based site \parencite{Comparili2024}. Mobile plans appear as one of several categories alongside the software and hosting verticals that dominate the platform's positioning (\guillemotleft{}le comparateur N\textsuperscript{o}1 des logiciels métiers informatiques\guillemotright{} according to its own home page). Its mobile-plan section provides a filter-based comparison of SIM-card offerings supported by editorial articles and user reviews \parencite{Comparili2024}.
-
-The existence of Comparili.net confirms that a market demand for comparison tools in Algeria is real and already partially served. It also delimits a clear positioning space for the present work. Mobile Match Algeria differs from Comparili.net along five axes:
-
-\begin{itemize}
-  \item \textbf{Scope}: Comparili.net is a multi-vertical comparator with mobile plans as one section among many; Mobile Match Algeria is a dedicated mobile-plan platform with a deeper feature set on that single vertical.
-  \item \textbf{Data acquisition}: Comparili.net is editorially curated and enriched by user-submitted reviews; Mobile Match Algeria relies on an automated scraping pipeline that synchronises offers from the three operator websites on a scheduled basis.
-  \item \textbf{Personalisation}: Comparili.net offers filtering and a SIM comparison page; Mobile Match Algeria adds a tiered-ranking recommendation engine that orders offers by the user's declared budget, usage profile, and priority ranking.
-  \item \textbf{Language}: Comparili.net is published in French; Mobile Match Algeria offers a trilingual interface (French, English, Arabic) to extend reach within the Algerian user base.
-  \item \textbf{Openness}: Comparili.net is a proprietary WordPress platform; Mobile Match Algeria is open-source and intended as both a consumer tool and an academic artefact.
-\end{itemize}
-
-\paragraph{Gap analysis for Algeria.}
-Beyond Comparili.net, none of the international platforms identified above serve the Algerian market directly. The absence of additional comparators can be explained by several structural factors: the relatively small number of operators (three), the absence of virtual operators, and the lack of public APIs that would facilitate data integration. The international platforms reviewed rely on operator cooperation or affiliate relationships that do not exist in the Algerian context. Furthermore, none of these platforms — Comparili.net included — offers an Arabic-language interface, which is essential for reaching the full Algerian user base, nor a deep multi-criteria scoring recommendation engine tailored to mobile-plan attributes.
-
-Table~\ref{tab:platform-comparison} synthesises the key characteristics of the platforms identified during the state-of-the-art review.
-
-\begin{table}[H]
-  \caption{Key characteristics of existing plan-comparison platforms}
-  \label{tab:platform-comparison}
-  \centering\small
-  \begin{tabular}{|l|c|c|c|c|}
-    \hline
-    \textbf{Feature} & \textbf{MeilleurMobile} & \textbf{WhistleOut} & \textbf{CompareTheMobile} & \textbf{Comparili.net} \\
-    \hline
-    Algeria coverage        & No  & No  & No  & Yes     \\
-    \hline
-    Mobile-plan focus       & Yes & Yes & Yes & Partial \\
-    \hline
-    Automated scraping      & No  & No  & No  & No      \\
-    \hline
-    Recommendation engine   & No  & No  & No  & No      \\
-    \hline
-    Arabic interface        & No  & No  & No  & No      \\
-    \hline
-    Open-source             & No  & No  & No  & No      \\
-    \hline
-    Side-by-side comparison & No  & Yes & Yes & Yes     \\
-    \hline
-  \end{tabular}
-\end{table}
-
-All comparators reviewed above --- international and Algerian --- share one operational requirement: a steady supply of up-to-date catalogue data. The next section examines how that supply can be obtained in the Algerian context, where operator APIs are absent and the data has to be retrieved from the public websites themselves.
+This chapter establishes the technical and contextual foundation upon which the rest of the work rests. It first surveys the four disciplines this project draws on --- web data aggregation, web scraping, recommendation systems, and structured search for small catalogues --- then situates the work within the Algerian mobile telecommunications market and reviews the existing comparison platforms that have attempted to address consumer needs at the regional or international level. The chapter concludes by positioning \textit{Mobile Match Algeria} within the landscape identified through this review.
 
 \section{Web Data Aggregation}
 
-\subsection{Why Scraping and not Operator APIs}
+Web data aggregation is the systematic collection of information from multiple online sources to feed a single downstream application. Three principal paradigms are available to the practitioner. \textbf{Public APIs} are the preferred path when a data owner exposes a stable, documented endpoint that returns the desired records: integration is fast, the resulting feed is structured, and the rate limits are negotiated up front. \textbf{Syndication feeds} (RSS, Atom) cover a narrower set of use cases --- typically blog posts or news articles --- and are absent from most commercial domains today. \textbf{Web scraping} is the fallback: the aggregator visits the publicly-rendered pages and extracts the data from the HTML directly, with no cooperation required from the data owner.
 
-The subject fiche allows two data-aggregation strategies: web scraping \emph{or} public APIs. A thorough review of the public developer portals of the three Algerian operators was conducted to confirm which strategy is actually applicable. Mobilis, Djezzy, and Ooredoo each expose enterprise-oriented APIs — for example Ooredoo publishes documented APIs for SIM-Swap detection, one-time-password verification under the CAMARA standard, direct carrier billing, and silent-number verification \parencite{GSMA2024}. These APIs target fraud-prevention, identity, and payment use cases. \textbf{None of the three operators publishes a consumer-facing API that returns the catalogue of mobile plans, their prices, or their data volumes}: the plan catalogue exists only as marketing content on each operator's website. The choice between \guillemotleft{}scraping ou APIs\guillemotright{} listed in the subject fiche therefore resolves unambiguously in favour of scraping, because the alternative does not exist in the consumer-plan domain in Algeria.
+The subject fiche allows two of these strategies --- \guillemotleft{}web scraping ou APIs\guillemotright{} --- but a thorough review of the public developer portals of the three Algerian operators confirms that the alternative does not exist in the consumer-plan domain. Mobilis, Djezzy, and Ooredoo each expose enterprise-oriented APIs --- for example Ooredoo publishes documented APIs for SIM-Swap detection, one-time-password verification under the CAMARA standard, direct carrier billing, and silent-number verification \parencite{GSMA2024}. These APIs target fraud-prevention, identity, and payment use cases. \textbf{None of the three operators publishes a consumer-facing API that returns the catalogue of mobile plans, their prices, or their data volumes}: the plan catalogue exists only as marketing content on each operator's website. The choice between the strategies listed in the subject fiche therefore resolves unambiguously in favour of scraping, because the alternative does not exist in the consumer-plan domain in Algeria. The next section examines how scraping is realised in practice.
+
+\section{Web Scraping}
 
 \subsection{Static vs. Dynamic Scraping}
 
@@ -172,7 +80,7 @@ The web-scraping tool landscape was surveyed before selecting the chosen stack. 
   \end{tabular}
 \end{table}
 
-The chosen combination — Playwright with real Microsoft Edge for fetching and Cheerio for parsing — is therefore the lightest configuration that fully solves the project's problem within the academic-budget constraints. Each alternative was evaluated against three criteria: capability (does it solve a problem the chosen stack does not), integration cost (does it require a language or runtime switch), and operational cost (does it require a paid service or commercial account).
+The chosen combination --- Playwright with real Microsoft Edge for fetching and Cheerio for parsing --- is therefore the lightest configuration that fully solves the project's problem within the academic-budget constraints. Each alternative was evaluated against three criteria: capability (does it solve a problem the chosen stack does not), integration cost (does it require a language or runtime switch), and operational cost (does it require a paid service or commercial account).
 
 \paragraph{Data normalisation and ethical considerations.}
 Because each operator presents plan information in a different format, a normalisation pipeline is required to map raw scraped values to a common schema: unit conversion (MB to GB), removal of promotional suffixes from plan names, extraction of numeric values from strings containing units, and assignment of default values for fields not provided by a given operator. Ethically and legally, the project consumes only publicly visible marketing pages that no operator's \texttt{robots.txt} disallows, respects rate limits and inter-request delays, identifies its user-agent, and never collects any personally identifiable information; the data so collected is identical to what any visitor sees in their browser.
@@ -235,16 +143,110 @@ Three families of search technology are commonly considered when adding a search
 
 Reading Table~\ref{tab:search-families} against the project's parameters --- a catalogue of fewer than two hundred plans whose attributes are already structured (price, data volume, network, type, operator) --- the trade-offs collapse to a clear conclusion. An industrial engine adds a second source of truth requiring synchronisation; a managed service adds a recurring fee incompatible with an academic budget; the hand-rolled structured-parser approach has no extra operational cost and maps the user's query directly onto the database columns the project already has. The hand-rolled approach was therefore retained: a small set of regular expressions extracts typed tokens (operator, data volume, price range, network, plan type, and feature keywords such as \guillemotleft{}unlimited\guillemotright{}) and translates them into a Prisma \texttt{where} clause. The same parser runs client-side to render the tokens as \guillemotleft{}Read as\guillemotright{} chips, giving the user an explainable view of how each query was interpreted --- a transparency property no opaque industrial engine offers out of the box \parencite{Mitchell2018}.
 
-All three technical disciplines surveyed so far --- data aggregation, recommendation, and search --- must be implemented inside a coherent web platform. The next section introduces the technology stack chosen to host them.
+With the four technical disciplines mapped --- aggregation, scraping, recommendation, and search --- the chapter now turns to the specific market in which they are applied: the Algerian mobile telecommunications sector.
 
-\section{Modern Web Stack Overview}
+\section{The Algerian Mobile Telecommunications Market}
 
-The application is built on a contemporary full-stack JavaScript stack centred on three pillars: \textit{Next.js 16} as a React-based framework supporting server-side rendering, the file-system-based App Router, and back-end API routes inside the same project \parencite{NextJSDocs2024}; \textit{Prisma 7} as a type-safe database toolkit whose single \texttt{schema.prisma} file is the unique source of truth for the data model and from which TypeScript types are auto-generated \parencite{PrismaDocs2024}; and \textit{SQLite} as a serverless, file-based relational database that provides adequate performance and zero operational overhead at the project's scale. The full justification of these choices, together with the rejected alternatives (Nuxt, SvelteKit, TypeORM, Drizzle, PostgreSQL, MySQL), is developed in Chapter~2 Section~2.8.
+\subsection{Market Overview and Key Figures}
+
+Algeria's mobile telecommunications sector is regulated by the Autorité de Régulation de la Poste et des Communications Électroniques (ARPCE). According to ARPCE's most recent quarterly observatory, the country counts more than 54~million mobile subscribers in the first quarter of 2025 --- a 4.4\,\% increase over the same quarter of the previous year --- distributed across three licensed operators: Mobilis, owned by the state-controlled Algérie Télécom group; Djezzy, majority-owned by VEON; and Ooredoo, a subsidiary of the Qatari group Ooredoo \parencite{ARPCE2025, ARPCE2024, Statista2024}. Mobile penetration stands at approximately 106\,\%, reflecting a mature market where many users hold multiple SIM cards.
+
+The network infrastructure has evolved considerably over the past decade. Following the deployment of 4G LTE services in 2016, all three operators have expanded coverage progressively across the country. Djezzy launched commercially limited 5G trials in 2024, positioning itself as the first operator to test fifth-generation technology in Algeria \parencite{GSMA2024}. These developments have accelerated the diversification of plan offerings, as operators compete on price, data volume, and network quality.
+
+\subsection{Offer Complexity and the Consumer Decision Problem}
+
+Each operator publishes a catalogue of prepaid, postpaid, and data-only plans that is updated several times per year. Prices range from a few hundred to several thousand Algerian Dinars per month, depending on the included data volume (from 1~GB to over 200~GB), voice minutes (from limited bundles to unlimited calls), SMS allowances, and validity periods (daily, weekly, monthly, or longer). A consumer wishing to identify the most cost-effective plan for their specific usage profile must visit three separate websites, compare offerings across heterogeneous formats, and account for promotional periods that may alter the base price.
+
+Table~\ref{tab:operator-summary} summarises the main characteristics of each operator's catalogue as of the first quarter of 2026, illustrating the scope of the comparison challenge.
+
+\begin{table}[H]
+  \caption{Summary of operator plan catalogues (Q1 2026)}
+  \label{tab:operator-summary}
+  \centering\small
+  \resizebox{\textwidth}{!}{%
+  \begin{tabular}{|l|c|c|c|}
+    \hline
+    \textbf{Criterion}      & \textbf{Mobilis}        & \textbf{Djezzy}         & \textbf{Ooredoo}        \\
+    \hline
+    Plan types              & Prepaid, Postpaid, Data & Prepaid, Postpaid, Data & Prepaid, Postpaid, Data \\
+    \hline
+    Price range (DA/month)  & 500 – 4\,000            & 250 – 4\,000            & 500 – 4\,000            \\
+    \hline
+    Max data volume         & 400 GB                  & 350 GB                  & 300 GB                  \\
+    \hline
+    5G availability         & Yes (4G/5G)             & No                      & Yes (4G/5G)             \\
+    \hline
+    Public API              & None                    & None                    & None                    \\
+    \hline
+  \end{tabular}}
+\end{table}
+
+The next section reviews the platforms that have attempted to address this comparison challenge --- internationally, and locally with the multi-vertical comparator Comparili.net.
+
+\section{Existing Comparison Platforms}
+
+Several international platforms have successfully addressed the plan-comparison problem in their respective markets, and one Algerian multi-vertical comparator addresses part of the same need locally. This section reviews both and then positions \textit{Mobile Match Algeria} against them.
+
+\paragraph{International benchmarks.}
+An analysis of three established international platforms reveals common features, architectural patterns, and limitations that inform the design of the present work.
+
+\textbf{MeilleurMobile} (France) is a leading French aggregator that covers all national operators and virtual operators (MVNOs). It provides a tabular comparison interface, a plan-finder questionnaire, and user reviews. The platform relies primarily on operator partnerships and manual data entry rather than automated scraping, which limits how quickly its catalogue reflects operator-side changes. It does not offer a personalisation engine beyond basic filtering \parencite{MeilleurMobile2024}.
+
+\textbf{WhistleOut} (Australia and the United Kingdom) operates a comparison marketplace that includes both mobile plans and broadband. It features a strong search and filter interface and integrates affiliate referral links. Its data is updated through a combination of operator feeds and editorial review. The platform targets English-speaking markets and its architecture is not publicly documented.
+
+\textbf{CompareTheMobile} (United Kingdom) offers a highly visual comparison interface with side-by-side plan cards and a compatibility checker for handsets. Like its counterparts, it depends on voluntary operator data submission and does not employ automated collection.
+
+\paragraph{An Algerian comparator: Comparili.net.}
+One local platform was identified that addresses part of the same need. \textbf{Comparili.net}, founded in 2020 by three Algerian entrepreneurs, is a multi-vertical comparator that covers business software (CRM, ERP, accounting), web hosting and online services, banking cards, and mobile telephony in a single WordPress-based site \parencite{Comparili2024}. Mobile plans appear as one of several categories alongside the software and hosting verticals that dominate the platform's positioning (\guillemotleft{}le comparateur N\textsuperscript{o}1 des logiciels métiers informatiques\guillemotright{} according to its own home page). Its mobile-plan section provides a filter-based comparison of SIM-card offerings supported by editorial articles and user reviews \parencite{Comparili2024}.
+
+The existence of Comparili.net confirms that a market demand for comparison tools in Algeria is real and already partially served. It also delimits a clear positioning space for the present work. Mobile Match Algeria differs from Comparili.net along five axes:
+
+\begin{itemize}
+  \item \textbf{Scope}: Comparili.net is a multi-vertical comparator with mobile plans as one section among many; Mobile Match Algeria is a dedicated mobile-plan platform with a deeper feature set on that single vertical.
+  \item \textbf{Data acquisition}: Comparili.net is editorially curated and enriched by user-submitted reviews; Mobile Match Algeria relies on an automated scraping pipeline that synchronises offers from the three operator websites on a scheduled basis.
+  \item \textbf{Personalisation}: Comparili.net offers filtering and a SIM comparison page; Mobile Match Algeria adds a tiered-ranking recommendation engine that orders offers by the user's declared budget, usage profile, and priority ranking.
+  \item \textbf{Language}: Comparili.net is published in French; Mobile Match Algeria offers a trilingual interface (French, English, Arabic) to extend reach within the Algerian user base.
+  \item \textbf{Openness}: Comparili.net is a proprietary WordPress platform; Mobile Match Algeria is open-source and intended as both a consumer tool and an academic artefact.
+\end{itemize}
+
+\paragraph{Gap analysis for Algeria.}
+Beyond Comparili.net, none of the international platforms identified above serve the Algerian market directly. The absence of additional comparators can be explained by several structural factors: the relatively small number of operators (three), the absence of virtual operators, and the lack of public APIs that would facilitate data integration. The international platforms reviewed rely on operator cooperation or affiliate relationships that do not exist in the Algerian context. Furthermore, none of these platforms --- Comparili.net included --- offers an Arabic-language interface, which is essential for reaching the full Algerian user base, nor a deep multi-criteria scoring recommendation engine tailored to mobile-plan attributes.
+
+Table~\ref{tab:platform-comparison} synthesises the key characteristics of the platforms identified during the state-of-the-art review.
+
+\begin{table}[H]
+  \caption{Key characteristics of existing plan-comparison platforms}
+  \label{tab:platform-comparison}
+  \centering\small
+  \begin{tabular}{|l|c|c|c|c|}
+    \hline
+    \textbf{Feature} & \textbf{MeilleurMobile} & \textbf{WhistleOut} & \textbf{CompareTheMobile} & \textbf{Comparili.net} \\
+    \hline
+    Algeria coverage        & No  & No  & No  & Yes     \\
+    \hline
+    Mobile-plan focus       & Yes & Yes & Yes & Partial \\
+    \hline
+    Automated scraping      & No  & No  & No  & No      \\
+    \hline
+    Recommendation engine   & No  & No  & No  & No      \\
+    \hline
+    Arabic interface        & No  & No  & No  & No      \\
+    \hline
+    Open-source             & No  & No  & No  & No      \\
+    \hline
+    Side-by-side comparison & No  & Yes & Yes & Yes     \\
+    \hline
+  \end{tabular}
+\end{table}
+
+These observations close the landscape review. The chapter closes with a positioning statement that names where Mobile Match Algeria sits in this landscape and the technology stack chosen to host it.
 
 \section{Positioning of This Work}
 
-The preceding review establishes that the only Algerian platform addressing this need — Comparili.net — covers mobile plans as one vertical among several and relies on editorial curation and user reviews rather than on automated aggregation. No \emph{dedicated} mobile-plan platform with deep multi-criteria features for Algerian consumers currently exists. The combination of scheduled automated data collection, a tiered-ranking recommendation engine with explicit priority elicitation, a structured search interface, a savings calculator, a notification system, a multi-language interface (English, French, Arabic), and a side-by-side comparison view distinguishes \textit{Mobile Match Algeria} from both the international platforms reviewed and from the local Comparili.net offering. The full-stack architecture built on \textit{Next.js} and \textit{Prisma} provides a solid and maintainable technical foundation. The following chapter translates the requirements identified in this review into a concrete system design.
+The preceding review establishes that the only Algerian platform addressing this need --- Comparili.net --- covers mobile plans as one vertical among several and relies on editorial curation and user reviews rather than on automated aggregation. No \emph{dedicated} mobile-plan platform with deep multi-criteria features for Algerian consumers currently exists. The combination of scheduled automated data collection, a tiered-ranking recommendation engine with explicit priority elicitation, a structured search interface, a savings calculator, a notification system, a multi-language interface (English, French, Arabic), and a side-by-side comparison view distinguishes \textit{Mobile Match Algeria} from both the international platforms reviewed and from the local Comparili.net offering.
+
+The application is built on a contemporary full-stack JavaScript stack centred on three pillars: \textit{Next.js 16} as a React-based framework supporting server-side rendering, the file-system-based App Router, and back-end API routes inside the same project \parencite{NextJSDocs2024}; \textit{Prisma 7} as a type-safe database toolkit whose single \texttt{schema.prisma} file is the unique source of truth for the data model and from which TypeScript types are auto-generated \parencite{PrismaDocs2024}; and \textit{SQLite} as a serverless, file-based relational database that provides adequate performance and zero operational overhead at the project's scale. The full justification of these choices, together with the rejected alternatives (Nuxt, SvelteKit, TypeORM, Drizzle, PostgreSQL, MySQL), is developed in Chapter~2 Section~2.8. The following chapter translates the requirements identified in this review into a concrete system design.
 
 \section*{Chapter Summary}
 
-This chapter has surveyed the Algerian telecom market, reviewed international comparison platforms together with the local multi-vertical comparator Comparili.net, and introduced the key technical disciplines underpinning this project. The gap analysis confirms that, while Comparili.net addresses part of the comparison need across multiple verticals, no specialised mobile-plan platform with automated data aggregation and a multi-criteria recommendation engine currently exists for Algerian consumers. The review of scraping techniques, recommendation paradigms, and the chosen technology stack establishes the theoretical basis for the design and implementation work presented in the chapters that follow.
+This chapter has introduced the four technical disciplines that underpin \textit{Mobile Match Algeria} --- web data aggregation, web scraping, recommendation systems, and structured search --- and then situated those techniques within the Algerian mobile telecommunications market. The review of international comparison platforms together with the local multi-vertical comparator Comparili.net confirmed the gap: no specialised mobile-plan platform with automated data aggregation and a multi-criteria recommendation engine currently exists for Algerian consumers. Section~1.7 stated the project's positioning relative to that landscape and named the technology stack (Next.js, Prisma, SQLite) whose detailed justification follows in Chapter~2.

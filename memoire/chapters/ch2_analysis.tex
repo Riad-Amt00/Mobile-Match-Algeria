@@ -581,7 +581,7 @@ The application comprises nine main screens, whose appearance is illustrated by 
 
 \section{Justification of the Technology Choices}
 
-Two principles guided every choice in the technology stack: keep the front-end and the back-end in a single project so that type definitions travel through every layer without manual synchronisation, and select the lightest tool that fully solves the problem rather than the most fashionable one. Table~\ref{tab:tech-choices} consolidates each retained tool together with the alternatives that were genuinely considered and the reasons that decided the choice. Two cross-references point to chapters where the depth is greatest: the browser-automation row refers to Chapter~1 §1.3, where the full scraping-tool landscape is evaluated; the database row refers to the load-test results in Chapter~4 §4.3, which anchor the SQLite choice empirically.
+Two principles guided every choice in the technology stack: keep the front-end and the back-end in a single project so that type definitions travel through every layer without manual synchronisation, and select the lightest tool that fully solves the problem rather than the most fashionable one. Table~\ref{tab:tech-choices} consolidates each retained tool together with the alternatives that were genuinely considered and the reasons that decided the choice. Two cross-references point to chapters where the depth is greatest: the browser-automation row refers to Chapter~1 §1.2, where the full scraping-tool landscape is evaluated; the database row refers to the load-test results in Chapter~4 §4.3, which anchor the SQLite choice empirically.
 
 \begin{table}[H]
   \caption{Technology stack --- chosen tool, considered alternatives, and reasons for selection}
@@ -604,7 +604,7 @@ Two principles guided every choice in the technology stack: keep the front-end a
     Purpose-built for Next.js: JWT sessions out of the box, native Prisma-adapter integration, fully self-hosted in the project repository. Custom JWT rejected because authentication is too security-critical to write from scratch. Passport.js abstractions assume a separate back-end and contradict the unified Next.js model. Clerk and Auth0 introduce a recurring fee plus a transfer of user data to a third-party identity store, which is incompatible with an academic deliverable. \\
     \hline
     Browser automation & Playwright (headless Microsoft Edge) & Puppeteer, Selenium, plain HTTP, Scrapy, crawlee, OCR, paid scraping APIs &
-    A real-browser fingerprint defeats operator anti-bot layers that reject plain HTTP. Spaced retries (0\,s, 7\,s, 18\,s) and a per-operator circuit breaker ride out intermittent operator-server resets. Full alternatives evaluation in Chapter~1 §1.3. \\
+    A real-browser fingerprint defeats operator anti-bot layers that reject plain HTTP. Spaced retries (0\,s, 7\,s, 18\,s) and a per-operator circuit breaker ride out intermittent operator-server resets. Full alternatives evaluation in Chapter~1 §1.2. \\
     \hline
     Language & TypeScript & JavaScript &
     Compile-time type safety across 8 entities and 11 API routes; editor-level refactoring catches schema-drift errors before run-time; types travel through Prisma, API handlers, and React components without manual export. \\
