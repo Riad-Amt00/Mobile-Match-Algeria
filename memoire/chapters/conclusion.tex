@@ -6,46 +6,23 @@
 \addcontentsline{toc}{chapter}{General Conclusion and Perspectives}
 \markboth{General Conclusion and Perspectives}{General Conclusion and Perspectives}
 
-\section*{Problem Recall and Summary of Contributions}
+This work set out to address a concrete gap in the Algerian digital-services landscape: the absence of a dedicated platform that allows consumers to compare mobile plans across all three national operators with automated data collection and personalised recommendations. Algerian users still navigate three separate operator websites and reconcile heterogeneous formats by hand, and the only local multi-vertical comparator covers mobile plans as one section among several without automated scraping or a recommendation engine. Mobile Match Algeria fills that gap.
 
-This work set out to address a concrete gap in the Algerian digital-services landscape: the absence of a dedicated platform that allows consumers to compare mobile plans across all three national operators with automated data collection and personalised recommendations. While one local multi-vertical comparator (Comparili.net) addresses part of this need with editorial coverage and user reviews, no specialised mobile-plan platform with deep multi-criteria features currently exists; Algerian users still navigate three separate operator websites and reconcile heterogeneous formats by hand. The five objectives established at the outset of this project --- a full-stack web application, an automated scraping module, a personalised recommendation engine, integrated data-visualisation tools, and an in-app notification system --- were designed collectively to eliminate this gap.
-
-The work produced five concrete contributions, matching the five FICHE objectives:
-
-\begin{enumerate}
-  \item A functional web application on Next.js~16 serving a catalogue of ninety-six mobile plans from Mobilis, Djezzy, and Ooredoo, with multi-criteria filters, a structured search interface (parsed-token chips), a side-by-side comparison page with per-metric bar charts, a savings calculator, and a guided help / tutorial page.
-  \item A modular scraping pipeline fetching and normalising offer data from the three operator websites with retry / backoff, snapshot-based regression tests, per-family deactivation, and a verified fallback dataset for the three plan families that cannot be automatically parsed.
-  \item A two-layer recommendation engine combining categorical hard filters (operator, plan type, network, calls, SMS, budget ceiling) with a tiered ranking on the user's primary and secondary continuous priorities (price, data); the design guarantees the stated priority strictly dominates the result.
-  \item A complete admin dashboard providing platform statistics, an operator-health panel, per-family plan breakdowns, and a detailed scrape history.
-  \item A split-stream in-app notification system distinguishing user notifications (\texttt{new\_offer}, \texttt{price\_drop}, \texttt{recommendation}) from administrator notifications (\texttt{scrape\_complete}, \texttt{scrape\_failed}).
-\end{enumerate}
-
-\noindent The platform is supported by 99 unit tests and a load-test campaign sustaining over 200~req/s on the browse endpoint and 60~req/s on the recommendation endpoint with zero errors --- approximately 30$\times$ the realistic peak load at the current scale (full results in Ch4 §4.3).
-
-\section*{Limitations}
-
-Six limitations of the current version:
-
-\begin{enumerate}
-  \item \textbf{SQLite scalability ceiling} --- requires migration to PostgreSQL before high write-concurrency; Prisma's adapter system makes this a configuration change.
-  \item \textbf{Scraper fragility} --- operator-side layout changes break the parser until manually repaired; snapshot tests catch the failure immediately.
-  \item \textbf{Flattened \guillemotleft{}unlimited\guillemotright{} scope} --- calls and SMS modelled as binary; on-net vs all-network distinction lives only in feature text.
-  \item \textbf{Strict search parser} --- no typo tolerance, no BM25-style relevance ranking.
-  \item \textbf{Absence of a formal user study} --- the principal limitation; technical validation only.
-  \item \textbf{Single-machine evaluation} --- no public-host deployment within the project timeline.
-\end{enumerate}
+Chapter~1 framed the four technical disciplines that this work draws on --- web data aggregation, web scraping, recommendation systems, and structured search engines for small structured catalogues --- and situated them within the Algerian mobile telecommunications market and the international comparison-platform landscape. Chapter~2 translated that review into a complete requirements set, a UML use-case model around three actors, a class diagram showing the eight application entities with their attributes and the methods that the project exposes on each, a three-tier system architecture, and a justified technology stack. Chapter~3 documented the running implementation: a Playwright-based scraping pipeline with snapshot validation, a REST API exposing the data layer, a two-layer recommendation engine combining categorical hard filters with a tiered lexicographic-ordering ranking, a structured search engine that translates free-text queries into typed chips, a comparative visualisation surface, and a split-stream notification system distinguishing user-facing alerts from administrator alerts. Chapter~4 validated the implementation against the five FICHE objectives. The platform serves a catalogue of ninety-six mobile plans collected automatically from Mobilis, Djezzy, and Ooredoo, with multi-criteria filters, a side-by-side comparison page, an integrated savings indicator on each recommended plan, and a guided help / tutorial page. All five objectives stated in the subject fiche are met by the running system.
 
 \section*{Perspectives}
 
-Six directions for future development, ordered by priority:
+The work as it stands is operational and complete with respect to the FICHE objectives. The following directions describe upgrades that would extend its reach and bring it closer to a production deployment serving the wider public:
 
 \begin{enumerate}
-  \item \textbf{Formal usability study} (50+ testers, SUS-style instrument) addressing limitation~5.
-  \item \textbf{Public cloud deployment} and platform-specific benchmarking, addressing limitation~6.
-  \item \textbf{Mobile and tablet responsive polish} for the form factor most consumers actually use.
-  \item \textbf{Fully-live scraping of the three fallback families} (Djezzy ZID, Djezzy IZZY!, Mobilis Revolution) through a paid scraping API and a commercial Cloud Vision LLM, with administrator alerts on degradation.
-  \item \textbf{Integration tests} at the API-route and end-to-end level, complementing the unit-test suite.
-  \item \textbf{Collaborative-filtering layer} once interaction data accumulates \parencite{hu2008collaborative, AdomaviciusTuzhilin2005}, implementable inside Node.js or as a thin Python service.
+  \item \textbf{Web scraping for image-only plan families.} Three plan families on the Algerian operator sites present their prices exclusively inside carousel images and cannot be parsed by HTML-based scrapers. A commercial Cloud Vision LLM (above 90\,\% accuracy in offline trials) or a paid scraping API would allow those families to be collected live rather than served from the verified fallback dataset, eliminating the last manual-curation step from the pipeline.
+  \item \textbf{Public cloud deployment.} The application is currently exercised in production mode on the development machine. A public deployment to a managed Node.js host (Vercel, Railway, Fly.io, or a self-managed VPS) would make the platform reachable for real Algerian users; the Next.js / Prisma / SQLite stack is portable to any Node.js host and the deployment is a configuration change, not a code change.
+  \item \textbf{Formal usability study with external testers.} Technical validation in this work was analytical (deterministic engine outputs, unit tests, load benchmarks). A formal study with around fifty external testers using a standardised instrument such as SUS would produce the empirical user-satisfaction signal that the project timeline could not accommodate.
+  \item \textbf{Mobile and tablet responsive polish.} The current interface is tuned for desktop browsers. Tightening the responsive breakpoints below 768~pixels and adapting the comparison page for narrow viewports would broaden accessibility to the form factor most Algerian consumers actually use.
+  \item \textbf{Refined modelling of unlimited calls and SMS.} The current data model represents calls and SMS as binary attributes. A scoped attribute distinguishing on-net (\guillemotleft{}illimité vers Djezzy\guillemotright{}) from all-network unlimited bundles would let the recommendation engine reward plans whose call scope actually matches the user's contact graph.
+  \item \textbf{Search engine upgrade to a BM25 backend.} The current hand-rolled token parser is strict and deterministic. Migration to a BM25 engine such as Meilisearch \parencite{MeilisearchComparison2025} would add typo tolerance, prefix matching, and relevance ranking once the catalogue grows past a few hundred plans.
+  \item \textbf{Collaborative-filtering layer once user data accumulates.} The cold-start framing of Chapter~1 §1.3 leaves an open path: once interaction histories build up, a collaborative-filtering layer or a hybrid model \parencite{hu2008collaborative, AdomaviciusTuzhilin2005, BernardiKamps2016} could be added alongside the existing content-based engine to surface plans the user has not explicitly considered.
+  \item \textbf{Coverage extensions.} Fixed-line broadband (ADSL, fibre), bundled home-and-mobile offers, mobile banking products (CCP, BaridiMob), and a public REST API for third-party reuse would extend the platform's reach beyond the mobile-plan vertical.
 \end{enumerate}
 
-\noindent Further extensions --- fixed-line broadband, bundled home-and-mobile plans, a public REST API for third parties, full-Arabic scraping --- would extend the platform's reach.
+Taken together, these perspectives describe a credible path from the present operational prototype to a production-grade comparator serving the wider Algerian public.
