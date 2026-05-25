@@ -4,7 +4,7 @@
 
 \chapter{Requirements Analysis and System Design}
 
-Building on the state of the art surveyed in Chapter~1, this chapter formalises the requirements of \textit{Mobile Match Algeria} and presents the architectural and design decisions taken to meet them. The chapter covers requirements gathering, actor identification, UML modelling, data model definition, system architecture, UI/UX principles, and technology stack justification.
+Building on the state of the art surveyed in Chapter~1, this chapter formalises the requirements of \textit{Mobile Match Algeria} and presents the architectural and design decisions taken to meet them. The chapter covers requirements gathering, actor identification, UML modelling (use-case, activity, and sequence diagrams), the data model as a UML class diagram with project methods, the three-tier system architecture, and the technology stack justification.
 
 \section{Requirements Gathering}
 
@@ -308,56 +308,154 @@ The client sends a POST request to \texttt{/api/recommendations} with the user's
 
 \section{Data Model}
 
-\subsection{Conceptual Schema}
+\subsection{Class Diagram}
 
-{\sloppy The data model comprises eight application-defined entities: \texttt{Operator}, \texttt{Offer}, \texttt{PriceHistory}, \texttt{User}, \texttt{UserProfile}, \texttt{SavedOffer}, \texttt{Notification}, and \texttt{ScrapeLog}. Authentication-infrastructure models managed by NextAuth.js (\texttt{Account}, \texttt{Session}, \texttt{VerificationToken}) and the system-level rate-limit table are excluded from the application diagram. Figure~\ref{fig:erd} presents the entity-relationship diagram.\par}
+{\sloppy The data model comprises eight application-defined classes: \texttt{Operator}, \texttt{Offer}, \texttt{PriceHistory}, \texttt{User}, \texttt{UserProfile}, \texttt{SavedOffer}, \texttt{Notification}, and \texttt{ScrapeLog}. Authentication-infrastructure models managed by NextAuth.js (\texttt{Account}, \texttt{Session}, \texttt{VerificationToken}) and the system-level rate-limit table are excluded from the application diagram. Figure~\ref{fig:class-diagram-main} shows each class with its principal attributes (top compartment) and the methods (bottom compartment) corresponding to the project functionalities that operate on it. Associations carry standard UML cardinalities (1, N).\par}
 
 \begin{figure}[H]
 \centering
+\resizebox{\textwidth}{!}{%
 \begin{tikzpicture}[
-  entity/.style={rectangle, draw=black!80, fill=blue!8, rounded corners=3pt,
-                 minimum width=2.3cm, minimum height=0.65cm, align=center, font=\small\bfseries},
-  assoc/.style={rectangle, draw=black!70, fill=orange!10, rounded corners=3pt,
-                minimum width=2.3cm, minimum height=0.65cm, align=center, font=\small},
-  line/.style={thick, black!70}
+  cls/.style={rectangle, draw=black!80, fill=white, align=left, font=\scriptsize, inner sep=0pt},
+  hdr/.style={fill=blue!15, font=\scriptsize\bfseries, align=center, minimum height=0.50cm, minimum width=3.8cm},
+  arow/.style={fill=white, minimum height=0.36cm, minimum width=3.8cm, align=left, inner sep=3pt, font=\scriptsize},
+  sep/.style={fill=black!75, minimum height=0.04cm, minimum width=3.8cm, inner sep=0pt},
+  mrow/.style={fill=blue!3, minimum height=0.36cm, minimum width=3.8cm, align=left, inner sep=3pt, font=\scriptsize\itshape},
+  assoc/.style={thick, ->, black!65}
 ]
-  % ── Row 1: Strong entities (spread evenly to align with the bottom row) ──
-  \node[entity] (operator) at ( 0,   0) {Operator};
-  \node[entity] (offer)    at ( 6,   0) {Offer};
-  \node[entity] (user)     at (12,   0) {User};
+  %% ── Row 1: Operator · Offer · User · Notification ─────────────────────────
+  \matrix[cls, ampersand replacement=\&] (op) at (0,0) {
+    \node[hdr]{Operator}; \\
+    \node[arow]{id: String (PK)}; \\
+    \node[arow]{name, slug, primaryColor}; \\
+    \node[arow]{website}; \\
+    \node[sep]{}; \\
+    \node[mrow]{+ findBySlug(slug)}; \\
+    \node[mrow]{+ upsert(name, slug)}; \\
+    \node[mrow]{+ getHealth()}; \\
+    \node[mrow]{+ getActiveOfferCount()}; \\
+  };
+  \matrix[cls, ampersand replacement=\&] (offer) at (4.1,0) {
+    \node[hdr]{Offer}; \\
+    \node[arow]{id: String (PK)}; \\
+    \node[arow]{name, slug, type, network}; \\
+    \node[arow]{priceDA, dataGB, voiceMin}; \\
+    \node[arow]{smsCount, validityDays}; \\
+    \node[arow]{features, isActive}; \\
+    \node[arow]{sourceUrl, scrapedAt}; \\
+    \node[sep]{}; \\
+    \node[mrow]{+ findAll(filters)}; \\
+    \node[mrow]{+ search(tokens)}; \\
+    \node[mrow]{+ recommend(profile)}; \\
+    \node[mrow]{+ upsertFromScrape(data)}; \\
+    \node[mrow]{+ deactivate(ids)}; \\
+  };
+  \matrix[cls, ampersand replacement=\&] (user) at (8.2,0) {
+    \node[hdr]{User}; \\
+    \node[arow]{id: String (PK)}; \\
+    \node[arow]{name, email (unique)}; \\
+    \node[arow]{emailVerified: DateTime}; \\
+    \node[arow]{passwordHash, role}; \\
+    \node[arow]{createdAt, updatedAt}; \\
+    \node[sep]{}; \\
+    \node[mrow]{+ register(email, password)}; \\
+    \node[mrow]{+ authenticate(email, pw)}; \\
+    \node[mrow]{+ claimAdminRole(code)}; \\
+  };
+  \matrix[cls, ampersand replacement=\&] (notif) at (12.3,0) {
+    \node[hdr]{Notification}; \\
+    \node[arow]{id: String (PK)}; \\
+    \node[arow]{userId (FK)}; \\
+    \node[arow]{title, message, type}; \\
+    \node[arow]{isRead: Boolean}; \\
+    \node[arow]{offerId, createdAt}; \\
+    \node[sep]{}; \\
+    \node[mrow]{+ createForUsers(payload)}; \\
+    \node[mrow]{+ markAsRead(id)}; \\
+    \node[mrow]{+ listByUser(userId)}; \\
+    \node[mrow]{+ delete(id)}; \\
+  };
 
-  % ── Row 2: Dependent entities (5 columns at x = 0, 3, 6, 9, 12) ────────
-  \node[assoc] (scrapelog) at ( 0,  -3) {ScrapeLog};
-  \node[assoc] (history)   at ( 3,  -3) {PriceHistory};
-  \node[assoc] (saved)     at ( 6,  -3) {SavedOffer};
-  \node[assoc] (profile)   at ( 9,  -3) {UserProfile};
-  \node[assoc] (notif)     at (12,  -3) {Notification};
+  %% ── Row 2: ScrapeLog · PriceHistory · SavedOffer · UserProfile ────────────
+  \matrix[cls, ampersand replacement=\&] (scrape) at (0,-6.5) {
+    \node[hdr]{ScrapeLog}; \\
+    \node[arow]{id: String (PK)}; \\
+    \node[arow]{operatorId (FK)}; \\
+    \node[arow]{status, duration}; \\
+    \node[arow]{offersFound/Added/Updated}; \\
+    \node[arow]{offersDeactivated, details}; \\
+    \node[arow]{errorMessage, startedAt}; \\
+    \node[sep]{}; \\
+    \node[mrow]{+ start(operatorId)}; \\
+    \node[mrow]{+ recordSuccess(id, stats)}; \\
+    \node[mrow]{+ recordFailure(id, error)}; \\
+    \node[mrow]{+ getRecent(operatorId)}; \\
+  };
+  \matrix[cls, ampersand replacement=\&] (history) at (4.1,-6.5) {
+    \node[hdr]{PriceHistory}; \\
+    \node[arow]{id: String (PK)}; \\
+    \node[arow]{offerId (FK)}; \\
+    \node[arow]{priceDA: Float}; \\
+    \node[arow]{recordedAt: DateTime}; \\
+    \node[sep]{}; \\
+    \node[mrow]{+ record(offerId, price)}; \\
+    \node[mrow]{+ getHistory(offerId)}; \\
+  };
+  \matrix[cls, ampersand replacement=\&] (saved) at (8.2,-6.5) {
+    \node[hdr]{SavedOffer}; \\
+    \node[arow]{id: String (PK)}; \\
+    \node[arow]{userId (FK)}; \\
+    \node[arow]{offerId (FK)}; \\
+    \node[arow]{savedAt: DateTime}; \\
+    \node[sep]{}; \\
+    \node[mrow]{+ toggle(userId, offerId)}; \\
+    \node[mrow]{+ listByUser(userId)}; \\
+  };
+  \matrix[cls, ampersand replacement=\&] (profile) at (12.3,-6.5) {
+    \node[hdr]{UserProfile}; \\
+    \node[arow]{id: String (PK)}; \\
+    \node[arow]{userId (FK, unique)}; \\
+    \node[arow]{monthlyBudget, dataUsageGB}; \\
+    \node[arow]{voiceMinutes, smsCount}; \\
+    \node[arow]{preferredType, preferredNet}; \\
+    \node[arow]{preferredOperator, priorities}; \\
+    \node[sep]{}; \\
+    \node[mrow]{+ get(userId)}; \\
+    \node[mrow]{+ update(userId, data)}; \\
+  };
 
-  % ── Relationships ──────────────────────────────────────────────────────
-  % Operator → Offer  (1 : N)
-  \draw[line] (operator) -- node[above, font=\scriptsize, pos=0.10]{1}
-                             node[above, font=\scriptsize, pos=0.90]{N} (offer);
-  % Operator → ScrapeLog  (1 : N, vertical)
-  \draw[line] (operator.south) -- node[right, font=\scriptsize, pos=0.15]{1}
-                                   node[right, font=\scriptsize, pos=0.85]{N} (scrapelog.north);
-  % Offer → PriceHistory  (1 : N, diagonal to the left)
-  \draw[line] (offer.south west) -- node[above, sloped, font=\scriptsize, pos=0.15]{1}
-                                     node[above, sloped, font=\scriptsize, pos=0.85]{N} (history.north east);
-  % Offer → SavedOffer  (1 : N, vertical)
-  \draw[line] (offer.south) -- node[right, font=\scriptsize, pos=0.15]{1}
-                                node[right, font=\scriptsize, pos=0.85]{N} (saved.north);
-  % User → SavedOffer  (1 : N, diagonal to the left)
-  \draw[line] (user.south west) -- node[above, sloped, font=\scriptsize, pos=0.15]{1}
-                                    node[above, sloped, font=\scriptsize, pos=0.85]{N} (saved.north east);
-  % User → UserProfile  (1 : 1, diagonal to the left)
-  \draw[line] (user.south) -- node[right, font=\scriptsize, pos=0.15]{1}
-                               node[right, font=\scriptsize, pos=0.85]{1} (profile.north east);
-  % User → Notification  (1 : N, vertical)
-  \draw[line] (user) -- node[right, font=\scriptsize, pos=0.15]{1}
-                         node[right, font=\scriptsize, pos=0.85]{N} (notif);
-\end{tikzpicture}
-\caption{Entity-relationship diagram of the Mobile Match Algeria data model}
-\label{fig:erd}
+  %% ── Associations with cardinalities ──────────────────────────────────────
+  \draw[assoc] (op.east) --
+    node[above, font=\scriptsize, pos=0.10]{1}
+    node[above, font=\scriptsize, pos=0.90]{N}
+    (offer.west);
+  \draw[assoc] (op.south) --
+    node[left, font=\scriptsize, pos=0.10]{1}
+    node[left, font=\scriptsize, pos=0.90]{N}
+    (scrape.north);
+  \draw[assoc] (offer.south) --
+    node[left, font=\scriptsize, pos=0.10]{1}
+    node[left, font=\scriptsize, pos=0.90]{N}
+    (history.north);
+  \draw[assoc] (offer.south east) --
+    node[above, sloped, font=\scriptsize, pos=0.12]{1}
+    node[above, sloped, font=\scriptsize, pos=0.88]{N}
+    (saved.north west);
+  \draw[assoc] (user.south west) --
+    node[above, sloped, font=\scriptsize, pos=0.12]{1}
+    node[above, sloped, font=\scriptsize, pos=0.88]{N}
+    (saved.north east);
+  \draw[assoc] (user.south east) --
+    node[above, sloped, font=\scriptsize, pos=0.12]{1}
+    node[above, sloped, font=\scriptsize, pos=0.88]{1}
+    (profile.north west);
+  \draw[assoc] (user.east) --
+    node[above, font=\scriptsize, pos=0.10]{1}
+    node[above, font=\scriptsize, pos=0.90]{N}
+    (notif.west);
+\end{tikzpicture}}
+\caption{Class diagram --- eight application classes with attributes (top compartments), project methods (bottom compartments), and UML associations}
+\label{fig:class-diagram-main}
 \end{figure}
 
 \subsection{Prisma Schema Description}
@@ -479,28 +577,7 @@ Table~\ref{tab:api-routes-design} lists the main API routes, their HTTP methods,
   \end{tabular}
 \end{table}
 
-The route map of Table~\ref{tab:api-routes-design} defines the contract the front-end consumes. Each presentation-tier page introduced in the next section calls one or more of these routes: the offers grid binds to \texttt{/api/offers}, the comparison view to the same endpoint with an \texttt{ids} parameter, the recommendation page to \texttt{/api/recommendations}, the profile and saved-plans pages to \texttt{/api/profile} and \texttt{/api/saved-offers} respectively, and the admin dashboard to the \texttt{/api/admin/*} family. The UI/UX principles that follow are the user-side counterpart to this contract.
-
-\section{UI/UX Design}
-
-\subsection{Design Principles}
-
-The interface design of \textit{Mobile Match Algeria} is guided by five principles. First, \textbf{clarity}: information hierarchy is conveyed through typographic weight and spatial grouping rather than decorative elements, so users can locate the data they need at a glance. Second, \textbf{feedback}: every user action — saving a plan, comparing, triggering a scrape — produces an immediate visual response (toast notification, button state change, loading indicator). Third, \textbf{consistency}: the same card component, the same filter pills, and the same button styles appear throughout the application, reducing the cognitive load of navigation. Fourth, \textbf{responsiveness}: the interface reflows gracefully from 320~px mobile widths to wide desktop screens using CSS Grid and flexbox. Fifth, \textbf{accessibility}: interactive elements are keyboard-navigable and colour contrast ratios meet the WCAG~2.1 AA standard.
-
-\subsection{Key Interface Screens}
-
-The application comprises nine main screens, whose appearance is illustrated by the screenshots embedded in Chapter~3, Section~3.8.
-
-\begin{enumerate}
-  \item \textbf{Home page} — Language-selection landing page presenting feature highlights and operator logos. Authenticated users are redirected directly to the offers page.
-  \item \textbf{Offers page} — Grid of offer cards with operator filter tabs, plan-type pills, an advanced filter panel (price, data, network), and a structured search input above the grid that displays parsed query tokens as chips. A sticky bottom bar appears when plans are selected for comparison.
-  \item \textbf{Comparison page} — Side-by-side table together with per-metric bar charts (price and data volume) for the selected plans, plus an annual-savings bar chart when the comparison was launched from the recommendations page.
-  \item \textbf{Recommendations page} — Usage-profile form (budget, data, voice, SMS toggles, plan type, network, operator, ranked priorities) and the ranked list of three matched plans displayed with rank badges; each ranked card carries an integrated savings indicator showing the monthly, annual, and percentage saving obtained by switching to that plan from the user's monthly budget.
-  \item \textbf{Saved-plans page} — Grid of plans bookmarked by the user, with a direct path to the comparison view and per-card removal.
-  \item \textbf{Help / tutorial page} — Five sections (search, recommend, compare, filters, saved) each containing a description, step-by-step instructions, annotated screenshots, and a link to the corresponding page. Sections requiring authentication carry a sign-in badge.
-  \item \textbf{Login and Registration} — Authentication screens for account creation and sign-in, with client-side validation and inline error feedback.
-  \item \textbf{Admin dashboard} — Statistics cards (active offers, registered users, scrape sessions, scrape success rate), operator health panel, per-family plan breakdown, detailed scrape history log, and a notifications tab for system events.
-\end{enumerate}
+The route map of Table~\ref{tab:api-routes-design} defines the contract the front-end consumes. Each presentation-tier page calls one or more of these routes: the offers grid binds to \texttt{/api/offers}, the comparison view to the same endpoint with an \texttt{ids} parameter, the recommendation page to \texttt{/api/recommendations}, the profile and saved-plans pages to \texttt{/api/profile} and \texttt{/api/saved-offers} respectively, and the admin dashboard to the \texttt{/api/admin/*} family. The concrete interface screens that consume these routes are illustrated by the screenshots embedded in Chapter~3, Section~3.8.
 
 \section{Justification of the Technology Choices}
 
@@ -548,4 +625,4 @@ Every row above represents a deliberate decision rather than a default, and each
 
 \section*{Chapter Summary}
 
-This chapter has formalised the functional and non-functional requirements of the system, identified the three actor types, modelled the key use cases and interaction flows through UML diagrams, defined the data model, described the three-tier architecture and API route map, articulated the UI/UX design principles, and justified the technology stack. The design decisions documented here form the blueprint for the implementation described in Chapter~3.
+This chapter has formalised the functional and non-functional requirements of the system, identified the three actor types, modelled the key use cases and interaction flows through UML diagrams, defined the data model as a class diagram showing both attributes and project methods, described the three-tier architecture and API route map, and justified the technology stack. The design decisions documented here form the blueprint for the implementation described in Chapter~3.
