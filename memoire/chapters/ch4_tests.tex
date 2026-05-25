@@ -86,18 +86,18 @@ To characterise the platform's capacity, the application was built in production
     \hline
     \textbf{Endpoint} & \textbf{Conc.} & \textbf{Req/s} & \textbf{p50} & \textbf{p95} & \textbf{p99} & \textbf{Err.} \\
     \hline
-    GET /api/offers              & 1   & 154 & 6\,ms  & 10\,ms & 17\,ms & 0 \\
-                                 & 10  & 198 & 48\,ms & 67\,ms & 84\,ms & 0 \\
-                                 & 50  & 215 & 223\,ms & 288\,ms & 332\,ms & 0 \\
-                                 & 100 & 252 & 383\,ms & 466\,ms & 583\,ms & 0 \\
+    \texttt{GET /api/offers}      & 1   & 154 & 6\,ms  & 10\,ms & 17\,ms & 0 \\
+                                  & 10  & 198 & 48\,ms & 67\,ms & 84\,ms & 0 \\
+                                  & 50  & 215 & 223\,ms & 288\,ms & 332\,ms & 0 \\
+                                  & 100 & 252 & 383\,ms & 466\,ms & 583\,ms & 0 \\
     \hline
-    GET /api/offers?search=\ldots & 1   & 264 & 4\,ms  & 5\,ms  & 8\,ms  & 0 \\
-                                 & 10  & 318 & 30\,ms & 39\,ms & 44\,ms & 0 \\
-                                 & 50  & 321 & 154\,ms & 180\,ms & 190\,ms & 0 \\
+    \texttt{GET /api/offers?search=\ldots} & 1   & 264 & 4\,ms  & 5\,ms  & 8\,ms  & 0 \\
+                                  & 10  & 318 & 30\,ms & 39\,ms & 44\,ms & 0 \\
+                                  & 50  & 321 & 154\,ms & 180\,ms & 190\,ms & 0 \\
     \hline
-    POST /api/recommendations    & 1   & 58  & 16\,ms & 24\,ms & 32\,ms & 0 \\
-                                 & 10  & 64  & 154\,ms & 169\,ms & 178\,ms & 0 \\
-                                 & 25  & 64  & 381\,ms & 416\,ms & 521\,ms & 0 \\
+    \texttt{POST /api/recommendations} & 1   & 58  & 16\,ms & 24\,ms & 32\,ms & 0 \\
+                                  & 10  & 64  & 154\,ms & 169\,ms & 178\,ms & 0 \\
+                                  & 25  & 64  & 381\,ms & 416\,ms & 521\,ms & 0 \\
     \hline
   \end{tabular}
 \end{table}
@@ -142,7 +142,7 @@ The project ships four documentation artefacts, each addressing a different audi
     User guide          & End users          & Embedded in the running application at \texttt{/help} (linked from the main navbar). Five sections --- search, recommendations, comparison, filters, and saved plans --- each with description, step-by-step instructions, annotated screenshots, and a link to the corresponding page; auth-only sections carry a \guillemotleft{}sign-in required\guillemotright{} badge. \\ \hline
     Administrator manual & Administrators     & Covers admin-dashboard workflows (triggering scrape runs, reading scrape logs, operator-health indicators, notifications, platform statistics); environment-variable configuration (\texttt{DATABASE\_URL}, \texttt{NEXTAUTH\_SECRET}, \texttt{NEXTAUTH\_URL}, \texttt{ADMIN\_CLAIM\_CODE}); the one-time admin-claim flow; and the manual scraper run from the command line. \\ \hline
     API reference        & Future developers  & Route-level reference provided as Table~3.2 in Chapter~3: HTTP methods, required authentication, accepted query parameters or body fields, and rate-limit policy where applicable. \\ \hline
-    Source-code repository & Reviewers, jury & Public Git repository \url{https://github.com/Riad-Amt00/Mobile-Match-Algeria}. The \texttt{README.md} carries the installation and run instructions, the seeded demo accounts, the expected environment variables, and the build commands for both the Next.js application and the \LaTeX{} mémoire. Layout follows standard Next.js conventions (\texttt{src/app/}, \texttt{src/lib/}, \texttt{prisma/}, \texttt{public/}); \texttt{memoire/} holds the present document and \texttt{scripts/} the database-audit and user-deletion utilities. \\ \hline
+    Source-code repository & Reviewers, jury & Public Git repository \url{https://github.com/Riad-Amt00/Mobile-Match-Algeria}. The \texttt{README.md} carries the installation and run instructions, the seeded demo accounts, the expected environment variables, and the build commands for both the Next.js application and the \LaTeX{} thesis. Layout follows standard Next.js conventions (\texttt{src/app/}, \texttt{src/lib/}, \texttt{prisma/}, \texttt{public/}); \texttt{memoire/} holds the present document and \texttt{scripts/} the database-audit and user-deletion utilities. \\ \hline
   \end{tabular}
 \end{table}
 
