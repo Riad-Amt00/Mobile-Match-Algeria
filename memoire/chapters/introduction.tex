@@ -60,6 +60,7 @@ The project was carried out over six months in accordance with the timeline defi
 
 \begin{figure}[H]
 \centering
+\resizebox{\textwidth}{!}{%
 \begin{tikzpicture}[
   x=1.6cm, y=0.55cm,
   taskA/.style={rectangle, fill=orange!35, draw=orange!75, thick, minimum height=0.4cm},
@@ -82,33 +83,34 @@ The project was carried out over six months in accordance with the timeline defi
   \draw[axis] (0, -7.6) -- (6, -7.6);
 
   % ── ANALYSIS \& DESIGN (orange) — Chapters 1 and 2 ────────────────────
-  \node[tasklabel] at (-0.05, -1) {Chapter 1. State of the Art and Core Concepts};
+  \node[tasklabel] at (-0.05, -1) {Ch.~1 --- State of the Art \& Core Concepts};
   \node[taskA, minimum width=1.6cm, anchor=west] at (0, -1) {};
-  \node[tasklabel] at (-0.05, -2) {Chapter 2. Requirements Analysis and System Design};
+  \node[tasklabel] at (-0.05, -2) {Ch.~2 --- Requirements \& System Design};
   \node[taskA, minimum width=3.2cm, anchor=west] at (0, -2) {};
 
   % ── DEVELOPMENT (blue) — Chapter 3 ────────────────────────────────────
-  \node[tasklabel] at (-0.05, -3) {Chapter 3. System Implementation};
+  \node[tasklabel] at (-0.05, -3) {Ch.~3 --- System Implementation};
   \node[taskD, minimum width=6.4cm, anchor=west] at (1.0, -3) {};
 
   % ── VERIFICATION \& WRITING (green) — Chapter 4 and surrounding pieces ─
-  \node[tasklabel] at (-0.05, -4) {Chapter 4. Evaluation};
+  \node[tasklabel] at (-0.05, -4) {Ch.~4 --- Evaluation};
   \node[taskV, minimum width=3.2cm, anchor=west] at (4.0, -4) {};
   \node[tasklabel] at (-0.05, -5) {General Introduction};
   \node[taskV, minimum width=1.6cm, anchor=west] at (5.0, -5) {};
-  \node[tasklabel] at (-0.05, -6) {General Conclusion and Perspectives};
+  \node[tasklabel] at (-0.05, -6) {General Conclusion \& Perspectives};
   \node[taskV, minimum width=1.6cm, anchor=west] at (5.0, -6) {};
-  \node[tasklabel] at (-0.05, -7) {Thesis writing and finalisation};
+  \node[tasklabel] at (-0.05, -7) {Thesis writing \& finalisation};
   \node[taskV, minimum width=6.4cm, anchor=west] at (2.0, -7) {\scriptsize iterative};
 
-  % ── Legend (below the chart) ──────────────────────────────────────────
-  \node[taskA, minimum width=0.45cm] at (0.4, -8.6) {};
-  \node[font=\scriptsize, anchor=west] at (0.7, -8.6) {Analysis \& design (Ch.~1--2)};
-  \node[taskD, minimum width=0.45cm] at (2.7, -8.6) {};
-  \node[font=\scriptsize, anchor=west] at (3.0, -8.6) {Development (Ch.~3)};
-  \node[taskV, minimum width=0.45cm] at (4.7, -8.6) {};
-  \node[font=\scriptsize, anchor=west] at (5.0, -8.6) {Verification \& writing (Ch.~4 +)};
-\end{tikzpicture}
+  % ── Legend (below the chart, fits within the 0-6 month width) ────────
+  \node[taskA, minimum width=0.45cm] at (0.2, -8.6) {};
+  \node[font=\scriptsize, anchor=west] at (0.45, -8.6) {Analysis \& design (Ch.~1--2)};
+  \node[taskD, minimum width=0.45cm] at (2.45, -8.6) {};
+  \node[font=\scriptsize, anchor=west] at (2.7, -8.6) {Development (Ch.~3)};
+  \node[taskV, minimum width=0.45cm] at (4.1, -8.6) {};
+  \node[font=\scriptsize, anchor=west] at (4.35, -8.6) {Verif. \& writing (Ch.~4 + intro/concl.)};
+\end{tikzpicture}%
+}
 \caption{Gantt chart of the six-month project schedule}
 \label{fig:gantt}
 \end{figure}
