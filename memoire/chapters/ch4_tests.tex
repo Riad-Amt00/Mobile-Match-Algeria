@@ -35,7 +35,7 @@ All five objectives defined in the subject fiche have been implemented and are o
 
 \section{Validation of the Recommendation Engine}
 
-The recommendation engine is a deterministic function: given a fixed input profile and a fixed offer catalogue, it always produces the same ranked list. This property makes it possible to validate the engine analytically — by deriving the expected outcome from the engine's rules before running it, then checking that the actual output matches the prediction. Four scenario tests cover the key behavioural properties of the engine and are persisted as automated unit tests in \texttt{src/lib/\_\_tests\_\_/recommendation.test.ts}. Table~\ref{tab:rec-validation} reports each scenario, its analytically predicted outcome, the engine's actual output, and the resulting pass / fail verdict.
+The recommendation engine is a deterministic function: given a fixed input profile and a fixed offer catalogue, it always produces the same ranked list. This property makes it possible to validate the engine analytically — by deriving the expected outcome from the engine's rules before running it, then checking that the actual output matches the prediction. Four scenario tests cover the key behavioural properties of the engine and are persisted as automated unit tests in \textit{src/lib/\_\_tests\_\_/recommendation.test.ts}. Table~\ref{tab:rec-validation} reports each scenario, its analytically predicted outcome, the engine's actual output, and the resulting pass / fail verdict.
 
 \begin{table}[H]
   \caption{Recommendation engine --- four scenario tests}
@@ -76,7 +76,7 @@ The validation tests above are passed by the tiered-ranking model described in C
 
 \section{Performance Benchmarks}
 
-To characterise the platform's capacity, the application was built in production mode (\texttt{npm run build} followed by \texttt{npm start}) and exercised with synthetic load using a concurrent-worker harness written in plain Node.js. Three endpoints were tested under increasing concurrency (one, ten, fifty, and one-hundred concurrent workers) over a ten-second window each. The rate-limit cap on \texttt{/api/recommendations} was bypassed during benchmarking by varying the \texttt{X-Forwarded-For} header per request; in production this cap remains a real safety brake against abuse. Table~\ref{tab:bench} reports the results.
+To characterise the platform's capacity, the application was built in production mode (\texttt{npm run build} followed by \texttt{npm start}) and exercised with synthetic load using a concurrent-worker harness written in plain Node.js. Three endpoints were tested under increasing concurrency (one, ten, fifty, and one-hundred concurrent workers) over a ten-second window each. The rate-limit cap on \textit{/api/recommendations} was bypassed during benchmarking by varying the \texttt{X-Forwarded-For} header per request; in production this cap remains a real safety brake against abuse. Table~\ref{tab:bench} reports the results.
 
 \begin{table}[H]
   \caption{Load-test results --- production build, single-machine deployment}

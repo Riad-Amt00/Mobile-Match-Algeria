@@ -304,7 +304,7 @@ Figure~\ref{fig:seq-recommend} illustrates the sequence of interactions between 
 \label{fig:seq-recommend}
 \end{figure}
 
-The client sends a POST request to \texttt{/api/recommendations} with the user's profile parameters. The API server validates the session token, retrieves all active offers from the database, passes the offer list and user profile to the recommendation engine, and returns the top three scored results. The entire server-side operation is stateless and completes in under 100~ms for the current catalogue size.
+The client sends a POST request to \textit{/api/recommendations} with the user's profile parameters. The API server validates the session token, retrieves all active offers from the database, passes the offer list and user profile to the recommendation engine, and returns the top three scored results. The entire server-side operation is stateless and completes in under 100~ms for the current catalogue size.
 
 \section{Data Model}
 
@@ -495,7 +495,7 @@ With the data model now defined, the next question is how the application code i
 
 \subsection{Three-Tier Architecture}
 
-The application follows a classic three-tier architecture. The \textbf{presentation tier} consists of React components rendered by Next.js, either on the server (for initial page load) or on the client (for interactive elements). The \textbf{logic tier} consists of Next.js API route handlers located in the \texttt{src/app/api/} directory, which implement the business logic and data access layer. The \textbf{data tier} consists of a SQLite database accessed exclusively through Prisma.
+The application follows a classic three-tier architecture. The \textbf{presentation tier} consists of React components rendered by Next.js, either on the server (for initial page load) or on the client (for interactive elements). The \textbf{logic tier} consists of Next.js API route handlers located in the \textit{src/app/api/} directory, which implement the business logic and data access layer. The \textbf{data tier} consists of a SQLite database accessed exclusively through Prisma.
 
 Figure~\ref{fig:arch-overview} illustrates the high-level component architecture.
 
@@ -552,32 +552,32 @@ Table~\ref{tab:api-routes-design} lists the main API routes, their HTTP methods,
     \hline
     \textbf{Route} & \textbf{Method(s)} & \textbf{Function} \\
     \hline
-    \texttt{/api/offers}              & GET                & List and filter active offers; supports a structured \texttt{search} parameter; also serves by \texttt{ids} for comparison (bypasses \texttt{isActive}) \\
+    \textit{/api/offers}              & GET                & List and filter active offers; supports a structured \texttt{search} parameter; also serves by \texttt{ids} for comparison (bypasses \texttt{isActive}) \\
     \hline
-    \texttt{/api/offers/[id]}         & GET, PATCH, DELETE & Retrieve offer detail with similar offers; admin-only toggle of \texttt{isActive} (PATCH) or soft-delete (DELETE) \\
+    \textit{/api/offers/[id]}         & GET, PATCH, DELETE & Retrieve offer detail with similar offers; admin-only toggle of \texttt{isActive} (PATCH) or soft-delete (DELETE) \\
     \hline
-    \texttt{/api/saved-offers}        & GET, POST          & List saved offer IDs; toggle save/unsave for authenticated user \\
+    \textit{/api/saved-offers}        & GET, POST          & List saved offer IDs; toggle save/unsave for authenticated user \\
     \hline
-    \texttt{/api/recommendations}     & POST               & Return top-3 tier-ranked plans for the submitted user profile (rate-limited: 60 requests per minute per IP) \\
+    \textit{/api/recommendations}     & POST               & Return top-3 tier-ranked plans for the submitted user profile (rate-limited: 60 requests per minute per IP) \\
     \hline
-    \texttt{/api/notifications}       & GET, PATCH, DELETE & List user notifications; mark one or all as read; delete one \\
+    \textit{/api/notifications}       & GET, PATCH, DELETE & List user notifications; mark one or all as read; delete one \\
     \hline
-    \texttt{/api/profile}             & GET, PUT           & Retrieve or update the authenticated user's profile (priorities, preferred operator, budget, needs) \\
+    \textit{/api/profile}             & GET, PUT           & Retrieve or update the authenticated user's profile (priorities, preferred operator, budget, needs) \\
     \hline
-    \texttt{/api/auth/register}       & POST               & Create a user account (rate-limited: 5 requests per 15 minutes per IP) \\
+    \textit{/api/auth/register}       & POST               & Create a user account (rate-limited: 5 requests per 15 minutes per IP) \\
     \hline
     \texttt{/api/auth/{[}...nextauth{]}} & GET, POST       & NextAuth.js sign-in / sign-out / session endpoints \\
     \hline
-    \texttt{/api/admin/stats}         & GET                & Platform statistics (users, active offers, scrape sessions, operator health) \\
+    \textit{/api/admin/stats}         & GET                & Platform statistics (users, active offers, scrape sessions, operator health) \\
     \hline
-    \texttt{/api/admin/claim}         & POST               & One-time admin role claim using the server-side \texttt{ADMIN\_CLAIM\_CODE} environment variable \\
+    \textit{/api/admin/claim}         & POST               & One-time admin role claim using the server-side \texttt{ADMIN\_CLAIM\_CODE} environment variable \\
     \hline
-    \texttt{/api/stats}               & GET                & Public platform statistics (offer count, operator count) \\
+    \textit{/api/stats}               & GET                & Public platform statistics (offer count, operator count) \\
     \hline
   \end{tabular}
 \end{table}
 
-The route map of Table~\ref{tab:api-routes-design} defines the contract the front-end consumes. Each presentation-tier page calls one or more of these routes: the offers grid binds to \texttt{/api/offers}, the comparison view to the same endpoint with an \texttt{ids} parameter, the recommendation page to \texttt{/api/recommendations}, the profile and saved-plans pages to \texttt{/api/profile} and \texttt{/api/saved-offers} respectively, and the admin dashboard to the \texttt{/api/admin/*} family. The concrete interface screens that consume these routes are illustrated by the screenshots embedded in Chapter~3, Section~3.8.
+The route map of Table~\ref{tab:api-routes-design} defines the contract the front-end consumes. Each presentation-tier page calls one or more of these routes: the offers grid binds to \textit{/api/offers}, the comparison view to the same endpoint with an \texttt{ids} parameter, the recommendation page to \textit{/api/recommendations}, the profile and saved-plans pages to \textit{/api/profile} and \textit{/api/saved-offers} respectively, and the admin dashboard to the \textit{/api/admin/*} family. The concrete interface screens that consume these routes are illustrated by the screenshots embedded in Chapter~3, Section~3.8.
 
 \section{Justification of the Technology Choices}
 
@@ -592,10 +592,10 @@ Two principles guided every choice in the technology stack: keep the front-end a
     \textbf{Component} & \textbf{Chosen} & \textbf{Alternatives considered} & \textbf{Reasons for selection} \\
     \hline
     Full-stack framework & Next.js 16 & Nuxt (Vue), SvelteKit, Express + React separated &
-    Single project for both front-end (React server components in \texttt{page.tsx}) and back-end (\texttt{route.ts} handlers); App Router file-system routing; native server-side rendering and incremental static regeneration; TypeScript types flow from Prisma through API handlers into React components without manual export. Nuxt and SvelteKit are comparable on features but offer smaller ecosystems for the specific authentication and ORM libraries required \parencite{NextJSDocs2024}. \\
+    Single project for both front-end (React server components in \textit{page.tsx}) and back-end (\textit{route.ts} handlers); App Router file-system routing; native server-side rendering and incremental static regeneration; TypeScript types flow from Prisma through API handlers into React components without manual export. Nuxt and SvelteKit are comparable on features but offer smaller ecosystems for the specific authentication and ORM libraries required \parencite{NextJSDocs2024}. \\
     \hline
     ORM & Prisma 7 & TypeORM, Drizzle, raw SQL &
-    The single \texttt{schema.prisma} file is the unique source of truth for the data model: types are auto-generated, migrations are derived mechanically, and any column change propagates at compile time. Prisma~7's driver-adapter system gives a clean migration path to PostgreSQL by swapping the adapter alone. Raw SQL forces duplicate type definitions in two places with no static sync guarantee; TypeORM and Drizzle keep declarations inside application code rather than in a dedicated schema file \parencite{PrismaDocs2024}. \\
+    The single \textit{schema.prisma} file is the unique source of truth for the data model: types are auto-generated, migrations are derived mechanically, and any column change propagates at compile time. Prisma~7's driver-adapter system gives a clean migration path to PostgreSQL by swapping the adapter alone. Raw SQL forces duplicate type definitions in two places with no static sync guarantee; TypeORM and Drizzle keep declarations inside application code rather than in a dedicated schema file \parencite{PrismaDocs2024}. \\
     \hline
     Database & SQLite & PostgreSQL, MySQL &
     The most-deployed database engine in the world; embedded in every smartphone and modern browser \parencite{Mitchell2018}. Load tests (Ch4 §4.3) sustain 215~req/s on the offers endpoint with zero errors at fifty concurrent connections; the recommendation endpoint hits its CPU-bound ceiling of 60~req/s before the database becomes a bottleneck. PostgreSQL or MySQL would add a daemon, credentials, and a non-trivial deployment footprint for no measurable benefit at the project's scale. \\

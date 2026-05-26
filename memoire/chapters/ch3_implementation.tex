@@ -45,7 +45,7 @@ Table~\ref{tab:dev-env} describes the hardware and software environment used thr
   \end{tabular}
 \end{table}
 
-The project was initialised with \texttt{create-next-app} and immediately configured with strict TypeScript, ESLint, Prisma, and Vitest. All sensitive configuration (database path, NextAuth secret, base URL, admin-claim code) is stored in a \texttt{.env} file excluded from version control.
+The project was initialised with \texttt{create-next-app} and immediately configured with strict TypeScript, ESLint, Prisma, and Vitest. All sensitive configuration (database path, NextAuth secret, base URL, admin-claim code) is stored in a \textit{.env} file excluded from version control.
 
 The first subsystem built on top of this environment is the one that feeds the catalogue: the data-aggregation module. Without it, the application has nothing to show.
 
@@ -53,7 +53,7 @@ The first subsystem built on top of this environment is the one that feeds the c
 
 \subsection{Scraper Architecture}
 
-The data-aggregation module resides in \texttt{src/lib/scraper/} and follows a strict separation of concerns. Three per-operator scrapers (\texttt{djezzy.ts}, \texttt{ooredoo.ts}, \texttt{mobilis.ts}) are each responsible only for fetching and parsing their respective operator's plan page and returning a normalised array of raw offer objects. A central orchestrator (\texttt{index.ts}) coordinates all three scrapers and handles every database operation, deactivation decision, and notification dispatch. A shared validation module (\texttt{validate.ts}) provides robust parsers for the recurring formats encountered on the operator websites: prices in Algerian Dinars (\guillemotleft{}DA\guillemotright{}), data volumes in gigabytes (\guillemotleft{}Go\guillemotright{}, \guillemotleft{}GB\guillemotright{}), and validity periods (\guillemotleft{}jours\guillemotright{}, \guillemotleft{}semaines\guillemotright{}, \guillemotleft{}mois\guillemotright{}). A browser-backed fetcher (\texttt{fetch.ts}) launches a real headless instance of Microsoft Edge via Playwright (falling back to Playwright's bundled Chromium when Edge is unavailable), retries each URL up to three times with spaced delays of zero, seven, and eighteen seconds, and opens a per-operator circuit breaker after repeated failures to switch the affected operator to its verified fallback dataset.
+The data-aggregation module resides in \textit{src/lib/scraper/} and follows a strict separation of concerns. Three per-operator scrapers (\textit{djezzy.ts}, \textit{ooredoo.ts}, \textit{mobilis.ts}) are each responsible only for fetching and parsing their respective operator's plan page and returning a normalised array of raw offer objects. A central orchestrator (\textit{index.ts}) coordinates all three scrapers and handles every database operation, deactivation decision, and notification dispatch. A shared validation module (\textit{validate.ts}) provides robust parsers for the recurring formats encountered on the operator websites: prices in Algerian Dinars (\guillemotleft{}DA\guillemotright{}), data volumes in gigabytes (\guillemotleft{}Go\guillemotright{}, \guillemotleft{}GB\guillemotright{}), and validity periods (\guillemotleft{}jours\guillemotright{}, \guillemotleft{}semaines\guillemotright{}, \guillemotleft{}mois\guillemotright{}). A browser-backed fetcher (\textit{fetch.ts}) launches a real headless instance of Microsoft Edge via Playwright (falling back to Playwright's bundled Chromium when Edge is unavailable), retries each URL up to three times with spaced delays of zero, seven, and eighteen seconds, and opens a per-operator circuit breaker after repeated failures to switch the affected operator to its verified fallback dataset.
 
 \subsection{Scraping Algorithm}
 
@@ -68,7 +68,7 @@ Table~\ref{tab:scraper-algo} presents the algorithm executed by the orchestrator
     \textbf{Step} & \textbf{Action} \\
     \hline
     1   & Record \texttt{startedAt}; create \texttt{ScrapeLog} with \texttt{status = RUNNING}. \\ \hline
-    2   & Invoke \texttt{scraper\_fn}: fetch the operator page through a real headless Edge browser (spaced retries + circuit breaker), parse HTML with Cheerio, normalise attributes via \texttt{validate.ts}. \\ \hline
+    2   & Invoke \texttt{scraper\_fn}: fetch the operator page through a real headless Edge browser (spaced retries + circuit breaker), parse HTML with Cheerio, normalise attributes via \textit{validate.ts}. \\ \hline
     3   & Filter out offers missing all data, voice, and SMS values. \\ \hline
     4a  & For each valid offer, compute \texttt{slug = slugify(offer.name)}. \\ \hline
     4b  & If the slug exists in DB $\Rightarrow$ UPDATE record (insert \texttt{PriceHistory} if \texttt{priceDA} changed); else $\Rightarrow$ INSERT and notify users. \\ \hline
@@ -82,13 +82,13 @@ A key precision mechanism is the \textbf{per-family deactivation} at step~5. Rat
 
 \subsection{Normalisation, Validation, and Scheduled Automation}
 
-Each operator presents plan data in a different format, so a normalisation pipeline applies the following transformations before any record is stored: data volumes in megabytes are converted to gigabytes; plan names are trimmed and stripped of promotional suffixes; missing voice or SMS values default to zero; unlimited values are stored as the sentinel \texttt{-1}; the plan type (prepaid, postpaid, data-only) is inferred from page context when not explicit; and a unique slug is generated from the normalised name. The pipeline outputs objects conforming to the \texttt{Offer} schema. The scrapers are accompanied by a snapshot-based test suite under \texttt{src/lib/scraper/\_\_tests\_\_} --- one parser-level test per operator (Djezzy CAMPUCE, Djezzy LEGEND, Ooredoo~500, Ooredoo~POP, Mobilis Pass Internet) verifies that the parser still extracts at least one offer from a frozen HTML fixture and that every extracted offer passes basic plausibility checks (no zero prices, no unrealistic data values, no \guillemotleft{}data == price\guillemotright{} parsing bugs) --- complemented by thirty independent tests covering multilingual unit parsing in \texttt{validate.ts}. This infrastructure has caught real parser regressions, most notably an Ooredoo POP page change in which data and price values briefly appeared in the same DOM node. The orchestrator runs automatically on a scheduled basis through the Next.js instrumentation hook (administrators may also trigger a manual run from the dashboard); after each successful run it inspects every updated offer and dispatches notifications: \texttt{price\_drop} to users who saved an offer whose price decreased, \texttt{new\_offer} to every registered user when a brand-new plan is inserted, and \texttt{scrape\_complete} or \texttt{scrape\_failed} to administrators only.
+Each operator presents plan data in a different format, so a normalisation pipeline applies the following transformations before any record is stored: data volumes in megabytes are converted to gigabytes; plan names are trimmed and stripped of promotional suffixes; missing voice or SMS values default to zero; unlimited values are stored as the sentinel \texttt{-1}; the plan type (prepaid, postpaid, data-only) is inferred from page context when not explicit; and a unique slug is generated from the normalised name. The pipeline outputs objects conforming to the \texttt{Offer} schema. The scrapers are accompanied by a snapshot-based test suite under \textit{src/lib/scraper/\_\_tests\_\_} --- one parser-level test per operator (Djezzy CAMPUCE, Djezzy LEGEND, Ooredoo~500, Ooredoo~POP, Mobilis Pass Internet) verifies that the parser still extracts at least one offer from a frozen HTML fixture and that every extracted offer passes basic plausibility checks (no zero prices, no unrealistic data values, no \guillemotleft{}data == price\guillemotright{} parsing bugs) --- complemented by thirty independent tests covering multilingual unit parsing in \textit{validate.ts}. This infrastructure has caught real parser regressions, most notably an Ooredoo POP page change in which data and price values briefly appeared in the same DOM node. The orchestrator runs automatically on a scheduled basis through the Next.js instrumentation hook (administrators may also trigger a manual run from the dashboard); after each successful run it inspects every updated offer and dispatches notifications: \texttt{price\_drop} to users who saved an offer whose price decreased, \texttt{new\_offer} to every registered user when a brand-new plan is inserted, and \texttt{scrape\_complete} or \texttt{scrape\_failed} to administrators only.
 
 \section{Backend --- REST API}
 
 \subsection{API Route Structure}
 
-All API routes are implemented as Next.js App Router route handlers under \texttt{src/app/api/}. Each file exports named asynchronous functions corresponding to HTTP methods (\texttt{GET}, \texttt{POST}, \texttt{PATCH}, \texttt{DELETE}). Route-level middleware checks for a valid session before executing any protected operation, and a server-side rate-limit table (\texttt{RateLimit}) throttles abusable endpoints. Table~\ref{tab:api-routes} summarises the available routes.
+All API routes are implemented as Next.js App Router route handlers under \textit{src/app/api/}. Each file exports named asynchronous functions corresponding to HTTP methods (\texttt{GET}, \texttt{POST}, \texttt{PATCH}, \texttt{DELETE}). Route-level middleware checks for a valid session before executing any protected operation, and a server-side rate-limit table (\texttt{RateLimit}) throttles abusable endpoints. Table~\ref{tab:api-routes} summarises the available routes.
 
 \begin{table}[H]
   \caption{API route map}
@@ -98,44 +98,44 @@ All API routes are implemented as Next.js App Router route handlers under \textt
     \hline
     \textbf{Route} & \textbf{Methods} & \textbf{Function} \\
     \hline
-    \texttt{/api/offers}              & GET                & List and filter active offers; accepts a structured \texttt{search} parameter; supports fetch-by-ID list for comparison (bypasses \texttt{isActive}) \\
+    \textit{/api/offers}              & GET                & List and filter active offers; accepts a structured \texttt{search} parameter; supports fetch-by-ID list for comparison (bypasses \texttt{isActive}) \\
     \hline
-    \texttt{/api/offers/[id]}         & GET, PATCH, DELETE & Retrieve, update, or delete a single offer (admin only) \\
+    \textit{/api/offers/[id]}         & GET, PATCH, DELETE & Retrieve, update, or delete a single offer (admin only) \\
     \hline
-    \texttt{/api/saved-offers}        & GET, POST          & List saved offer IDs; toggle save/unsave \\
+    \textit{/api/saved-offers}        & GET, POST          & List saved offer IDs; toggle save/unsave \\
     \hline
-    \texttt{/api/recommendations}     & POST               & Run the tiered-ranking engine and return the top-3 matched plans (rate-limited at 60 requests per minute per IP) \\
+    \textit{/api/recommendations}     & POST               & Run the tiered-ranking engine and return the top-3 matched plans (rate-limited at 60 requests per minute per IP) \\
     \hline
-    \texttt{/api/notifications}       & GET, PATCH, DELETE & List, mark-all-read, or delete a notification \\
+    \textit{/api/notifications}       & GET, PATCH, DELETE & List, mark-all-read, or delete a notification \\
     \hline
-    \texttt{/api/profile}             & GET, PUT           & Retrieve or update the authenticated user's profile (priorities, preferred operator, budget, needs) \\
+    \textit{/api/profile}             & GET, PUT           & Retrieve or update the authenticated user's profile (priorities, preferred operator, budget, needs) \\
     \hline
-    \texttt{/api/auth/register}       & POST               & Create a user account (rate-limited at 5 requests per 15 minutes per IP) \\
+    \textit{/api/auth/register}       & POST               & Create a user account (rate-limited at 5 requests per 15 minutes per IP) \\
     \hline
     \texttt{/api/auth/{[}...nextauth{]}} & GET, POST       & NextAuth sign-in / sign-out / session endpoints \\
     \hline
-    \texttt{/api/admin/stats}         & GET                & Platform statistics (users, active offers, scrape sessions, operator health) \\
+    \textit{/api/admin/stats}         & GET                & Platform statistics (users, active offers, scrape sessions, operator health) \\
     \hline
-    \texttt{/api/admin/claim}         & POST               & One-time admin role claim using the server-side \texttt{ADMIN\_CLAIM\_CODE} environment variable \\
+    \textit{/api/admin/claim}         & POST               & One-time admin role claim using the server-side \texttt{ADMIN\_CLAIM\_CODE} environment variable \\
     \hline
-    \texttt{/api/stats}               & GET                & Public platform statistics (offer count, operator count) \\
+    \textit{/api/stats}               & GET                & Public platform statistics (offer count, operator count) \\
     \hline
   \end{tabular}
 \end{table}
 
 \subsection{Cross-Operator Comparison Routing}
 
-One non-trivial design decision in the offers route concerns the comparison feature. When a user selects plans from different operators and navigates to the comparison page, the IDs are passed as a query parameter (\texttt{?ids=a,b,c}). The \texttt{/api/offers} handler detects this parameter and executes a direct lookup by ID list, deliberately bypassing the \texttt{isActive} filter that applies to the normal listing path. This ensures that saved plans remain comparable even if a subsequent scrape run has marked them inactive.
+One non-trivial design decision in the offers route concerns the comparison feature. When a user selects plans from different operators and navigates to the comparison page, the IDs are passed as a query parameter (\texttt{?ids=a,b,c}). The \textit{/api/offers} handler detects this parameter and executes a direct lookup by ID list, deliberately bypassing the \texttt{isActive} filter that applies to the normal listing path. This ensures that saved plans remain comparable even if a subsequent scrape run has marked them inactive.
 
 \subsection{Authentication}
 
-User authentication is implemented with \textit{NextAuth.js} using the Credentials provider. Passwords are hashed with bcrypt at registration and verified at sign-in. Sessions are JWT-based with a thirty-day expiry. The \texttt{role} field (\texttt{USER} or \texttt{ADMIN}) is embedded in the session token and verified at the start of every admin-gated route handler. A one-time administrator-claim mechanism (\texttt{/api/admin/claim}) allows a registered user to elevate their role using a server-side secret defined in the \texttt{ADMIN\_CLAIM\_CODE} environment variable.
+User authentication is implemented with \textit{NextAuth.js} using the Credentials provider. Passwords are hashed with bcrypt at registration and verified at sign-in. Sessions are JWT-based with a thirty-day expiry. The \texttt{role} field (\texttt{USER} or \texttt{ADMIN}) is embedded in the session token and verified at the start of every admin-gated route handler. A one-time administrator-claim mechanism (\textit{/api/admin/claim}) allows a registered user to elevate their role using a server-side secret defined in the \texttt{ADMIN\_CLAIM\_CODE} environment variable.
 
 \section{Recommendation Engine}
 
 \subsection{Two-Layer Decision Model}
 
-The recommendation engine is implemented in \texttt{src/lib/recommendation.ts}. It separates the recommendation problem into two distinct layers: a categorical filtering layer that excludes offers incompatible with the user's hard constraints, and a tiered-ranking layer that orders the remaining offers according to the user's primary and secondary continuous priorities. The second layer is an applied form of \textbf{lexicographic preference ordering with bounded relaxation}, a well-established technique in multi-criteria decision making \parencite{Fishburn1974, Roberts1979}: the contribution of this work is the adaptation of that technique to a cold-start consumer-plan context, not the algorithm itself. The final defensible design (Table~\ref{tab:rec-algo}) was reached after several rejected attempts (Section~3.4.3), each of which exposed a specific failure mode of the previous one.
+The recommendation engine is implemented in \textit{src/lib/recommendation.ts}. It separates the recommendation problem into two distinct layers: a categorical filtering layer that excludes offers incompatible with the user's hard constraints, and a tiered-ranking layer that orders the remaining offers according to the user's primary and secondary continuous priorities. The second layer is an applied form of \textbf{lexicographic preference ordering with bounded relaxation}, a well-established technique in multi-criteria decision making \parencite{Fishburn1974, Roberts1979}: the contribution of this work is the adaptation of that technique to a cold-start consumer-plan context, not the algorithm itself. The final defensible design (Table~\ref{tab:rec-algo}) was reached after several rejected attempts (Section~3.4.3), each of which exposed a specific failure mode of the previous one.
 
 \begin{table}[H]
   \caption{Tiered-ranking recommendation algorithm}
@@ -211,11 +211,11 @@ The tiered model was reached only after four earlier designs were rejected, each
 
 To illustrate the rejection of design~3 concretely, consider a user with budget 1\,400~DA, data need 20~GB, priorities \texttt{[price, data]}, and two candidate offers $O_A$ (200~DA / 3~GB) and $O_B$ (1\,400~DA / 25~GB). The geometric-mean composite $m_1^{0.6} \cdot m_2^{0.4}$ returns $0.14$ for $O_A$ and $1.00$ for $O_B$, ranking $O_B$ first --- directly contradicting the user's stated primary preference for price. The tiered model places $O_A$ in tier $0.00$ and $O_B$ in tier $1.00$; the primary priority strictly determines the tier, so $O_A$ leads. The two models produce opposite top results from the same inputs --- which is the failure mode the iterative process was eliminating.
 
-The engine is called from two distinct contexts: the \texttt{/api/recommendations} route handler executes the algorithm synchronously in response to an explicit user request (rate-limited at sixty requests per minute per IP), and the scraper orchestrator runs it in batch after each successful scrape cycle to dispatch personalised \texttt{recommendation} notifications when a user's top match has changed. The engine covers the case where the user has filled out a profile and wants the system to choose for them; the complementary case --- the user has a query in mind and wants the catalogue filtered by it --- is handled by the structured search interface described next.
+The engine is called from two distinct contexts: the \textit{/api/recommendations} route handler executes the algorithm synchronously in response to an explicit user request (rate-limited at sixty requests per minute per IP), and the scraper orchestrator runs it in batch after each successful scrape cycle to dispatch personalised \texttt{recommendation} notifications when a user's top match has changed. The engine covers the case where the user has filled out a profile and wants the system to choose for them; the complementary case --- the user has a query in mind and wants the catalogue filtered by it --- is handled by the structured search interface described next.
 
 \section{Structured Search Engine}
 
-The search engine is a parser implemented twice in symmetry: the server-side parser lives inside the \texttt{GET /api/offers} handler and converts a free-text query into a Prisma \texttt{where} clause, while the client-side parser (\texttt{src/lib/search-tokens.ts}) applies the same regular-expression vocabulary to produce visible \guillemotleft{}Read as\guillemotright{} chips that show the user how the query was interpreted. Eight token kinds are recognised; Table~\ref{tab:search-tokens} lists each token with its example input and resulting filter.
+The search engine is a parser implemented twice in symmetry: the server-side parser lives inside the \texttt{GET /api/offers} handler and converts a free-text query into a Prisma \texttt{where} clause, while the client-side parser (\textit{src/lib/search-tokens.ts}) applies the same regular-expression vocabulary to produce visible \guillemotleft{}Read as\guillemotright{} chips that show the user how the query was interpreted. Eight token kinds are recognised; Table~\ref{tab:search-tokens} lists each token with its example input and resulting filter.
 
 \begin{table}[H]
   \caption{Token kinds recognised by the search parser}
@@ -250,7 +250,7 @@ Each recognised token is consumed from the input string; the remaining words (at
 
 Two short user-facing features sit on top of the same recommendation backbone introduced above.
 
-\paragraph{Comparative bar charts.} The comparison page renders, in addition to the side-by-side specification table, two per-metric bar charts comparing the selected plans on price (lower is better) and data volume (higher is better, with the sentinel value $-1$ shown as \guillemotleft{}$\infty$\guillemotright{}). When the comparison is launched from the recommendations page, a third bar chart labelled \guillemotleft{}Annual savings\guillemotright{} is added: it shows, for each compared plan, $\max(0,\,(\mathrm{budget} - \mathrm{price}) \times 12)$ where \texttt{budget} is read from the authenticated user's saved profile --- so every bar carries a real value rather than the priciest plan being pinned to zero. Each plan's bar is coloured according to its operator using the palette defined in \texttt{src/lib/utils.ts}, and the corresponding columns of the table are tinted to match. The charts use the \texttt{recharts} library and are rendered client-side.
+\paragraph{Comparative bar charts.} The comparison page renders, in addition to the side-by-side specification table, two per-metric bar charts comparing the selected plans on price (lower is better) and data volume (higher is better, with the sentinel value $-1$ shown as \guillemotleft{}$\infty$\guillemotright{}). When the comparison is launched from the recommendations page, a third bar chart labelled \guillemotleft{}Annual savings\guillemotright{} is added: it shows, for each compared plan, $\max(0,\,(\mathrm{budget} - \mathrm{price}) \times 12)$ where \texttt{budget} is read from the authenticated user's saved profile --- so every bar carries a real value rather than the priciest plan being pinned to zero. Each plan's bar is coloured according to its operator using the palette defined in \textit{src/lib/utils.ts}, and the corresponding columns of the table are tinted to match. The charts use the \texttt{recharts} library and are rendered client-side.
 
 \paragraph{Savings calculator.} The FICHE deliverable \guillemotleft{}calculateur d'économies potentielles\guillemotright{} is implemented as an integrated indicator on each recommendation card rather than as a standalone page, because the recommendation flow already gathers every input the calculation requires: the user's monthly budget, the data need, and the binary calls and SMS preferences. For every ranked plan whose price is below the user's monthly budget, the card displays the monthly saving (\texttt{budget} $-$ \texttt{offer.priceDA}), the annual saving (monthly saving~$\times$~12) and the percentage reduction relative to the budget. The indicator is rendered as a tinted panel below the match-reasons block and is hidden when the user's budget is already at or below the plan's price, avoiding misleading zero or negative savings values. The user can then launch a side-by-side comparison of the top three plans, where the same budget-relative annual saving is rendered as the third bar chart described above. Folding the calculation into the recommendation card removes a redundant entry point while preserving the deliverable's behaviour and three-component output.
 
@@ -270,18 +270,18 @@ The notification system is split into two distinct streams handled by the same \
     \hline
     \texttt{price\_drop}       & Users who have saved that offer & A scrape detects a price decrease on a saved offer & The offer detail page \\
     \hline
-    \texttt{recommendation}    & Registered users with a saved profile & The user's top-matched plan has changed after a scrape cycle & \texttt{/recommend} \\
+    \texttt{recommendation}    & Registered users with a saved profile & The user's top-matched plan has changed after a scrape cycle & \textit{/recommend} \\
     \hline
-    \texttt{scrape\_complete}  & Administrators only & A manual or scheduled scrape run finishes successfully & \texttt{/admin?tab=history} \\
+    \texttt{scrape\_complete}  & Administrators only & A manual or scheduled scrape run finishes successfully & \textit{/admin?tab=history} \\
     \hline
-    \texttt{scrape\_failed}    & Administrators only & An operator was unreachable or returned invalid data & \texttt{/admin?tab=history} \\
+    \texttt{scrape\_failed}    & Administrators only & An operator was unreachable or returned invalid data & \textit{/admin?tab=history} \\
     \hline
   \end{tabular}
 \end{table}
 
-The two-stream separation is enforced at the source: every notification-dispatch function in the scraper orchestrator (\texttt{notifyUsers}, \texttt{notifyAdmins}, \texttt{notifyAdminsFailure}) filters the recipient set by the \texttt{User.role} field before writing any row. Each notification type also drives the click-through routing applied by the navbar bell and the admin panel: user-stream notifications navigate to the offer detail page or to \texttt{/recommend} depending on the type, while administrator-stream notifications navigate to \texttt{/admin?tab=history}.
+The two-stream separation is enforced at the source: every notification-dispatch function in the scraper orchestrator (\texttt{notifyUsers}, \texttt{notifyAdmins}, \texttt{notifyAdminsFailure}) filters the recipient set by the \texttt{User.role} field before writing any row. Each notification type also drives the click-through routing applied by the navbar bell and the admin panel: user-stream notifications navigate to the offer detail page or to \textit{/recommend} depending on the type, while administrator-stream notifications navigate to \textit{/admin?tab=history}.
 
-The separation was introduced specifically to fix two defects in an earlier single-stream design. Without role filters on the dispatch functions, an administrator's feed was systematically polluted with consumer-facing alerts produced for every newly scraped offer. More damagingly, both administrator \guillemotleft{}scrape complete\guillemotright{} and user \guillemotleft{}new offer\guillemotright{} events used the same \texttt{type} value, so a non-administrator user clicking on a \guillemotleft{}new offer\guillemotright{} notification was routed to \texttt{/admin?tab=history} --- a page they were not permitted to access. The current two-stream design --- role-filtered dispatch, distinct \texttt{type} values, and type-aware routing --- eliminates both defects by construction.
+The separation was introduced specifically to fix two defects in an earlier single-stream design. Without role filters on the dispatch functions, an administrator's feed was systematically polluted with consumer-facing alerts produced for every newly scraped offer. More damagingly, both administrator \guillemotleft{}scrape complete\guillemotright{} and user \guillemotleft{}new offer\guillemotright{} events used the same \texttt{type} value, so a non-administrator user clicking on a \guillemotleft{}new offer\guillemotright{} notification was routed to \textit{/admin?tab=history} --- a page they were not permitted to access. The current two-stream design --- role-filtered dispatch, distinct \texttt{type} values, and type-aware routing --- eliminates both defects by construction.
 
 \subsection{End-to-End Notification Scenario}
 
@@ -299,19 +299,19 @@ To make the behaviour of the two streams concrete, Table~\ref{tab:notif-scenario
     \hline
     2 & Scraper orchestrator     & Fetches the three operator catalogues; inserts two previously unknown Djezzy plans; detects a 200~DA price drop on a Mobilis plan that Bob had saved. & ---                     & --- \\
     \hline
-    3 & Scrape completion        & Run finishes with status \texttt{SUCCESS}.                                                                     & \texttt{scrape\_complete} & Alice and every other administrator. Routes to \texttt{/admin?tab=history}. \\
+    3 & Scrape completion        & Run finishes with status \texttt{SUCCESS}.                                                                     & \texttt{scrape\_complete} & Alice and every other administrator. Routes to \textit{/admin?tab=history}. \\
     \hline
-    4 & Insertion of new plan    & For each of the two new Djezzy plans, a row is inserted in \texttt{Offer}.                                     & \texttt{new\_offer}     & Bob, Carol, and every other registered user. Routes to \texttt{/offers/[id]}. \\
+    4 & Insertion of new plan    & For each of the two new Djezzy plans, a row is inserted in \texttt{Offer}.                                     & \texttt{new\_offer}     & Bob, Carol, and every other registered user. Routes to \textit{/offers/[id]}. \\
     \hline
-    5 & Price decrease detected  & The saved Mobilis plan's \texttt{priceDA} is rewritten from 1\,500 to 1\,300~DA in the same run.               & \texttt{price\_drop}    & Bob only (because Bob is the only user who had saved that offer). Routes to \texttt{/offers/[id]}. \\
+    5 & Price decrease detected  & The saved Mobilis plan's \texttt{priceDA} is rewritten from 1\,500 to 1\,300~DA in the same run.               & \texttt{price\_drop}    & Bob only (because Bob is the only user who had saved that offer). Routes to \textit{/offers/[id]}. \\
     \hline
-    6 & Re-ranking pass          & The recommendation engine re-runs against every profile; Carol's previous top-matched plan is overtaken by a newer one. & \texttt{recommendation} & Carol only. Routes to \texttt{/recommend}. \\
+    6 & Re-ranking pass          & The recommendation engine re-runs against every profile; Carol's previous top-matched plan is overtaken by a newer one. & \texttt{recommendation} & Carol only. Routes to \textit{/recommend}. \\
     \hline
     7 & Notification fan-out     & Notifications are batch-inserted into the \texttt{Notification} table grouped by \texttt{userId}.              & ---                     & --- \\
     \hline
     8 & Recipient sees the bell  & Each recipient's navbar bell badge increments by the count of unread rows for their \texttt{userId}.            & ---                     & --- \\
     \hline
-    9 & Recipient clicks one     & The frontend marks the row as read (PATCH \texttt{/api/notifications}) and navigates by \texttt{type}.          & ---                     & ---                                       \\
+    9 & Recipient clicks one     & The frontend marks the row as read (PATCH \textit{/api/notifications}) and navigates by \texttt{type}.          & ---                     & ---                                       \\
     \hline
   \end{tabular}
 \end{table}
@@ -329,15 +329,15 @@ The application comprises nine primary screens covering the full user journey fr
   \begin{tabular}{|p{2.6cm}|p{2.5cm}|p{1.6cm}|p{6.4cm}|}
     \hline
     \textbf{Screen} & \textbf{Route} & \textbf{Audience} & \textbf{Main elements} \\ \hline
-    Home               & \texttt{/}           & Public  & Language selector (EN / FR / AR), four feature tiles, three operator logos; authenticated users bypass this screen and land directly on \texttt{/offers}. \\ \hline
-    Offers catalogue   & \texttt{/offers}     & Public  & Grid of offer cards, operator filter tabs, plan-type pills, collapsible advanced filter panel, structured search bar with \guillemotleft{}Read as\guillemotright{} chips, sticky bottom bar when plans are selected for comparison. \\ \hline
-    Comparison         & \texttt{/compare}    & Public  & Side-by-side specification table tinted in operator colours, plus per-metric bar charts (price, data, and annual savings when launched from recommendations). \\ \hline
-    Recommendations    & \texttt{/recommend}  & Account & Usage-profile form (budget, data, calls / SMS toggles, type / network / operator filters, two priority slots); on submit, three ranked cards with badges (🥇🥈🥉) and human-readable match reasons. \\ \hline
-    Login / Register   & \texttt{/login}, \texttt{/register} & Public & Email + password (registration adds a name); client-side validation; inline error messages without page reload. \\ \hline
-    Admin dashboard    & \texttt{/admin}      & Admin   & Four statistics cards, operator health panel, per-family plan breakdown (live / fallback / fixed), scrape history log, admin notifications tab. \\ \hline
-    Saved plans        & \texttt{/saved}      & Account & Grid of bookmarked plans with unsave action and a direct route to the comparison view that auto-selects the saved plans. \\ \hline
-    User profile       & \texttt{/profile}    & Account & Persisted usage profile (budget, data, calls / SMS, type, network, preferred operator, ranked priorities); bidirectionally synchronised with the recommendations page. \\ \hline
-    Help / tutorial    & \texttt{/help}       & Public  & Five-section scrollable guide (search, recommendations, comparison, filters, saved plans) with annotated screenshots and a \guillemotleft{}sign-in required\guillemotright{} badge where applicable. \\ \hline
+    Home               & \textit{/}           & Public  & Language selector (EN / FR / AR), four feature tiles, three operator logos; authenticated users bypass this screen and land directly on \textit{/offers}. \\ \hline
+    Offers catalogue   & \textit{/offers}     & Public  & Grid of offer cards, operator filter tabs, plan-type pills, collapsible advanced filter panel, structured search bar with \guillemotleft{}Read as\guillemotright{} chips, sticky bottom bar when plans are selected for comparison. \\ \hline
+    Comparison         & \textit{/compare}    & Public  & Side-by-side specification table tinted in operator colours, plus per-metric bar charts (price, data, and annual savings when launched from recommendations). \\ \hline
+    Recommendations    & \textit{/recommend}  & Account & Usage-profile form (budget, data, calls / SMS toggles, type / network / operator filters, two priority slots); on submit, three ranked cards with badges (🥇🥈🥉) and human-readable match reasons. \\ \hline
+    Login / Register   & \textit{/login}, \textit{/register} & Public & Email + password (registration adds a name); client-side validation; inline error messages without page reload. \\ \hline
+    Admin dashboard    & \textit{/admin}      & Admin   & Four statistics cards, operator health panel, per-family plan breakdown (live / fallback / fixed), scrape history log, admin notifications tab. \\ \hline
+    Saved plans        & \textit{/saved}      & Account & Grid of bookmarked plans with unsave action and a direct route to the comparison view that auto-selects the saved plans. \\ \hline
+    User profile       & \textit{/profile}    & Account & Persisted usage profile (budget, data, calls / SMS, type, network, preferred operator, ranked priorities); bidirectionally synchronised with the recommendations page. \\ \hline
+    Help / tutorial    & \textit{/help}       & Public  & Five-section scrollable guide (search, recommendations, comparison, filters, saved plans) with annotated screenshots and a \guillemotleft{}sign-in required\guillemotright{} badge where applicable. \\ \hline
   \end{tabular}
 \end{table}
 
@@ -361,7 +361,7 @@ Table~\ref{tab:security} summarises the security mechanisms applied across the a
     \hline
     Role-based access control & Privilege escalation by an authenticated user & The \texttt{ADMIN} role is embedded in the session token and verified on every admin-gated route handler; mismatches return \texttt{401} or \texttt{403} \\
     \hline
-    Rate limiting             & Brute-force registration and recommendation-engine abuse & A server-side \texttt{RateLimit} table enforces five requests per fifteen minutes per IP on \texttt{/api/auth/register} and sixty requests per minute per IP on \texttt{/api/recommendations} \\
+    Rate limiting             & Brute-force registration and recommendation-engine abuse & A server-side \texttt{RateLimit} table enforces five requests per fifteen minutes per IP on \textit{/api/auth/register} and sixty requests per minute per IP on \textit{/api/recommendations} \\
     \hline
     Input validation          & Malformed payloads, injection through structured fields & All query parameters and request bodies are validated through \texttt{zod} schemas before reaching the business logic \\
     \hline
