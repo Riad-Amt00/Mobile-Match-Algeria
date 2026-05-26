@@ -75,48 +75,42 @@ The project was carried out over six months in accordance with the timeline defi
   }
   % Vertical month gridlines
   \foreach \m in {0,1,2,3,4,5,6} {
-    \draw[gray!30, dashed] (\m, 0.4) -- (\m, -11);
+    \draw[gray!30, dashed] (\m, 0.4) -- (\m, -8);
   }
   % Top and bottom axis
   \draw[axis] (0, 0.2) -- (6, 0.2);
-  \draw[axis] (0, -10.6) -- (6, -10.6);
+  \draw[axis] (0, -7.6) -- (6, -7.6);
 
-  % ── ANALYSIS & DESIGN (orange) ────────────────────────────────────────
-  \node[tasklabel] at (-0.05, -1) {A1. Documentary needs analysis};
+  % ── ANALYSIS \& DESIGN (orange) — Chapters 1 and 2 ────────────────────
+  \node[tasklabel] at (-0.05, -1) {Chapter 1. State of the Art and Core Concepts};
   \node[taskA, minimum width=1.6cm, anchor=west] at (0, -1) {};
-  \node[tasklabel] at (-0.05, -2) {A2. System design (UML, architecture)};
+  \node[tasklabel] at (-0.05, -2) {Chapter 2. Requirements Analysis and System Design};
   \node[taskA, minimum width=3.2cm, anchor=west] at (0, -2) {};
 
-  % ── DEVELOPMENT (blue) ────────────────────────────────────────────────
-  \node[tasklabel] at (-0.05, -3) {D1. Backend \& database (Prisma)};
-  \node[taskD, minimum width=3.2cm, anchor=west] at (1.0, -3) {};
-  \node[tasklabel] at (-0.05, -4) {D2. Scraping module (Playwright)};
-  \node[taskD, minimum width=1.6cm, anchor=west] at (2.0, -4) {};
-  \node[tasklabel] at (-0.05, -5) {D3. Frontend pages \& i18n};
-  \node[taskD, minimum width=4.8cm, anchor=west] at (2.0, -5) {};
-  \node[tasklabel] at (-0.05, -6) {D4. Recommendation engine};
-  \node[taskD, minimum width=3.2cm, anchor=west] at (3.0, -6) {};
-  \node[tasklabel] at (-0.05, -7) {D5. Notifications, savings, help};
-  \node[taskD, minimum width=1.6cm, anchor=west] at (4.0, -7) {};
+  % ── DEVELOPMENT (blue) — Chapter 3 ────────────────────────────────────
+  \node[tasklabel] at (-0.05, -3) {Chapter 3. System Implementation};
+  \node[taskD, minimum width=6.4cm, anchor=west] at (1.0, -3) {};
 
-  % ── VERIFICATION (green) ──────────────────────────────────────────────
-  \node[tasklabel] at (-0.05, -8) {V1. Unit tests \& load tests};
-  \node[taskV, minimum width=3.2cm, anchor=west] at (4.0, -8) {};
-  \node[tasklabel] at (-0.05, -9) {V2. Thesis writing};
-  \node[taskV, minimum width=6.4cm, anchor=west] at (2.0, -9) {\scriptsize iterative};
-  \node[tasklabel] at (-0.05, -10) {V3. Documentation \& finalisation};
-  \node[taskV, minimum width=1.6cm, anchor=west] at (5.0, -10) {};
+  % ── VERIFICATION \& WRITING (green) — Chapter 4 and surrounding pieces ─
+  \node[tasklabel] at (-0.05, -4) {Chapter 4. Evaluation};
+  \node[taskV, minimum width=3.2cm, anchor=west] at (4.0, -4) {};
+  \node[tasklabel] at (-0.05, -5) {General Introduction};
+  \node[taskV, minimum width=1.6cm, anchor=west] at (5.0, -5) {};
+  \node[tasklabel] at (-0.05, -6) {General Conclusion and Perspectives};
+  \node[taskV, minimum width=1.6cm, anchor=west] at (5.0, -6) {};
+  \node[tasklabel] at (-0.05, -7) {Thesis writing and finalisation};
+  \node[taskV, minimum width=6.4cm, anchor=west] at (2.0, -7) {\scriptsize iterative};
 
   % ── Legend (below the chart) ──────────────────────────────────────────
-  \node[taskA, minimum width=0.45cm] at (0.4, -11.6) {};
-  \node[font=\scriptsize, anchor=west] at (0.7, -11.6) {Analysis \& design};
-  \node[taskD, minimum width=0.45cm] at (2.4, -11.6) {};
-  \node[font=\scriptsize, anchor=west] at (2.7, -11.6) {Development};
-  \node[taskV, minimum width=0.45cm] at (4.2, -11.6) {};
-  \node[font=\scriptsize, anchor=west] at (4.5, -11.6) {Verification \& writing};
+  \node[taskA, minimum width=0.45cm] at (0.4, -8.6) {};
+  \node[font=\scriptsize, anchor=west] at (0.7, -8.6) {Analysis \& design (Ch.~1--2)};
+  \node[taskD, minimum width=0.45cm] at (2.7, -8.6) {};
+  \node[font=\scriptsize, anchor=west] at (3.0, -8.6) {Development (Ch.~3)};
+  \node[taskV, minimum width=0.45cm] at (4.7, -8.6) {};
+  \node[font=\scriptsize, anchor=west] at (5.0, -8.6) {Verification \& writing (Ch.~4 +)};
 \end{tikzpicture}
 \caption{Gantt chart of the six-month project schedule}
 \label{fig:gantt}
 \end{figure}
 
-The analysis-and-design phase concentrated on the first two months and produced the documentary needs analysis, the functional and non-functional requirements, the UML use-case and class models, and the three-tier architecture (all described in Chapter~2). The development phase ran from Month~2 to Month~5 and produced the back-end, the scraping module, the front-end pages, the recommendation engine, and the savings, notifications, and help features (Chapter~3). The verification phase opened in Month~5 with the unit-test suite and the load-test campaign (Chapter~4), and Month~6 was dedicated to documentation and finalisation. Thesis writing was conducted iteratively from Month~3 onwards in parallel with the implementation, in line with the IFAG charte's recommendation that the thesis and the manuals be drafted progressively as the project advances.
+The analysis-and-design phase concentrated on the first two months and produced the content of Chapter~1 (state of the art and core concepts) and Chapter~2 (requirements analysis and system design): the documentary needs analysis, the functional and non-functional requirements, the UML use-case and class models, and the three-tier architecture. The development phase ran from Month~2 to Month~5 and produced the running system documented in Chapter~3 (system implementation): the back-end and database, the scraping module, the front-end pages, the recommendation engine, and the savings, notifications, and help features. The verification phase opened in Month~5 with the unit-test suite and the load-test campaign that anchor Chapter~4 (evaluation). Month~6 was dedicated to the General Introduction, the General Conclusion and Perspectives, and the documentation and finalisation pass over the whole thesis. Thesis writing itself was conducted iteratively from Month~3 onwards in parallel with the implementation, in line with the IFAG charte's recommendation that the thesis and the manuals be drafted progressively as the project advances.
