@@ -57,7 +57,7 @@ The data-aggregation module resides in \texttt{src/lib/scraper/} and follows a s
 
 \subsection{Scraping Algorithm}
 
-Table~\ref{tab:scraper-algo} presents the algorithm executed by the orchestrator for a single operator (input: \textit{operator}, \textit{scraper\_fn}; output: \textit{ScrapeResult}).
+Table~\ref{tab:scraper-algo} presents the algorithm executed by the orchestrator for a single operator (input: \texttt{operator}, \texttt{scraper\_fn}; output: \texttt{ScrapeResult}).
 
 \begin{table}[H]
   \caption{Algorithm of the automated scraping pipeline}
@@ -67,8 +67,8 @@ Table~\ref{tab:scraper-algo} presents the algorithm executed by the orchestrator
     \hline
     \textbf{Step} & \textbf{Action} \\
     \hline
-    1   & Record \textit{startedAt}; create ScrapeLog with status = RUNNING. \\ \hline
-    2   & Invoke \textit{scraper\_fn}: fetch the operator page through a real headless Edge browser (spaced retries + circuit breaker), parse HTML with Cheerio, normalise attributes via \texttt{validate.ts}. \\ \hline
+    1   & Record \texttt{startedAt}; create \texttt{ScrapeLog} with \texttt{status = RUNNING}. \\ \hline
+    2   & Invoke \texttt{scraper\_fn}: fetch the operator page through a real headless Edge browser (spaced retries + circuit breaker), parse HTML with Cheerio, normalise attributes via \texttt{validate.ts}. \\ \hline
     3   & Filter out offers missing all data, voice, and SMS values. \\ \hline
     4a  & For each valid offer, compute \texttt{slug = slugify(offer.name)}. \\ \hline
     4b  & If the slug exists in DB $\Rightarrow$ UPDATE record (insert \texttt{PriceHistory} if \texttt{priceDA} changed); else $\Rightarrow$ INSERT and notify users. \\ \hline
