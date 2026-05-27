@@ -467,18 +467,6 @@ export default function RecommendPage() {
                 </motion.div>
               )}
 
-              {results.length > 0 && results[0].score < 50 && (
-                <div style={{
-                  marginTop: '0.75rem', padding: '0.75rem 1rem', borderRadius: 10,
-                  background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.25)',
-                  fontSize: 13, color: 'var(--text-secondary)',
-                  display: 'flex', alignItems: 'center', gap: 8,
-                }}>
-                  <AlertCircle size={14} style={{ color: '#F59E0B', flexShrink: 0 }} />
-                  {t('recommend.lowMatchWarning')}
-                </div>
-              )}
-
               {results.length >= 2 && (
                 <Link
                   href={`/compare?ids=${results.map(r => r.offer.id).join(',')}&from=recommend`}
