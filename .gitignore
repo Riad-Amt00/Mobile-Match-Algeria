@@ -93,6 +93,19 @@ PRJ04*.pdf
 /plan.txt
 plan_mfe_mobile_match.docx
 scratch_*.txt
+supervisor_meeting_notes.*
+meeting_*.md
+meeting_*.docx
+meeting_*.pdf
+
+# Defense presentation artefacts (personal — not part of the project source)
+Presentation_*.pptx
+speaker_notes.*
+build_presentation.py
+Présentation*.pptx
+defense_guide.md
+defense_guide.pdf
+defense_guide.docx
 
 # Scraped raw HTML samples at the project root (use src/lib/scraper/__tests__/fixtures/ for committed snapshots)
 /campuce.html
