@@ -46,11 +46,13 @@ export async function GET(req: NextRequest) {
       let s = search.toLowerCase().trim()
       const AND: any[] = []
 
-      // Data volume: "5gb", "5 gb", "10go", "2giga" → plans around N GB
-      // (band 0.7×–3× so "5gb" finds ~5 GB plans, not every 200 GB plan).
+      // Data volume: "5gb", "5 gb", "10go", "2giga" → plans around N GB,
+      // OR unlimited (-1). Band 0.7×–3× so "5gb" finds ~5 GB plans, not every
+      // 200 GB plan; unlimited covers any finite need so it always passes.
+      // Mirrors how the SMS and minutes parsers handle their unlimited sentinel.
       s = s.replace(/(\d+(?:[.,]\d+)?)\s*(gb|go|giga|gigas)\b/g, (_m, n: string) => {
         const gb = parseFloat(n.replace(',', '.'))
-        AND.push({ dataGB: { gte: gb * 0.7, lte: gb * 3 } })
+        AND.push({ OR: [{ dataGB: -1 }, { dataGB: { gte: gb * 0.7, lte: gb * 3 } }] })
         return ' '
       })
       // Price: "1000da", "500 dinars" → within ±30% of the stated price
