@@ -97,15 +97,21 @@ supervisor_meeting_notes.*
 meeting_*.md
 meeting_*.docx
 meeting_*.pdf
+memoire notes.txt
+livret Pommy.pdf
+Conception graphique.pdf
 
 # Defense presentation artefacts (personal — not part of the project source)
 Presentation_*.pptx
 speaker_notes.*
 build_presentation.py
+build_defense_guide.*
 Présentation*.pptx
 defense_guide.md
 defense_guide.pdf
 defense_guide.docx
+add_animations.py
+add_transitions.py
 
 # Scraped raw HTML samples at the project root (use src/lib/scraper/__tests__/fixtures/ for committed snapshots)
 /campuce.html
