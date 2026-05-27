@@ -11,6 +11,7 @@ import { validateOffer } from './validate'
 import { OfferType, ScrapeStatus } from '@prisma/client'
 import { slugify } from '@/lib/utils'
 import { recommendOffers, UserNeeds } from '../recommendation'
+import { rebuildOfferFtsIndex } from '../search-fts'
 
 export interface ScrapeResult {
   operator: string
@@ -39,6 +40,15 @@ export async function runAllScrapers(): Promise<ScrapeResult[]> {
   for (const job of jobs) {
     const result = await runSingleScraper(job.name, job.slug, job.fn)
     results.push(result)
+  }
+
+  // Rebuild the FTS5 search index. The catalogue changes only at scrape time,
+  // so a full rebuild here keeps the index consistent without any incremental
+  // trigger logic. Cheap (<100 ms for ~100 rows).
+  try {
+    await rebuildOfferFtsIndex()
+  } catch (err) {
+    console.error('Failed to rebuild FTS5 index:', err)
   }
 
   // Generate daily personalised recommendations

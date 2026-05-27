@@ -10,8 +10,19 @@ export async function register() {
   if (process.env.NEXT_RUNTIME === 'nodejs') {
     const cron = (await import('node-cron')).default
     const { runAllScrapers } = await import('./lib/scraper')
+    const { rebuildOfferFtsIndex } = await import('./lib/search-fts')
 
     console.log('⏰ [Instrumentation] Cron scheduler registered — daily scrape at 03:00 Africa/Algiers')
+
+    // Rebuild the FTS5 search index from the current Offer table. Cheap
+    // (~100 rows) and ensures the index is fresh even if the DB was modified
+    // outside the scraper (e.g. seed run, manual edits in Prisma Studio).
+    try {
+      await rebuildOfferFtsIndex()
+      console.log('🔎 [Instrumentation] FTS5 search index rebuilt on boot')
+    } catch (err) {
+      console.error('❌ [Instrumentation] FTS5 boot rebuild failed:', err)
+    }
 
     // Run every day at 03:00 AM Algeria time (UTC+1)
     cron.schedule('0 3 * * *', async () => {

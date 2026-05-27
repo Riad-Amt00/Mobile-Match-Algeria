@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
+import { searchOffersFts } from '@/lib/search-fts'
 
 export async function GET(req: NextRequest) {
   try {
@@ -86,8 +87,12 @@ export async function GET(req: NextRequest) {
       if (/postpay|postpaid|abonnement/.test(s)) {
         s = s.replace(/postpay[a-zà-ÿ]*|postpaid|abonnements?/g, ' '); AND.push({ type: 'POSTPAID' })
       }
-      // Remaining free-text words — each must appear in name or features (AND).
-      // French terms are mapped to the English text stored in the DB.
+      // Remaining free-text words: routed to the SQLite FTS5 index. Each word
+      // is mapped through a small French→English alias table (so "appel" hits
+      // "call", "données" hits "data" — useful when a French user searches
+      // against an English-leaning catalogue) and then sent to FTS5, which
+      // gives prefix matching, BM25 relevance ranking, and Unicode-aware
+      // tokenisation (accents are folded, so "illimite" matches "illimité").
       const ALIAS: Record<string, string> = {
         appel: 'call', appels: 'call', voix: 'call',
         texto: 'sms', message: 'sms', messages: 'sms',
@@ -95,13 +100,22 @@ export async function GET(req: NextRequest) {
         gratuit: 'free', gratuite: 'free', gratuits: 'free', gratuites: 'free',
         données: 'data',
       }
-      for (const word of s.split(/\s+/).map(w => w.trim()).filter(w => w.length >= 2)) {
-        const term = ALIAS[word] || word
-        AND.push({ OR: [
-          { name: { contains: term } },
-          { features: { contains: term } },
-          { operator: { name: { contains: term } } },
-        ] })
+      const freeTextWords = s
+        .split(/\s+/)
+        .map(w => w.trim())
+        .filter(w => w.length >= 2)
+        .map(w => ALIAS[w] || w)
+
+      if (freeTextWords.length > 0) {
+        const ftsIds = await searchOffersFts(freeTextWords)
+        if (ftsIds.length === 0) {
+          // The free-text query found nothing — short-circuit so the response
+          // is an empty list (rather than returning everything the structured
+          // filters allow, which would silently ignore the user's text input).
+          AND.push({ id: '__no_match__' })
+        } else {
+          AND.push({ id: { in: ftsIds } })
+        }
       }
 
       if (AND.length > 0) where.AND = AND
