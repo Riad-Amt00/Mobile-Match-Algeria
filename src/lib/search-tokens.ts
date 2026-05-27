@@ -13,8 +13,6 @@
 export type SearchToken =
   | { kind: 'data';      value: number }
   | { kind: 'price';     value: number }
-  | { kind: 'sms';       value: number }
-  | { kind: 'minutes';   value: number }
   | { kind: 'network';   value: '3G' | '4G' | '5G' }
   | { kind: 'unlimited' }
   | { kind: 'operator';  value: 'djezzy' | 'ooredoo' | 'mobilis' }
@@ -33,14 +31,10 @@ export function parseSearchTokens(query: string): SearchToken[] {
     tokens.push({ kind: 'price', value: parseInt(n) })
     return ' '
   })
-  s = s.replace(/(\d+)\s*sms\b/g, (_m, n: string) => {
-    tokens.push({ kind: 'sms', value: parseInt(n) })
-    return ' '
-  })
-  s = s.replace(/(\d+)\s*(minutes?|mins?|mn)\b/g, (_m, n: string) => {
-    tokens.push({ kind: 'minutes', value: parseInt(n) })
-    return ' '
-  })
+  // Note: numeric "10 sms" / "100 min" tokens are intentionally NOT parsed —
+  // the catalogue stores calls and SMS as binary (-1 unlimited / 0 none), so a
+  // numeric match would always be empty. The "unlimited" keyword below covers
+  // the only meaningful case.
   s = s.replace(/\b([345])\s*g\b/g, (_m, g: string) => {
     tokens.push({ kind: 'network', value: `${g}G` as '3G' | '4G' | '5G' })
     return ' '

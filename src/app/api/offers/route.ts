@@ -61,16 +61,10 @@ export async function GET(req: NextRequest) {
         AND.push({ priceDA: { gte: Math.round(p * 0.7), lte: Math.round(p * 1.3) } })
         return ' '
       })
-      // SMS: "10 sms", "100sms" → at least N SMS (or unlimited)
-      s = s.replace(/(\d+)\s*sms\b/g, (_m, n: string) => {
-        AND.push({ OR: [{ smsCount: -1 }, { smsCount: { gte: parseInt(n) } }] })
-        return ' '
-      })
-      // Minutes: "100 min", "200 minutes" → at least N minutes (or unlimited)
-      s = s.replace(/(\d+)\s*(minutes?|mins?|mn)\b/g, (_m, n: string) => {
-        AND.push({ OR: [{ voiceMinutes: -1 }, { voiceMinutes: { gte: parseInt(n) } }] })
-        return ' '
-      })
+      // Note: calls and SMS are stored in the catalogue as binary (-1 unlimited
+      // or 0 none), so numeric tokens like "100 min" or "10 sms" could not match
+      // a meaningful row. Users express interest in unlimited calls / SMS via the
+      // "unlimited" keyword block below.
       // Network: "4g", "5 g", "3g"
       s = s.replace(/\b([345])\s*g\b/g, (_m, g: string) => {
         AND.push({ network: { contains: `${g}G` } })

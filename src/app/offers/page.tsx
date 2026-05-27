@@ -20,8 +20,6 @@ function tokenLabel(tok: SearchToken, t: (k: any) => string): string {
   switch (tok.kind) {
     case 'data':      return `≈ ${tok.value} GB`
     case 'price':     return `≈ ${tok.value} DA`
-    case 'sms':       return `${tok.value}+ SMS`
-    case 'minutes':   return `${tok.value}+ min`
     case 'network':   return tok.value
     case 'unlimited': return t('common.unlimited')
     case 'operator':  return tok.value.charAt(0).toUpperCase() + tok.value.slice(1)
