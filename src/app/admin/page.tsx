@@ -634,7 +634,7 @@ function AdminNotifications({ onNavigate }: { onNavigate: (href: string) => void
     if (n.offerId) return `/offers/${n.offerId}`
     if (n.type === 'scrape_failed' || n.type === 'scrape_complete') return '/admin?tab=history'
     if (n.type === 'recommendation') return '/recommend'
-    if (n.type === 'new_offer' || n.type === 'price_drop') return '/offers'
+    // new_offer / price_drop without an offerId: legacy row, not navigable.
     return null
   }
 

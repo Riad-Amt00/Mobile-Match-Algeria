@@ -121,7 +121,10 @@ export function Navbar() {
     // Admin-only operational notifications → scrape history
     if (n.type === 'scrape_failed' || n.type === 'scrape_complete') return '/admin?tab=history'
     if (n.type === 'recommendation') return '/recommend'
-    if (n.type === 'new_offer' || n.type === 'price_drop') return '/offers'
+    // new_offer / price_drop without an offerId: legacy row from an older
+    // scraper version that did not store the reference. Not navigable — the
+    // notification stays visible but becomes non-clickable so the user is
+    // not silently redirected to the generic catalogue.
     return null
   }
 
