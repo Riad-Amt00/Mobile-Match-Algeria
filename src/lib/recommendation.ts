@@ -1,28 +1,28 @@
 /**
  * Recommendation Engine — Scores offers against a user profile.
  *
- * Score breakdown (100 total):
- *   - Budget fit:     25 pts  (how well the price matches the budget)
- *   - Data fit:       25 pts  (how well the data matches)
- *   - Voice fit:      15 pts  (how well call minutes match)
- *   - Value bonus:    15 pts  (cost-effectiveness: data-per-DA ratio)
- *   - SMS fit:         5 pts  (SMS is de-prioritised — OTT apps dominate in Algeria)
- *   - Feature bonus:   5 pts  (streaming, social media, night bonus, etc.)
- *   - Validity fit:    5 pts  (monthly plans score higher)
- *   - Type/Network:    5 pts  (filter match bonuses)
+ * Hard filters (categorical, go/no-go):
+ *   - Budget is a HARD CEILING — no offer above the user's monthly budget is returned.
+ *   - Operator, plan type, network, and unlimited calls / SMS are filters too.
  *
- * Ranked priority elicitation: the user ranks up to 2 criteria (price, data). Each
- * offer gets a per-criterion merit (0–1) measuring how CLOSE the offer is to the
- * user's stated target — the budget is treated as the price they WANT to pay (an
- * offer at the budget scores 1, a much cheaper one scores low), and the data slider
- * as the data they want. Merit is target-relative, never pool-relative, so a
- * catalogue outlier cannot distort the scale. Offers are then ranked in TIERS by the
- * top priority's merit (rounded to 0.25 → ~4 broad tiers, so offers close on it share
- * a tier); within a tier the 2nd priority decides the order. The 2nd can never lift
- * an offer past a higher tier — "follow the top priority, then get as close as
- * possible to the 2nd". The base fitness score is used only to break an exact tie.
- * The monthly budget is a hard ceiling, and the plan-type / network / calls / SMS
- * selections are hard filters — non-matching offers are excluded entirely.
+ * Ranked priority elicitation: the user ranks up to 2 criteria (price, data).
+ * Each offer gets a per-criterion merit in [0, 1]:
+ *   - Price merit: CHEAPER IS BETTER. An offer at 0 DA scores 1; at the budget
+ *     ceiling, the merit is 0. (This is consistent with the savings indicator
+ *     shown on each card, where the same budget is treated as a ceiling.)
+ *   - Data merit: how well the offer's data covers the user's stated need
+ *     (saturating utility — extra data beyond the need does not raise the merit).
+ *
+ * Merit is target-relative, never pool-relative, so a catalogue outlier cannot
+ * distort the scale. Offers are then ranked in TIERS by the top priority's merit
+ * (rounded to 0.25 → 5 discrete bands); within a tier the 2nd priority decides
+ * the order. The 2nd priority's contribution is bounded below the tier width
+ * (0.24 < 0.25) so it can never lift an offer past a higher tier — "follow the
+ * top priority strictly, then get as close as possible on the 2nd". This is
+ * applied lexicographic preference ordering with bounded relaxation, after
+ * Fishburn (1974) and Roberts (1979); the bounded-relaxation framing is
+ * characterised in modern preference theory by Goswami, Mitra and Sen (2021).
+ * The base fitness score is used only as a tiebreaker.
  */
 
 export interface UserNeeds {
@@ -80,10 +80,11 @@ export function recommendOffers(
     // Unlimited (-1) always scores 1.
     const merit = (pri: string, o: any): number => {
       if (pri === 'price')
-        // Closeness to the user's TARGET price. The budget is the price they want to
-        // pay, not just a cap — an offer at the budget scores 1, a much cheaper one
-        // scores low ("not more, not less"). Over-budget offers are already excluded.
-        return clamp01(o.priceDA / Math.max(needs.budget, 1))
+        // CHEAPER IS BETTER. The budget is the user's monthly ceiling, not a target —
+        // an offer at 0 DA scores 1, an offer at the ceiling scores 0. This matches
+        // how the budget is interpreted everywhere else in the app (the savings
+        // indicator on each card uses the same ceiling semantics).
+        return clamp01(1 - o.priceDA / Math.max(needs.budget, 1))
       if (pri === 'data') {
         if (o.dataGB === -1) return 1
         return needs.dataGB > 0 ? clamp01(o.dataGB / needs.dataGB) : 0.5
@@ -113,32 +114,31 @@ export function recommendOffers(
       const m2 = ranked[1] ? merit(ranked[1], r.offer) : 0
       if (m1 >= 0.66) r.matchReasons.push({ key: `match.priority.${ranked[0]}` })
       if (ranked[1] && m2 >= 0.66) r.matchReasons.push({ key: `match.priority.${ranked[1]}` })
-      const tier = Math.round(m1 * 4) / 4
-      return { r, composite: tier + m2 * 0.24, base: r.score }
+      // Two priorities: TIER by the 1st (round to 0.25), then refine by the 2nd
+      // (bounded below the tier width 0.25, so the 2nd cannot cross a tier).
+      // One priority: rank purely by the 1st priority's continuous merit — no
+      // tier coarsening to lose precision when there is no 2nd criterion that
+      // would need a tier band to act inside.
+      const composite = ranked[1]
+        ? Math.round(m1 * 4) / 4 + m2 * 0.24
+        : m1
+      return { r, composite, base: r.score }
     })
     keyed.sort((a, b) => b.composite - a.composite || b.base - a.base)
     scored.length = 0
+    const maxComposite = ranked[1] ? 1.24 : 1.0
     for (const k of keyed) {
-      // composite ∈ [0, 1.24] (tier ≤ 1 + 2nd-priority term ≤ 0.24) → scale to 0–100.
-      k.r.score = Math.round((k.composite / 1.24) * 100)
+      // composite ∈ [0, maxComposite] → scale to 0–100.
+      k.r.score = Math.round((k.composite / maxComposite) * 100)
       scored.push(k.r)
     }
   } else {
     scored.sort((a, b) => b.score - a.score)
   }
 
-  // Diversity bonus — if top picks are all from same operator, swap #3 for another
-  if (scored.length >= 3) {
-    const topOps = scored.slice(0, 2).map(r => r.offer.operatorId)
-    if (topOps[0] === topOps[1] && scored[2].offer.operatorId === topOps[0]) {
-      const differentIdx = scored.findIndex((r, i) => i > 2 && r.offer.operatorId !== topOps[0])
-      if (differentIdx > 0 && scored[differentIdx].score >= scored[2].score * 0.85) {
-        const swap = scored.splice(differentIdx, 1)[0]
-        scored.splice(2, 0, swap)
-      }
-    }
-  }
-
+  // No post-hoc reordering. Lexicographic strict priority means the ordering
+  // produced by the tiered ranking is the final ordering — anything else would
+  // contradict the Fishburn (1974) framing we cite in Chapter 1 §1.3.2.
   return scored.slice(0, topN)
 }
 

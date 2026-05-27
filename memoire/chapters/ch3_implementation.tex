@@ -148,13 +148,12 @@ The recommendation engine is implemented in \textit{src/lib/recommendation.ts}. 
     1a  & \textit{Budget ceiling}: discard offers where \texttt{priceDA $>$ needs.budget}. \\ \hline
     1b  & \textit{Operator}: discard offers whose operator does not match the user's preference (if any). \\ \hline
     1c  & \textit{Plan type, network, calls, SMS}: discard offers that do not satisfy the user's categorical preferences. \\ \hline
-    2a  & Compute the price merit $m_1 = \mathrm{clamp01}(\mathrm{priceDA} / \mathrm{needs.budget})$ --- closeness to target price. \\ \hline
+    2a  & Compute the price merit $m_1 = \mathrm{clamp01}(1 - \mathrm{priceDA} / \mathrm{needs.budget})$ --- cheaper-is-better, since the budget is a ceiling rather than a target. \\ \hline
     2b  & Compute the data merit $m_2 = \mathrm{clamp01}(\mathrm{dataGB} / \mathrm{needs.dataGB})$ --- coverage of declared need. \\ \hline
     3a  & Tier ($P_1$ = primary priority): $\mathrm{tier} = \mathrm{round}(m_{P_1} \times 4) / 4 \in \{0,\,0.25,\,0.5,\,0.75,\,1\}$. \\ \hline
     3b  & Composite key ($P_2$ = secondary): $C = \mathrm{tier} + 0.24 \times m_{P_2}$ (within-tier term $<0.25$, never crosses a tier boundary). \\ \hline
-    4   & Sort by composite key; ties broken by the base fitness score. \\ \hline
-    5   & Diversity rule: if the top three are from a single operator and the next operator's best result is $\geq 85\,\%$ of the third's composite, swap it in. \\ \hline
-    6   & Return the top-$N$ results with \texttt{matchReasons[~]}. \\ \hline
+    4   & Sort by composite key; ties broken by the base fitness score. When only one priority is set, $m_1$ is used directly as the ranking key (no tier coarsening). \\ \hline
+    5   & Return the top-$N$ results with \texttt{matchReasons[~]}. \\ \hline
   \end{tabular}
 \end{table}
 

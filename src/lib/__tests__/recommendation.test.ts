@@ -85,12 +85,13 @@ describe('thesis test cases (Table 4.2)', () => {
 // (closeness to the user's target); the 2nd priority orders offers within a tier.
 
 describe('ranked priority elicitation', () => {
-  it('priorities=[price]: the offer closest to the target price rises to top', () => {
-    // The budget is the user's TARGET price — a price priority surfaces the offer
-    // priced closest to it (not the cheapest).
+  it('priorities=[price]: the cheapest in-budget offer rises to top', () => {
+    // The budget is the user's monthly CEILING (cheaper is better on the
+    // Price priority — consistent with the per-card savings indicator that
+    // uses the same ceiling semantics).
     const withPriority = recommendOffers(OFFERS, { budget: 3000, dataGB: 10, voiceMinutes: 0, smsCount: 0 }, 3, ['price'])
-    const inBudgetMax = Math.max(...OFFERS.filter(o => o.priceDA <= 3000).map(o => o.priceDA))
-    expect(withPriority[0].offer.priceDA).toBe(inBudgetMax)
+    const inBudgetMin = Math.min(...OFFERS.filter(o => o.priceDA <= 3000).map(o => o.priceDA))
+    expect(withPriority[0].offer.priceDA).toBe(inBudgetMin)
   })
 
   it('priorities=[data]: every top result covers the stated data need', () => {
@@ -113,21 +114,22 @@ describe('ranked priority elicitation', () => {
     expect(reasons).toContain('match.priority.calls')
   })
 
-  it('price priority surfaces the offer closest to the target budget', () => {
+  it('price priority surfaces the cheapest offer within the budget ceiling', () => {
     const yesP = recommendOffers(OFFERS, { budget: 4000, dataGB: 0, voiceMinutes: 0, smsCount: 0 }, 3, ['price'])
-    const inBudgetMax = Math.max(...OFFERS.filter(o => o.priceDA <= 4000).map(o => o.priceDA))
-    // top result = the one priced closest to the 4000 target
-    expect(yesP[0].offer.priceDA).toBe(inBudgetMax)
+    const inBudgetMin = Math.min(...OFFERS.filter(o => o.priceDA <= 4000).map(o => o.priceDA))
+    // top result = the cheapest in-budget offer (lex strict priority on price)
+    expect(yesP[0].offer.priceDA).toBe(inBudgetMin)
     expect(yesP[0].matchReasons.some(m => m.key === 'match.priority.price')).toBe(true)
   })
 
   it('tiered ranking: the 1st priority strictly tiers the results', () => {
-    // With ['price','data'], results must be ordered by price-closeness tier first —
-    // the 2nd priority (data) can only reorder offers WITHIN a tier, never across it.
+    // With ['price','data'], results must be ordered by price-merit tier first —
+    // the 2nd priority (data) can only reorder offers WITHIN a tier, never across.
+    // Price merit = 1 - priceDA/budget (cheaper -> higher merit -> higher tier).
     const r = recommendOffers(OFFERS, { budget: 5000, dataGB: 100, voiceMinutes: 0, smsCount: 0 }, 8, ['price', 'data'])
     for (let i = 1; i < r.length; i++) {
-      const tierPrev = Math.round((r[i - 1].offer.priceDA / 5000) * 4)
-      const tierCur  = Math.round((r[i].offer.priceDA / 5000) * 4)
+      const tierPrev = Math.round((1 - r[i - 1].offer.priceDA / 5000) * 4)
+      const tierCur  = Math.round((1 - r[i].offer.priceDA / 5000) * 4)
       expect(tierPrev).toBeGreaterThanOrEqual(tierCur)
     }
   })
