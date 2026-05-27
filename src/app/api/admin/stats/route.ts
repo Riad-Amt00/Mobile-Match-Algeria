@@ -19,7 +19,7 @@ export async function GET() {
   ] = await Promise.all([
     db.user.count(),
     db.offer.count({ where: { isActive: true } }),
-    db.notification.count({ where: { isRead: false } }),
+    db.notification.count({ where: { userId: session.user.id, isRead: false } }),
     db.scrapeLog.findMany({
       orderBy: { startedAt: 'desc' },
       include: { operator: true },
