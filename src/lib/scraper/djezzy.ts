@@ -495,9 +495,10 @@ export async function scrapeDjezzy(emit: Emit = () => {}): Promise<ScrapedOffer[
     emit('WARN', 'ZID: page unreachable — using fallback')
   }
 
-  // iZZY: the offer page is a marketing layout (scattered feature cards, no
-  // structured price↔data↔validity grid) — kept on the verified dataset.
-  emit('WARN', 'iZZY: marketing page, no structured offer grid — using verified dataset')
+  // iZZY: the offer page is an image/marketing layout with no structured
+  // price↔data↔validity grid the parser can read, and the offers could not be
+  // manually verified — so iZZY is intentionally not listed (removed 2026-05-28)
+  // rather than shown as unconfirmed data.
 
   // ── Merge live with fallback for families not successfully scraped ─────────
   const filteredFallback = getDjezzyFallbackOffers().filter(o => {
@@ -532,8 +533,6 @@ function getDjezzyFallbackOffers(): ScrapedOffer[] {
     { name: 'Djezzy LEGEND 2500', type: OfferType.PREPAID, priceDA: 2500, dataGB: 120, voiceMinutes: -1, smsCount: -1, validityDays: 30, network: '4G', features: ['Unlimited calls (all networks)', 'Unlimited Djezzy SMS', 'Data rollover'], sourceUrl: `${SRC}djezzy-legend/` },
     { name: 'Djezzy LEGEND 3000', type: OfferType.PREPAID, priceDA: 3000, dataGB: 145, voiceMinutes: -1, smsCount: -1, validityDays: 30, network: '4G', features: ['Unlimited calls (all networks)', 'Unlimited Djezzy SMS', 'Data rollover'], sourceUrl: `${SRC}djezzy-legend/` },
     { name: 'Djezzy LEGEND 4000', type: OfferType.PREPAID, priceDA: 4000, dataGB: 200, voiceMinutes: -1, smsCount: -1, validityDays: 30, network: '4G', features: ['Unlimited calls (all networks)', 'Unlimited Djezzy SMS', 'Data rollover'], sourceUrl: `${SRC}djezzy-legend/` },
-    // ── iZZY (Prepaid — single flagship plan; fallback if live parse fails) ──
-    { name: 'Djezzy iZZY 1200', type: OfferType.PREPAID, priceDA: 1200, dataGB: 5, voiceMinutes: -1, smsCount: -1, validityDays: 30, network: '4G', features: ['Unlimited calls (all networks)', 'Unlimited SMS', '500 DA credit', 'Free FlexyNet', 'Free YouTube'], sourceUrl: `${SRC}izzy-game-changer/` },
     // ── ZID (Prepaid — permanent fallback: connection timeout on every attempt) ──
     { name: 'Djezzy ZID 50', type: OfferType.PREPAID, priceDA: 50, dataGB: 0.5, voiceMinutes: -1, smsCount: -1, validityDays: 1, network: '4G', features: ['Unlimited Djezzy calls', 'Unlimited Djezzy SMS'], sourceUrl: `${SRC}djezzy-zid/` },
     { name: 'Djezzy ZID 100', type: OfferType.PREPAID, priceDA: 100, dataGB: 1, voiceMinutes: -1, smsCount: -1, validityDays: 1, network: '4G', features: ['Unlimited Djezzy calls', 'Unlimited Djezzy SMS'], sourceUrl: `${SRC}djezzy-zid/` },
