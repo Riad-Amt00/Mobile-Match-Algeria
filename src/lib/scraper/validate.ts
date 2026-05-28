@@ -101,6 +101,13 @@ export function parseValidityDays(text: string): number {
   const enDays = clean.match(/(\d+)\s*days?/i)
   if (enDays) return parseInt(enDays[1])
 
+  // Hour-based validity (daily passes shown as "24سا" — Mobilis's Arabic
+  // abbreviation for hours, often with no space — or "24 ساعة", "24 heures",
+  // "24 hours"). No trailing \b: Arabic letters are not regex word characters,
+  // so a \b after "سا" would never match. Round up to whole days, minimum 1.
+  const hours = clean.match(/(\d+)\s*(?:ساعات|ساعة|سا|heures?|hours?)/iu)
+  if (hours) return Math.max(1, Math.round(parseInt(hours[1]) / 24))
+
   return 30
 }
 
