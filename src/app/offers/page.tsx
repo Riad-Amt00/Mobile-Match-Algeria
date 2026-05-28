@@ -368,8 +368,8 @@ export default function OffersPage() {
         {/* Data freshness + count */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8, marginBottom: '1rem' }}>
           {lastVerified && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11.5, color: 'var(--text-muted)', background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: 8, padding: '4px 10px' }}>
-              <Info size={12} />
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 600, color: '#FBBF24', background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.4)', borderRadius: 10, padding: '9px 14px' }}>
+              <Info size={16} style={{ flexShrink: 0 }} />
               {t('filter.dataVerified').replace('{date}', new Date(lastVerified).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }))}
             </div>
           )}
