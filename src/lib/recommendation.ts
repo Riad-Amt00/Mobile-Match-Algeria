@@ -89,6 +89,11 @@ export function recommendOffers(
         if (o.dataGB === -1) return 1
         return needs.dataGB > 0 ? clamp01(o.dataGB / needs.dataGB) : 0.5
       }
+      // calls / sms / network are NOT selectable as ranking criteria in the UI
+      // (only price and data are). These branches are kept on purpose: the daily
+      // recommendation job in scraper/index.ts passes each profile's saved
+      // `priorities` verbatim, so a legacy profile still holding 'calls' / 'sms' /
+      // 'network' is ranked sensibly instead of collapsing to a 0 merit.
       if (pri === 'calls') {
         if (o.voiceMinutes === -1) return 1
         if (needs.voiceMinutes === -1) return 0          // user wants unlimited, offer isn't

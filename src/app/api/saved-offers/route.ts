@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { z } from 'zod'
 import { auth } from '@/lib/auth'
 import { db } from '@/lib/db'
+
+const toggleSchema = z.object({ offerId: z.string().min(1) })
 
 // GET /api/saved-offers — list saved offer IDs for current user
 export async function GET() {
@@ -28,8 +31,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
   }
 
-  const { offerId } = await req.json()
-  if (!offerId) return NextResponse.json({ error: 'offerId is required' }, { status: 400 })
+  const parsed = toggleSchema.safeParse(await req.json())
+  if (!parsed.success) return NextResponse.json({ error: 'offerId is required' }, { status: 400 })
+  const { offerId } = parsed.data
 
   const offerExists = await db.offer.findUnique({ where: { id: offerId }, select: { id: true } })
   if (!offerExists) return NextResponse.json({ error: 'Offer not found' }, { status: 404 })

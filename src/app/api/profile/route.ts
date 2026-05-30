@@ -1,6 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { z } from 'zod'
 import { auth } from '@/lib/auth'
 import { db } from '@/lib/db'
+
+// All fields optional — the profile is upserted, so a partial update is valid.
+const profileSchema = z.object({
+  monthlyBudget: z.coerce.number().min(0).optional(),
+  dataUsageGB: z.coerce.number().min(0).optional(),
+  voiceMinutes: z.coerce.number().optional(),
+  smsCount: z.coerce.number().optional(),
+  preferredType: z.string().optional(),
+  preferredNet: z.string().optional(),
+  preferredOperator: z.string().optional(),
+  priorities: z.union([z.array(z.string()), z.string()]).optional(),
+})
 
 export async function GET(req: NextRequest) {
   const session = await auth()
@@ -18,8 +31,11 @@ export async function PUT(req: NextRequest) {
   if (!session?.user?.id) return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
 
   try {
-    const body = await req.json()
-    const { monthlyBudget, dataUsageGB, voiceMinutes, smsCount, preferredType, preferredNet, preferredOperator, priorities } = body
+    const parsed = profileSchema.safeParse(await req.json())
+    if (!parsed.success) {
+      return NextResponse.json({ error: 'Invalid profile data' }, { status: 400 })
+    }
+    const { monthlyBudget, dataUsageGB, voiceMinutes, smsCount, preferredType, preferredNet, preferredOperator, priorities } = parsed.data
 
     // Ranked priorities arrive as a string array; stored comma-separated.
     const prioritiesStr = Array.isArray(priorities)

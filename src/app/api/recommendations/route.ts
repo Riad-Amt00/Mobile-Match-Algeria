@@ -1,7 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { z } from 'zod'
 import { db } from '@/lib/db'
 import { recommendOffers } from '@/lib/recommendation'
 import { rateLimit, getRateLimitKey } from '@/lib/rate-limit'
+
+// Validate the request body. coerce.number accepts a number or a numeric string;
+// the unlimited sentinel (-1) for calls/SMS passes through unchanged.
+const recommendSchema = z.object({
+  budget: z.coerce.number().positive(),
+  dataGB: z.coerce.number().min(0).default(0),
+  voiceMinutes: z.coerce.number().default(0),
+  smsCount: z.coerce.number().default(0),
+  type: z.string().default('any'),
+  network: z.string().default('any'),
+  operator: z.string().default('any'),
+  priorities: z.array(z.string()).default([]),
+})
 
 export async function POST(req: NextRequest) {
   if (!await rateLimit(getRateLimitKey(req, 'recommendations'), 60, 60 * 1000)) {
@@ -9,32 +23,19 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const body = await req.json()
-    const { budget, dataGB, voiceMinutes, smsCount, type, network, operator, priorities } = body
-
-    if (!budget || budget <= 0) {
-      return NextResponse.json({ error: 'Invalid budget value' }, { status: 400 })
+    const parsed = recommendSchema.safeParse(await req.json())
+    if (!parsed.success) {
+      return NextResponse.json({ error: 'Invalid request: a positive budget is required.' }, { status: 400 })
     }
+    const { budget, dataGB, voiceMinutes, smsCount, type, network, operator, priorities } = parsed.data
 
     const allOffers = await db.offer.findMany({
       where: { isActive: true },
       include: { operator: true },
     })
 
-    const needs = {
-      budget: parseFloat(budget),
-      dataGB: parseFloat(dataGB || '0'),
-      voiceMinutes: body.voiceMinutes === -1 ? -1 : parseInt(voiceMinutes || '0'),
-      smsCount: body.smsCount === -1 ? -1 : parseInt(smsCount || '0'),
-      type: type || 'any',
-      network: network || 'any',
-      operator: operator || 'any',
-    }
-
-    const recommendations = recommendOffers(
-      allOffers, needs, 3,
-      Array.isArray(priorities) ? priorities : []
-    )
+    const needs = { budget, dataGB, voiceMinutes, smsCount, type, network, operator }
+    const recommendations = recommendOffers(allOffers, needs, 3, priorities)
 
     return NextResponse.json({ recommendations, needs })
   } catch (error: any) {
