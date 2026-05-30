@@ -119,21 +119,24 @@ try {
   await page.evaluate(() => window.scrollTo(0, 0))
   await shot('screenshot_help', { x: 0, y: 0, width: 1440, height: 900 })
 
-  // ── 9) screenshot_saved — saved-plans page (requires bookmarked plans)
-  // Bookmark up to 3 offers via the API for the admin account, then visit /saved
+  // ── 9) screenshot_saved — saved-plans page (requires bookmarked plans).
+  // POST /api/saved-offers TOGGLES, so read the current saved set first and only
+  // save offers that aren't already saved — otherwise a re-run un-saves them.
   try {
-    const cookies = await ctx.cookies()
-    const cookieHeader = cookies.map(c => `${c.name}=${c.value}`).join('; ')
-    const res = await fetch('http://localhost:3000/api/offers?limit=3', {
-      headers: { cookie: cookieHeader },
-    })
-    const data = await res.json()
-    for (const o of (data.offers || []).slice(0, 3)) {
-      await fetch('http://localhost:3000/api/saved-offers', {
+    const cookieHeader = (await ctx.cookies()).map(c => `${c.name}=${c.value}`).join('; ')
+    const cur = await fetch('http://localhost:3000/api/saved-offers', { headers: { cookie: cookieHeader } }).then(r => r.json()).catch(() => ({ savedIds: [] }))
+    const already = new Set(cur.savedIds || [])
+    const data = await fetch('http://localhost:3000/api/offers?limit=8', { headers: { cookie: cookieHeader } }).then(r => r.json())
+    let saved = already.size
+    for (const o of (data.offers || [])) {
+      if (saved >= 3) break
+      if (already.has(o.id)) continue
+      const r = await fetch('http://localhost:3000/api/saved-offers', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', cookie: cookieHeader },
         body: JSON.stringify({ offerId: o.id }),
-      }).catch(() => {})
+      }).then(r => r.json()).catch(() => null)
+      if (r?.saved) saved++
     }
   } catch {}
   await page.goto('http://localhost:3000/saved')
