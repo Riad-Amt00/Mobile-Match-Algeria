@@ -68,10 +68,16 @@ describe('thesis test cases (Table 4.2)', () => {
     expect(top.dataGB === -1 || top.dataGB >= 40).toBe(true)
   })
 
-  it('TC3 — voice unlimited (-1): top result has unlimited calls', () => {
-    const results = recommendOffers(OFFERS, { budget: 3000, dataGB: 20, voiceMinutes: -1, smsCount: 0 })
-    expect(results.length).toBeGreaterThan(0)
-    expect(results[0].offer.voiceMinutes).toBe(-1)
+  it('TC3 — budget 1400DA, data 20Go, priorities [price, data]: price strictly tiers, data orders within the tier', () => {
+    const results = recommendOffers(OFFERS, { budget: 1400, dataGB: 20, voiceMinutes: 0, smsCount: 0 }, 8, ['price', 'data'])
+    // Survivors ≤1400DA: o8 (300/1Go), o5 (500/2Go), o4 (800/5Go), o1 (1000/15Go).
+    // Price merit puts o8 and o5 in the top tier (0.75); within it, data ranks o5
+    // (2Go) above o8 (1Go). o1 holds the most data of all but sits in a LOWER price
+    // tier, so it must stay below o5 — the 2nd priority can never cross a tier.
+    expect(results[0].offer.id).toBe('o5')
+    const o5i = results.findIndex(r => r.offer.id === 'o5')
+    const o1i = results.findIndex(r => r.offer.id === 'o1')
+    expect(o5i).toBeLessThan(o1i)
   })
 
   it('TC4 — budget 50DA (below all prices): engine returns empty result', () => {
