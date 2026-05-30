@@ -351,6 +351,23 @@ export default function RecommendPage() {
                 )}
               </div>
 
+              {/* Need-shortfall notice — the engine honours the user's priority order,
+                  so it may top-rank a cheap low-data plan; if NONE of the results actually
+                  cover the stated data need, say so plainly and offer the way to fix it. */}
+              {!loading && results.length > 0 && dataGB > 0 &&
+                results.every(r => r.offer?.dataGB !== -1 && r.offer?.dataGB < dataGB) && (
+                <div style={{
+                  display: 'flex', gap: 8, alignItems: 'flex-start',
+                  padding: '0.75rem 1rem', marginBottom: '1rem',
+                  background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.25)', borderRadius: 10,
+                }}>
+                  <AlertCircle size={15} style={{ color: '#F59E0B', flexShrink: 0, marginTop: 1 }} />
+                  <span style={{ fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+                    {tInterp('recommend.needNotice', { data: dataGB })}
+                  </span>
+                </div>
+              )}
+
               {!initialLoaded ? (
                 <div style={{ textAlign: 'center', padding: '3rem' }}>
                   <div style={{ width: 36, height: 36, border: '3px solid var(--accent-muted)', borderTopColor: 'var(--accent)', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto' }} />
