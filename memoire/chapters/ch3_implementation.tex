@@ -34,7 +34,7 @@ Table~\ref{tab:dev-env} describes the hardware and software environment used thr
     \hline
     Authentication       & NextAuth.js v5 \\
     \hline
-    Unit testing         & Vitest 4.x (99 unit tests across recommendation and scraping modules) \\
+    Unit testing         & Vitest 4.x (118 unit tests across the recommendation, scraping, search, and utility modules) \\
     \hline
     IDE                  & Visual Studio Code 1.95 \\
     \hline
@@ -358,7 +358,7 @@ Table~\ref{tab:security} summarises the security mechanisms applied across the a
     \hline
     Rate limiting             & Brute-force registration and recommendation-engine abuse & A server-side \texttt{RateLimit} table enforces five requests per fifteen minutes per IP on \textit{/api/auth/register} and sixty requests per minute per IP on \textit{/api/recommendations} \\
     \hline
-    Input validation          & Malformed payloads, injection through structured fields & All query parameters and request bodies are validated through \texttt{zod} schemas before reaching the business logic \\
+    Input validation          & Malformed payloads, injection through structured fields & Request bodies on the authentication and principal POST/PUT endpoints (register, recommendations, profile, saved-offers) are validated with \texttt{zod} schemas; read-only query parameters are parsed through typed guards before reaching the business logic \\
     \hline
     Parameterised queries     & SQL injection & All database access goes through Prisma's parameterised query API; no user-supplied string is ever interpolated into a query \\
     \hline

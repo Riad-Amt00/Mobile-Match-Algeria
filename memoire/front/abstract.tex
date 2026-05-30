@@ -13,7 +13,7 @@ Le marché algérien de la téléphonie mobile compte plus de 54 millions d'abon
 
 Le présent mémoire décrit la conception et la réalisation de \textit{Mobile Match Algérie}, une application web qui agrège les offres des trois opérateurs et accompagne les utilisateurs dans leur décision. La méthodologie repose sur une étude documentaire fondée sur les sources officielles du marché (ARPCE, GSMA, DataReportal, Mordor Intelligence) pour caractériser les besoins des consommateurs, suivie d'une démarche de développement itérative.
 
-Le système est bâti sur le framework \textit{Next.js~16}, avec \textit{Prisma~ORM} et \textit{SQLite}, et intègre cinq fonctionnalités~: un moteur de recherche structuré, des filtres multicritères, des graphiques comparatifs, un calculateur d'économies et un système de notifications. Le moteur de recommandation applique une hiérarchisation par paliers~: la priorité principale détermine un palier d'offres et la priorité secondaire les ordonne au sein de ce palier. Quatre-vingt-seize offres sont aujourd'hui catalogu\'ees, et la validation technique (99 tests unitaires, tests de charge sans erreur jusqu'à 50 connexions concurrentes) confirme la stabilité du système. Une étude d'utilisabilité avec utilisateurs réels est proposée en Perspectives.
+Le système est bâti sur le framework \textit{Next.js~16}, avec \textit{Prisma~ORM} et \textit{SQLite}, et intègre cinq fonctionnalités~: un moteur de recherche structuré, des filtres multicritères, des graphiques comparatifs, un calculateur d'économies et un système de notifications. Le moteur de recommandation applique une hiérarchisation par paliers~: la priorité principale détermine un palier d'offres et la priorité secondaire les ordonne au sein de ce palier. Quatre-vingt-seize offres sont aujourd'hui catalogu\'ees, et la validation technique (118 tests unitaires, tests de charge sans erreur jusqu'à 50 connexions concurrentes) confirme la stabilité du système. Une étude d'utilisabilité avec utilisateurs réels est proposée en Perspectives.
 
 \bigskip
 \noindent\textbf{Mots-clés~:} agrégation web, système de recommandation, comparaison des offres mobiles en Algérie.
@@ -29,7 +29,7 @@ Algeria's mobile market counts more than fifty-four million subscribers split be
 
 This thesis describes the design and implementation of \textit{Mobile Match Algeria}, a web application that aggregates the catalogues of the three operators and supports consumers throughout the decision process. The methodology rests on documentary research grounded in official market sources (ARPCE, GSMA, DataReportal, Mordor Intelligence) to characterise consumer needs, followed by an iterative development cycle.
 
-The system is built on the \textit{Next.js~16} framework with \textit{Prisma~ORM} and \textit{SQLite}, and integrates five functionalities: a structured search engine, multi-criteria filters, comparative bar charts, a savings calculator, and an in-app notification system. The recommendation engine applies a tiered-ranking model in which the user's primary priority determines an offer tier and the secondary priority orders offers within that tier. Ninety-six offers are currently catalogued, and technical validation — ninety-nine unit tests passing and load testing with zero errors up to fifty concurrent connections — confirms the stability of the platform. A formal usability study with end users is proposed as future work in the Perspectives chapter.
+The system is built on the \textit{Next.js~16} framework with \textit{Prisma~ORM} and \textit{SQLite}, and integrates five functionalities: a structured search engine, multi-criteria filters, comparative bar charts, a savings calculator, and an in-app notification system. The recommendation engine applies a tiered-ranking model in which the user's primary priority determines an offer tier and the secondary priority orders offers within that tier. Ninety-six offers are currently catalogued, and technical validation — one hundred and eighteen unit tests passing and load testing with zero errors up to fifty concurrent connections — confirms the stability of the platform. A formal usability study with end users is proposed as future work in the Perspectives chapter.
 
 \bigskip
 \noindent\textbf{Keywords:} web aggregation, recommendation system, Algeria's mobile plan comparison.
@@ -73,7 +73,7 @@ The system is built on the \textit{Next.js~16} framework with \textit{Prisma~ORM
 خمس وظائف: محرّك بحث منظَّم، ومرشحات متعددة المعايير، ورسومًا بيانية مقارنة، وحاسبة
 للوفورات، ونظامًا للإشعارات. ويعتمد محرّك التوصيات نموذجَ ترتيبٍ على مستويات: تُحدِّد
 الأولوية الأولى مستوى العروض، وتُرتِّبها الأولوية الثانية ضمن المستوى نفسه. تَضمّ
-قاعدة البيانات ستة وتسعين عرضًا، ويُؤكِّد التحقق التقني — تسعة وتسعون اختبار وحدة
+قاعدة البيانات ستة وتسعين عرضًا، ويُؤكِّد التحقق التقني — مئة وثمانية عشر اختبار وحدة
 ناجح وتجارب حمل دون أي خطأ حتى خمسين اتصالًا متزامنًا — استقرارَ النظام. ويُقترَح
 إجراء دراسة استعمال مع مستخدمين حقيقيين ضمن الآفاق المستقبلية.
 
