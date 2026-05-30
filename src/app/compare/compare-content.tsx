@@ -8,7 +8,7 @@ import {
   CreditCard, DollarSign, Signal, Building2, Trophy, BarChart3,
 } from 'lucide-react'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, LabelList } from 'recharts'
-import { formatDA, formatData, formatMinutes, formatSms, formatValidity, getNetworkStyle, OPERATOR_LOGOS, cleanOfferName, RANK_GRADIENTS, RANK_COLORS } from '@/lib/utils'
+import { formatDA, formatData, formatMinutes, formatCalls, formatSmsScoped, formatValidity, getNetworkStyle, OPERATOR_LOGOS, cleanOfferName, RANK_GRADIENTS, RANK_COLORS } from '@/lib/utils'
 import { useLang } from '@/lib/lang-context'
 import type { TKey } from '@/lib/i18n'
 
@@ -125,12 +125,12 @@ export default function CompareContent({ initialIds, fromRecommend, fromSaved }:
 
   const typeMap: Record<string, TKey> = { PREPAID: 'type.prepaid', POSTPAID: 'type.postpaid', DATA_ONLY: 'type.dataOnly' }
 
-  const specs = [
+  const specs: { key: string; icon: any; label: string; format: (v: any, o?: any) => string }[] = [
     { key: 'type',         icon: <CreditCard size={16} />,    label: t('compare.type'),     format: (v: any) => t(typeMap[v as string] ?? 'type.standard') },
     { key: 'priceDA',      icon: <DollarSign size={16} />,    label: t('compare.price'),    format: (v: any) => formatDA(v) },
     { key: 'dataGB',       icon: <Wifi size={16} />,          label: t('compare.data'),     format: (v: any) => formatData(v, t) },
-    { key: 'voiceMinutes', icon: <Phone size={16} />,         label: t('compare.calls'),    format: (v: any) => formatMinutes(v, t) },
-    { key: 'smsCount',     icon: <MessageSquare size={16} />, label: t('compare.sms'),      format: (v: any) => formatSms(v, t) },
+    { key: 'voiceMinutes', icon: <Phone size={16} />,         label: t('compare.calls'),    format: (_v: any, o: any) => formatCalls(o, t) },
+    { key: 'smsCount',     icon: <MessageSquare size={16} />, label: t('compare.sms'),      format: (_v: any, o: any) => formatSmsScoped(o, t) },
     { key: 'validityDays', icon: <Calendar size={16} />,      label: t('compare.validity'), format: (v: any) => formatValidity(v, t) },
   ]
 
@@ -471,7 +471,7 @@ export default function CompareContent({ initialIds, fromRecommend, fromSaved }:
                     }}>
                       {offers[ci] ? (
                         <span style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-primary)' }}>
-                          {spec.format(offers[ci][spec.key])}
+                          {spec.format(offers[ci][spec.key], offers[ci])}
                         </span>
                       ) : (
                         <span style={{ color: 'var(--text-muted)', fontSize: 14 }}>—</span>

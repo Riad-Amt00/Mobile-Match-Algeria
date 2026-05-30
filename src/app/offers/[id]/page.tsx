@@ -15,7 +15,7 @@ import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useToast } from '@/components/toast'
 import {
-  formatDA, formatData, formatMinutes, formatSms, formatValidity,
+  formatDA, formatData, formatCalls, formatSmsScoped, formatValidity,
   getPricePerGB, OPERATOR_LOGOS, parseFeatures, cleanOfferName,
 } from '@/lib/utils'
 import { useLang } from '@/lib/lang-context'
@@ -103,8 +103,8 @@ export default function OfferDetailPage() {
 
   const specs = [
     { icon: <Wifi size={20} />,          label: t('offer.data'),     value: formatData(offer.dataGB, t) },
-    { icon: <Phone size={20} />,         label: t('offer.calls'),    value: formatMinutes(offer.voiceMinutes, t) },
-    { icon: <MessageSquare size={20} />, label: t('offer.sms'),      value: formatSms(offer.smsCount, t) },
+    { icon: <Phone size={20} />,         label: t('offer.calls'),    value: formatCalls(offer, t) },
+    { icon: <MessageSquare size={20} />, label: t('offer.sms'),      value: formatSmsScoped(offer, t) },
     { icon: <Calendar size={20} />,      label: t('offer.validity'), value: formatValidity(offer.validityDays, t) },
   ]
 

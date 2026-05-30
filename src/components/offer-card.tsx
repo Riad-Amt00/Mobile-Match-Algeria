@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { Signal, Wifi, Phone, MessageSquare, Calendar, Zap, Sparkles, Bookmark, BookmarkCheck, CheckCircle2, BarChart3, Loader2 } from 'lucide-react'
-import { formatData, formatMinutes, formatSms, formatValidity, getPricePerGB, getNetworkStyle, OPERATOR_LOGOS, cleanOfferName } from '@/lib/utils'
+import { formatData, formatCalls, formatSmsScoped, formatValidity, getPricePerGB, getNetworkStyle, OPERATOR_LOGOS, cleanOfferName } from '@/lib/utils'
 import { useLang } from '@/lib/lang-context'
 
 export interface Offer {
@@ -49,8 +49,8 @@ export function OfferCard({
 
   const specs = [
     { icon: <Wifi size={14} />,          label: t('offer.data'),     value: formatData(offer.dataGB, t) },
-    { icon: <Phone size={14} />,         label: t('offer.calls'),    value: formatMinutes(offer.voiceMinutes, t) },
-    { icon: <MessageSquare size={14} />, label: t('offer.sms'),      value: formatSms(offer.smsCount, t) },
+    { icon: <Phone size={14} />,         label: t('offer.calls'),    value: formatCalls(offer, t) },
+    { icon: <MessageSquare size={14} />, label: t('offer.sms'),      value: formatSmsScoped(offer, t) },
     { icon: <Calendar size={14} />,      label: t('offer.validity'), value: formatValidity(offer.validityDays, t) },
   ]
 

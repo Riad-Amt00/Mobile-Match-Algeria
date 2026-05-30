@@ -45,6 +45,56 @@ export function formatSms(sms: number | null | undefined, t?: TFn): string {
   return `${sms} SMS`
 }
 
+/**
+ * Recovers whether an UNLIMITED calls/SMS allowance applies on-net (same operator
+ * only) or to all networks, by reading the offer's scraped feature list. Algerian
+ * operators sell "unlimited" as either on-net (e.g. «illimité vers Djezzy») or
+ * all-networks («illimité tous réseaux»); the binary voiceMinutes/smsCount sentinel
+ * (-1) cannot carry that distinction, so it is recovered from the feature text here.
+ * Returns null when the features do not make the scope explicit.
+ */
+export function unlimitedScope(features: string[], kind: 'calls' | 'sms'): 'all' | 'onnet' | null {
+  const relevant = features.filter(f => {
+    const l = f.toLowerCase()
+    const mentionsKind = kind === 'calls' ? /call|appel|voix|مكالمات/.test(l) : /sms|رسائل/.test(l)
+    // «illimité vers X» / «unlimited toward X» lines often cover BOTH calls and SMS.
+    const generic = /illimit[ée]s? vers|unlimited.*(toward|vers)/.test(l)
+    return mentionsKind || generic
+  })
+  const text = relevant.join(' · ').toLowerCase()
+  if (!text) return null
+  if (/all network|tous les r[ée]seaux|toutes? directions|كل الشبكات/.test(text)) return 'all'
+  if (/vers (djezzy|ooredoo|mobilis)|(djezzy|ooredoo|mobilis) (calls|sms)|m[êe]me r[ée]seau|same network|on-?net/.test(text)) return 'onnet'
+  return null
+}
+
+type OfferLike = { voiceMinutes: number; smsCount: number; features?: string | string[]; operator?: { name?: string } }
+
+function offerFeatures(o: OfferLike): string[] {
+  if (Array.isArray(o.features)) return o.features
+  return typeof o.features === 'string' ? parseFeatures(o.features) : []
+}
+
+function scopedUnlimited(features: string[], kind: 'calls' | 'sms', operatorName: string | undefined, t?: TFn): string {
+  const scope = unlimitedScope(features, kind)
+  if (!t) return 'Unlimited'
+  if (scope === 'all') return t('offer.unlimitedAllNet')
+  if (scope === 'onnet' && operatorName) return t('offer.unlimitedOnNet').replace('{op}', operatorName)
+  return t('common.unlimited')
+}
+
+/** Calls allowance label — scope-aware when unlimited (e.g. «Unlimited (Djezzy)»). */
+export function formatCalls(o: OfferLike, t?: TFn): string {
+  if (o.voiceMinutes !== -1) return formatMinutes(o.voiceMinutes, t)
+  return scopedUnlimited(offerFeatures(o), 'calls', o.operator?.name, t)
+}
+
+/** SMS allowance label — scope-aware when unlimited. */
+export function formatSmsScoped(o: OfferLike, t?: TFn): string {
+  if (o.smsCount !== -1) return formatSms(o.smsCount, t)
+  return scopedUnlimited(offerFeatures(o), 'sms', o.operator?.name, t)
+}
+
 export function formatValidity(days: number, t?: TFn): string {
   if (!t) {
     if (days === 1) return '24h'
