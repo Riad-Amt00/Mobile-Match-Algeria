@@ -632,7 +632,7 @@ function AdminNotifications({ onNavigate }: { onNavigate: (href: string) => void
 
   function getHref(n: any): string | null {
     if (n.offerId) return `/offers/${n.offerId}`
-    if (n.type === 'scrape_failed' || n.type === 'scrape_complete') return '/admin?tab=history'
+    if (n.type === 'scrape_failed' || n.type === 'scrape_complete' || n.type === 'data_stale') return '/admin?tab=history'
     if (n.type === 'recommendation') return '/recommend'
     // new_offer / price_drop without an offerId: legacy row, not navigable.
     return null
@@ -668,6 +668,7 @@ function AdminNotifications({ onNavigate }: { onNavigate: (href: string) => void
   const typeIcon: Record<string, string> = {
     scrape_failed: '⚠️',
     scrape_complete: '✅',
+    data_stale: '🕒',
     new_offer: '🆕',
     recommendation: '✨',
     price_drop: '📉',

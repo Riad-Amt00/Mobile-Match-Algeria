@@ -119,7 +119,7 @@ export function Navbar() {
   function getNotifHref(n: any): string | null {
     if (n.offerId) return `/offers/${n.offerId}`
     // Admin-only operational notifications → scrape history
-    if (n.type === 'scrape_failed' || n.type === 'scrape_complete') return '/admin?tab=history'
+    if (n.type === 'scrape_failed' || n.type === 'scrape_complete' || n.type === 'data_stale') return '/admin?tab=history'
     if (n.type === 'recommendation') return '/recommend'
     // new_offer / price_drop without an offerId: legacy row from an older
     // scraper version that did not store the reference. Not navigable — the
