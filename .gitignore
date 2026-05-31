@@ -32,6 +32,8 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+# ...but DO commit the template so a fresh clone can `cp .env.example .env` and run.
+!.env.example
 
 # vercel
 .vercel

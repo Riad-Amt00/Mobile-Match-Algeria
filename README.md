@@ -63,7 +63,7 @@ npm run dev                 # http://localhost:3000
 ### Tests
 
 ```bash
-npm test                    # 99 unit tests across recommendation engine + scraper parsers
+npm test                    # 118 unit tests across recommendation, scraper, search, and util modules
 # default reporter has a glitch in vitest 4.1.5 — use verbose to confirm:
 npx vitest run --reporter=verbose
 ```
