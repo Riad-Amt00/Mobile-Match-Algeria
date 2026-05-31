@@ -16,7 +16,32 @@ Web data aggregation is the systematic collection of information from multiple o
   \item \textbf{Web scraping} --- the fallback when the first two are unavailable: the aggregator visits the publicly-rendered pages and extracts the data from the HTML directly, with no cooperation required from the data owner.
 \end{enumerate}
 
-The choice between these paradigms has been examined empirically in the recent marketing-research literature. \textcite{BoegershausenDatta2022} review one decade of empirical work that collected web data and report that web scraping accounts for roughly 59\,\% of reviewed studies while API-based collection accounts for only 12\,\%; the authors attribute the gap to the simple fact that public APIs are rarely available for the specific records a researcher (or aggregator) needs, even when the same data is openly visible to any browser. \textcite{GlezPena2014} reach the same conclusion in a bioinformatics context with the influential survey \guillemotleft{}Web scraping technologies in an API world\guillemotright{}: web services are the de facto standard for biomedical data integration, yet scraping remains valuable for the wide range of data-integration scenarios that public Web services do not cover. The general lesson from both surveys is consistent: when a consumer-facing dataset is published as HTML but not as an API, scraping is the established and defensible method.
+The choice between these paradigms has been examined empirically in the recent marketing-research literature. \textcite{BoegershausenDatta2022} review one decade of empirical work that collected web data and report that web scraping accounts for roughly 59\,\% of reviewed studies while API-based collection accounts for only 12\,\%; the authors attribute the gap to the simple fact that public APIs are rarely available for the specific records a researcher (or aggregator) needs, even when the same data is openly visible to any browser. \textcite{GlezPena2014} reach the same conclusion in a bioinformatics context with the influential survey \guillemotleft{}Web scraping technologies in an API world\guillemotright{}: web services are the de facto standard for biomedical data integration, yet scraping remains valuable for the wide range of data-integration scenarios that public Web services do not cover. The general lesson from both surveys is consistent: when a consumer-facing dataset is published as HTML but not as an API, scraping is the established and defensible method. Figure~\ref{fig:aggregation-pipeline} summarises the general pipeline common to any aggregation effort, independent of the fetch method chosen.
+
+\begin{figure}[H]
+\centering
+\resizebox{\textwidth}{!}{%
+\begin{tikzpicture}[
+  src/.style={rectangle, rounded corners=3pt, draw=black!55, fill=gray!12, minimum width=2.8cm, minimum height=0.95cm, align=center, font=\scriptsize},
+  proc/.style={rectangle, rounded corners=3pt, draw=blue!55, fill=blue!8, minimum width=2.8cm, minimum height=0.95cm, align=center, font=\scriptsize},
+  store/.style={rectangle, rounded corners=3pt, draw=green!50!black, fill=green!12, minimum width=2.8cm, minimum height=0.95cm, align=center, font=\scriptsize},
+  fl/.style={-{Stealth[length=5pt]}, thick, black!65}
+]
+  \node[src]   (src)   at (0,0)    {Online sources};
+  \node[proc](fetch) at (3.2,0)  {Fetch page};
+  \node[proc](parse) at (6.4,0)  {Parse and extract};
+  \node[proc](norm)  at (9.6,0)  {Normalise and validate};
+  \node[store] (db)    at (12.8,0) {Database};
+  \node[src]   (app)   at (16.0,0) {Application};
+  \draw[fl] (src)   -- (fetch);
+  \draw[fl] (fetch) -- (parse);
+  \draw[fl] (parse) -- (norm);
+  \draw[fl] (norm)  -- (db);
+  \draw[fl] (db)    -- (app);
+\end{tikzpicture}}
+\caption{General web-data-aggregation pipeline: online sources are fetched, parsed into structured records, normalised and validated, stored, then served to the downstream application}
+\label{fig:aggregation-pipeline}
+\end{figure}
 
 This lesson applies directly to the present project. The subject fiche allows two of these strategies --- \guillemotleft{}web scraping ou APIs\guillemotright{} --- but a thorough review of the public developer portals of the three Algerian operators confirms that the alternative does not exist in the consumer-plan domain. Each of the three operators exposes enterprise-oriented APIs --- documented endpoints for SIM-Swap detection, one-time-password verification under the CAMARA standard, direct carrier billing, and silent-number verification \parencite{GSMA2024}. These APIs target fraud-prevention, identity, and payment use cases. \textbf{None of the three operators publishes a consumer-facing API that returns the catalogue of mobile plans, their prices, or their data volumes}: the plan catalogue exists only as marketing content on each operator's website. The choice between the strategies listed in the subject fiche therefore resolves unambiguously in favour of scraping, in exactly the configuration the literature anticipates: an HTML-published consumer dataset with no API equivalent. The next section turns to how scraping is then realised concretely.
 
