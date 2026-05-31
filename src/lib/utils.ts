@@ -75,12 +75,33 @@ function offerFeatures(o: OfferLike): string[] {
   return typeof o.features === 'string' ? parseFeatures(o.features) : []
 }
 
+/**
+ * A finite cross-network allowance bundled on top of an on-net unlimited plan,
+ * e.g. "20 SMS to other networks", "50 SMS vers autres réseaux", "100 SMS vers les
+ * autres réseaux nationaux". Returns the count (as a string) when present.
+ */
+function offNetCount(features: string[], kind: 'calls' | 'sms'): string | null {
+  const unit = kind === 'sms' ? '(?:sms|رسائل)' : '(?:min|minutes?|دقيقة)'
+  const re = new RegExp(`(\\d+)\\s*${unit}[^\\d]*(?:other|autre|أخرى)`, 'i')
+  for (const f of features) {
+    const m = f.match(re)
+    if (m) return m[1]
+  }
+  return null
+}
+
 function scopedUnlimited(features: string[], kind: 'calls' | 'sms', operatorName: string | undefined, t?: TFn): string {
   const scope = unlimitedScope(features, kind)
   if (!t) return 'Unlimited'
   if (scope === 'all') return t('offer.unlimitedAllNet')
-  if (scope === 'onnet' && operatorName) return t('offer.unlimitedOnNet').replace('{op}', operatorName)
-  return t('common.unlimited')
+  let label = scope === 'onnet' && operatorName
+    ? t('offer.unlimitedOnNet').replace('{op}', operatorName)
+    : t('common.unlimited')
+  // Append a bundled cross-network allowance (e.g. "+ 20 off-net") when the plan is
+  // unlimited on-net but also includes a finite quota to other networks.
+  const off = offNetCount(features, kind)
+  if (off) label += ' ' + t('offer.plusOffNet').replace('{n}', off)
+  return label
 }
 
 /** Calls allowance label — scope-aware when unlimited (e.g. «Unlimited (Djezzy)»). */
@@ -101,7 +122,7 @@ export function formatSmsScoped(o: OfferLike, t?: TFn): string {
  * on the offer card. Returns null when the offer grants no credit.
  */
 export function offerCredit(o: OfferLike): string | null {
-  return offerFeatures(o).find(f => /cr[ée]dit|credit/i.test(f)) ?? null
+  return offerFeatures(o).find(f => /cr[éèe]dit/i.test(f)) ?? null
 }
 
 export function formatValidity(days: number, t?: TFn): string {
