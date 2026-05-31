@@ -129,7 +129,7 @@ One non-trivial design decision in the offers route concerns the comparison feat
 
 \subsection{Authentication}
 
-User authentication is implemented with \textit{NextAuth.js} using the Credentials provider. Passwords are hashed with bcrypt at registration and verified at sign-in. Sessions are JWT-based with a thirty-day expiry. The \texttt{role} field (\texttt{USER} or \texttt{ADMIN}) is embedded in the session token and verified at the start of every admin-gated route handler. A one-time administrator-claim mechanism (\textit{/api/admin/claim}) allows a registered user to elevate their role using a server-side secret defined in the \texttt{ADMIN\_CLAIM\_CODE} environment variable.
+User authentication is implemented with NextAuth.js using the Credentials provider. Passwords are hashed with bcrypt at registration and verified at sign-in. Sessions are JWT-based with a thirty-day expiry. The \texttt{role} field (\texttt{USER} or \texttt{ADMIN}) is embedded in the session token and verified at the start of every admin-gated route handler. A one-time administrator-claim mechanism (\textit{/api/admin/claim}) allows a registered user to elevate their role using a server-side secret defined in the \texttt{ADMIN\_CLAIM\_CODE} environment variable.
 
 \section{Recommendation Engine}
 
