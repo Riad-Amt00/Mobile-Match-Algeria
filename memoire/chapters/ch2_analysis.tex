@@ -4,7 +4,7 @@
 
 \chapter{Requirements Analysis and System Design}
 
-Building on the state of the art surveyed in Chapter~1, this chapter formalises the requirements of \textit{Mobile Match Algeria} and presents the architectural and design decisions taken to meet them. The chapter covers requirements gathering, actor identification, UML modelling (use-case, activity, and sequence diagrams), the data model as a UML class diagram with project methods, the three-tier system architecture, and the technology stack justification.
+Building on the state of the art surveyed in Chapter~1, this chapter formalises the requirements of \textit{Mobile Match Algeria} and presents the architectural and design decisions taken to meet them. The chapter covers requirements gathering, actor identification, UML modelling (use-case, activity, and sequence diagrams), the data model as a UML class diagram, the three-tier system architecture, and the technology stack justification.
 
 \section{Requirements Gathering}
 
@@ -214,7 +214,7 @@ Figure~\ref{fig:activity-scrape} represents the activity flow of the automated s
 \begin{figure}[H]
 \centering
 \begin{tikzpicture}[
-  node distance=0.55cm and 1.2cm,
+  node distance=0.85cm and 1.2cm,
   startstop/.style={ellipse, draw, fill=gray!20, minimum width=2.8cm, minimum height=0.7cm, font=\small\bfseries},
   process/.style={rectangle, rounded corners=3pt, draw, fill=blue!8, minimum width=5.5cm, minimum height=0.7cm, align=center, font=\small},
   decision/.style={diamond, draw, fill=orange!15, aspect=2.8, minimum height=0.7cm, align=center, font=\small},
@@ -232,19 +232,19 @@ Figure~\ref{fig:activity-scrape} represents the activity flow of the automated s
   \node[process, below=of deact] (log) {Write ScrapeLog (status, counts, duration)};
   \node[startstop, below=of log] (end) {END};
 
-  \draw[arrow] (start) -- (trigger);
-  \draw[arrow] (trigger) -- (fetch);
-  \draw[arrow] (fetch) -- (parse);
-  \draw[arrow] (parse) -- (norm);
-  \draw[arrow] (norm) -- (exists);
-  \draw[arrow] (exists) -- node[above, font=\scriptsize]{Yes} (update);
-  \draw[arrow] (update) |- (deact);
-  \draw[arrow] (exists) -- node[right, font=\scriptsize]{No} (insert);
-  \draw[arrow] (insert) -- (deact);
-  \draw[arrow] (deact) -- (log);
-  \draw[arrow] (log) -- (end);
+  \draw[arrow] (start) -- node[right, font=\scriptsize]{run} (trigger);
+  \draw[arrow] (trigger) -- node[right, font=\scriptsize]{per operator} (fetch);
+  \draw[arrow] (fetch) -- node[right, font=\scriptsize]{HTML} (parse);
+  \draw[arrow] (parse) -- node[right, font=\scriptsize]{raw offers} (norm);
+  \draw[arrow] (norm) -- node[right, font=\scriptsize]{per offer} (exists);
+  \draw[arrow] (exists) -- node[above, font=\scriptsize]{[exists]} (update);
+  \draw[arrow] (update) |- node[above, font=\scriptsize, pos=0.25]{record price change} (deact);
+  \draw[arrow] (exists) -- node[right, font=\scriptsize]{[new]} (insert);
+  \draw[arrow] (insert) -- node[right, font=\scriptsize]{inserted} (deact);
+  \draw[arrow] (deact) -- node[right, font=\scriptsize]{catalogue synced} (log);
+  \draw[arrow] (log) -- node[right, font=\scriptsize]{done} (end);
 \end{tikzpicture}
-\caption{Activity diagram --- automated scraping pipeline}
+\caption{Activity diagram of the automated scraping pipeline}
 \label{fig:activity-scrape}
 \end{figure}
 
@@ -313,7 +313,7 @@ The client sends a POST request to \textit{/api/recommendations} with the user's
 
 \subsection{Class Diagram}
 
-{\sloppy The data model comprises eight application-defined classes: \texttt{Operator}, \texttt{Offer}, \texttt{PriceHistory}, \texttt{User}, \texttt{UserProfile}, \texttt{SavedOffer}, \texttt{Notification}, and \texttt{ScrapeLog}. Authentication-infrastructure models managed by NextAuth.js (\texttt{Account}, \texttt{Session}, \texttt{VerificationToken}) and the system-level rate-limit table are excluded from the application diagram. Figure~\ref{fig:class-diagram-main} shows each class with its principal attributes (top compartment) and the methods (bottom compartment) corresponding to the project functionalities that operate on it. Associations carry standard UML cardinalities (1, N).\par}
+{\sloppy The data model comprises eight application-defined classes: \texttt{Operator}, \texttt{Offer}, \texttt{PriceHistory}, \texttt{User}, \texttt{UserProfile}, \texttt{SavedOffer}, \texttt{Notification}, and \texttt{ScrapeLog}. Authentication-infrastructure models managed by NextAuth.js (\texttt{Account}, \texttt{Session}, \texttt{VerificationToken}) and the system-level rate-limit table are excluded from the application diagram. Figure~\ref{fig:class-diagram-main} shows each class with its principal attributes; the associations between classes carry standard UML multiplicities (1, N).\par}
 
 \begin{figure}[H]
 \centering
@@ -322,8 +322,6 @@ The client sends a POST request to \textit{/api/recommendations} with the user's
   cls/.style={rectangle, draw=black!80, fill=white, align=left, font=\scriptsize, inner sep=0pt},
   hdr/.style={fill=blue!15, font=\scriptsize\bfseries, align=center, minimum height=0.50cm, minimum width=3.8cm},
   arow/.style={fill=white, minimum height=0.36cm, minimum width=3.8cm, align=left, inner sep=3pt, font=\scriptsize},
-  sep/.style={fill=black!75, minimum height=0.04cm, minimum width=3.8cm, inner sep=0pt},
-  mrow/.style={fill=blue!3, minimum height=0.36cm, minimum width=3.8cm, align=left, inner sep=3pt, font=\scriptsize\itshape},
   assoc/.style={thick, ->, black!65}
 ]
   %% ── Row 1: Operator · Offer · User · Notification ─────────────────────────
@@ -332,11 +330,6 @@ The client sends a POST request to \textit{/api/recommendations} with the user's
     \node[arow]{id: String (PK)}; \\
     \node[arow]{name, slug, primaryColor}; \\
     \node[arow]{website}; \\
-    \node[sep]{}; \\
-    \node[mrow]{+ findBySlug(slug)}; \\
-    \node[mrow]{+ upsert(name, slug)}; \\
-    \node[mrow]{+ getHealth()}; \\
-    \node[mrow]{+ getActiveOfferCount()}; \\
   };
   \matrix[cls, ampersand replacement=\&] (offer) at (4.1,0) {
     \node[hdr]{Offer}; \\
@@ -346,12 +339,6 @@ The client sends a POST request to \textit{/api/recommendations} with the user's
     \node[arow]{smsCount, validityDays}; \\
     \node[arow]{features, isActive}; \\
     \node[arow]{sourceUrl, scrapedAt}; \\
-    \node[sep]{}; \\
-    \node[mrow]{+ findAll(filters)}; \\
-    \node[mrow]{+ search(tokens)}; \\
-    \node[mrow]{+ recommend(profile)}; \\
-    \node[mrow]{+ upsertFromScrape(data)}; \\
-    \node[mrow]{+ deactivate(ids)}; \\
   };
   \matrix[cls, ampersand replacement=\&] (user) at (8.2,0) {
     \node[hdr]{User}; \\
@@ -360,10 +347,6 @@ The client sends a POST request to \textit{/api/recommendations} with the user's
     \node[arow]{emailVerified: DateTime}; \\
     \node[arow]{passwordHash, role}; \\
     \node[arow]{createdAt, updatedAt}; \\
-    \node[sep]{}; \\
-    \node[mrow]{+ register(email, password)}; \\
-    \node[mrow]{+ authenticate(email, pw)}; \\
-    \node[mrow]{+ claimAdminRole(code)}; \\
   };
   \matrix[cls, ampersand replacement=\&] (notif) at (12.3,0) {
     \node[hdr]{Notification}; \\
@@ -371,16 +354,11 @@ The client sends a POST request to \textit{/api/recommendations} with the user's
     \node[arow]{userId (FK)}; \\
     \node[arow]{title, message, type}; \\
     \node[arow]{isRead: Boolean}; \\
-    \node[arow]{offerId, createdAt}; \\
-    \node[sep]{}; \\
-    \node[mrow]{+ createForUsers(payload)}; \\
-    \node[mrow]{+ markAsRead(id)}; \\
-    \node[mrow]{+ listByUser(userId)}; \\
-    \node[mrow]{+ delete(id)}; \\
+    \node[arow]{offerId (FK), createdAt}; \\
   };
 
   %% ── Row 2: ScrapeLog · PriceHistory · SavedOffer · UserProfile ────────────
-  \matrix[cls, ampersand replacement=\&] (scrape) at (0,-6.5) {
+  \matrix[cls, ampersand replacement=\&] (scrape) at (0,-4.6) {
     \node[hdr]{ScrapeLog}; \\
     \node[arow]{id: String (PK)}; \\
     \node[arow]{operatorId (FK)}; \\
@@ -388,33 +366,22 @@ The client sends a POST request to \textit{/api/recommendations} with the user's
     \node[arow]{offersFound/Added/Updated}; \\
     \node[arow]{offersDeactivated, details}; \\
     \node[arow]{errorMessage, startedAt}; \\
-    \node[sep]{}; \\
-    \node[mrow]{+ start(operatorId)}; \\
-    \node[mrow]{+ recordSuccess(id, stats)}; \\
-    \node[mrow]{+ recordFailure(id, error)}; \\
-    \node[mrow]{+ getRecent(operatorId)}; \\
   };
-  \matrix[cls, ampersand replacement=\&] (history) at (4.1,-6.5) {
+  \matrix[cls, ampersand replacement=\&] (history) at (4.1,-4.6) {
     \node[hdr]{PriceHistory}; \\
     \node[arow]{id: String (PK)}; \\
     \node[arow]{offerId (FK)}; \\
     \node[arow]{priceDA: Float}; \\
     \node[arow]{recordedAt: DateTime}; \\
-    \node[sep]{}; \\
-    \node[mrow]{+ record(offerId, price)}; \\
-    \node[mrow]{+ getHistory(offerId)}; \\
   };
-  \matrix[cls, ampersand replacement=\&] (saved) at (8.2,-6.5) {
+  \matrix[cls, ampersand replacement=\&] (saved) at (8.2,-4.6) {
     \node[hdr]{SavedOffer}; \\
     \node[arow]{id: String (PK)}; \\
     \node[arow]{userId (FK)}; \\
     \node[arow]{offerId (FK)}; \\
     \node[arow]{savedAt: DateTime}; \\
-    \node[sep]{}; \\
-    \node[mrow]{+ toggle(userId, offerId)}; \\
-    \node[mrow]{+ listByUser(userId)}; \\
   };
-  \matrix[cls, ampersand replacement=\&] (profile) at (12.3,-6.5) {
+  \matrix[cls, ampersand replacement=\&] (profile) at (12.3,-4.6) {
     \node[hdr]{UserProfile}; \\
     \node[arow]{id: String (PK)}; \\
     \node[arow]{userId (FK, unique)}; \\
@@ -422,9 +389,6 @@ The client sends a POST request to \textit{/api/recommendations} with the user's
     \node[arow]{voiceMinutes, smsCount}; \\
     \node[arow]{preferredType, preferredNet}; \\
     \node[arow]{preferredOperator, priorities}; \\
-    \node[sep]{}; \\
-    \node[mrow]{+ get(userId)}; \\
-    \node[mrow]{+ update(userId, data)}; \\
   };
 
   %% ── Associations with cardinalities ──────────────────────────────────────
@@ -457,7 +421,7 @@ The client sends a POST request to \textit{/api/recommendations} with the user's
     node[above, font=\scriptsize, pos=0.90]{N}
     (notif.west);
 \end{tikzpicture}}
-\caption{Class diagram --- eight application classes with attributes (top compartments), project methods (bottom compartments), and UML associations}
+\caption{Class diagram of the data model: the eight application classes with their attributes and UML associations}
 \label{fig:class-diagram-main}
 \end{figure}
 
@@ -586,14 +550,17 @@ The route map of Table~\ref{tab:api-routes-design} defines the contract the fron
 
 Two principles guided every choice in the technology stack: keep the front-end and the back-end in a single project so that type definitions travel through every layer without manual synchronisation, and select the lightest tool that fully solves the problem rather than the most fashionable one. Table~\ref{tab:tech-choices} consolidates each retained tool together with the alternatives that were genuinely considered and the reasons that decided the choice. Two cross-references point to chapters where the depth is greatest: the browser-automation row refers to Chapter~1 §1.2, where the full scraping-tool landscape is evaluated; the database row refers to the load-test results in Chapter~4 §4.3, which anchor the SQLite choice empirically.
 
-\begin{table}[H]
-  \caption{Technology stack --- chosen tool, considered alternatives, and reasons for selection}
-  \label{tab:tech-choices}
-  \centering\footnotesize
-  \begin{tabular}{|p{2.3cm}|p{2.0cm}|p{2.6cm}|p{7.2cm}|}
-    \hline
-    \textbf{Component} & \textbf{Chosen} & \textbf{Alternatives considered} & \textbf{Reasons for selection} \\
-    \hline
+{\footnotesize
+\begin{longtable}{|p{2.3cm}|p{2.0cm}|p{2.6cm}|p{7.2cm}|}
+  \caption{Technology stack: chosen tool, considered alternatives, and reasons for selection}\label{tab:tech-choices}\\
+  \hline
+  \textbf{Component} & \textbf{Chosen} & \textbf{Alternatives considered} & \textbf{Reasons for selection} \\
+  \hline
+  \endfirsthead
+  \hline
+  \textbf{Component} & \textbf{Chosen} & \textbf{Alternatives considered} & \textbf{Reasons for selection} \\
+  \hline
+  \endhead
     Full-stack framework & Next.js 16 & Nuxt (Vue), SvelteKit, Express + React separated &
     Single project for both front-end (React server components in \textit{page.tsx}) and back-end (\textit{route.ts} handlers); App Router file-system routing; native server-side rendering and incremental static regeneration; TypeScript types flow from Prisma through API handlers into React components without manual export. Nuxt and SvelteKit are comparable on features but offer smaller ecosystems for the specific authentication and ORM libraries required \parencite{NextJSDocs2024}. \\
     \hline
@@ -621,11 +588,11 @@ Two principles guided every choice in the technology stack: keep the front-end a
     Animations & Framer Motion & React Spring, plain CSS keyframes &
     Declarative \texttt{motion.*} props integrate with React component lifecycles; physics-based defaults match the visual polish of the operator brand pages and require considerably less effort than hand-written keyframes for equivalent quality. \\
     \hline
-  \end{tabular}
-\end{table}
+\end{longtable}
+}
 
 Every row above represents a deliberate decision rather than a default, and each is anchored either by measured evidence (load-test numbers for SQLite, test-suite duration for Vitest) or by a structural argument that ties the tool to a specific requirement of the project (operator anti-bot for Playwright, schema as single source of truth for Prisma, security surface for NextAuth.js). The cross-reference pattern --- consolidated reasoning here, depth deferred to the corresponding chapter --- keeps this section dense and scannable without losing analytical content.
 
 \section*{Chapter Summary}
 
-This chapter has formalised the functional and non-functional requirements of the system, identified the three actor types, modelled the key use cases and interaction flows through UML diagrams, defined the data model as a class diagram showing both attributes and project methods, described the three-tier architecture and API route map, and justified the technology stack. The design decisions documented here form the blueprint for the implementation described in Chapter~3.
+This chapter has formalised the functional and non-functional requirements of the system, identified the three actor types, modelled the key use cases and interaction flows through UML diagrams, defined the data model as a UML class diagram, described the three-tier architecture and API route map, and justified the technology stack. The design decisions documented here form the blueprint for the implementation described in Chapter~3.
