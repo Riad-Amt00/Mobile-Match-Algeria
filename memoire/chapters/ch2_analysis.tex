@@ -129,35 +129,38 @@ The main use cases of the system are organised around three actors. Figure~\ref{
   \node[font=\small\bfseries, anchor=north west] at (sys.north west) {\textit{Mobile Match Algeria}};
 
   % Use cases (10 total — visitor-level on top, registered in middle, admin at bottom)
+  % Visitor-level (public) use cases — top
   \node[uc]    (uc1) at (6.7,-0.8)  {Browse \& Filter Offers};
   \node[uc]    (uc2) at (6.7,-2.0)  {Advanced Search};
   \node[uc]    (uc3) at (6.7,-3.2)  {Compare Plans (table + charts)};
-  \node[uc]    (uc4) at (6.7,-4.4)  {See Potential Savings};
-  \node[uc]    (uc5) at (6.7,-5.6)  {View Help / Tutorial};
-  \node[uc]    (uc6) at (6.7,-6.8)  {Get Recommendations};
-  \node[uc]    (uc7) at (6.7,-8.0)  {Save \& Manage Plans};
-  \node[uc]    (uc8) at (6.7,-9.2)  {Edit Usage Profile};
-  \node[ucadm] (uc9) at (6.7,-10.6) {Trigger Scrape Run};
-  \node[ucadm] (uc10) at (6.7,-11.9) {View Scrape Logs \& Statistics};
+  \node[uc]    (uc5) at (6.7,-4.4)  {View Help / Tutorial};
+  % Registered-user (account-only) use cases — middle
+  \node[uc]    (uc6) at (6.7,-5.9)  {Get Recommendations};
+  \node[uc]    (uc4) at (6.7,-7.1)  {See Potential Savings};
+  \node[uc]    (uc7) at (6.7,-8.3)  {Save \& Manage Plans};
+  \node[uc]    (uc8) at (6.7,-9.5)  {Edit Usage Profile};
+  % Administrator use cases — bottom
+  \node[ucadm] (uc9) at (6.7,-10.8) {Trigger Scrape Run};
+  \node[ucadm] (uc10) at (6.7,-12.0) {View Scrape Logs \& Statistics};
 
   % Actors — all on the LEFT in a vertical column
   \node[actor] (visitor) at (0.2,-2.6)  {Visitor};
-  \node[actor] (user)    at (0.2,-7.4)  {Registered\\User};
-  \node[actor] (admin)   at (0.2,-11.3) {Administrator};
+  \node[actor] (user)    at (0.2,-7.7)  {Registered\\User};
+  \node[actor] (admin)   at (0.2,-11.4) {Administrator};
 
   % Generalisation arrows (open triangle = is-a; no label)
   \draw[gen] (user.north)  -- (visitor.south);
   \draw[gen] (admin.north) -- (user.south);
 
-  % Visitor associations (visitor-level use cases — UC1..UC5)
+  % Visitor associations (public use cases — UC1, UC2, UC3, UC5)
   \draw[assoc] (visitor.east) -- (uc1.west);
   \draw[assoc] (visitor.east) -- (uc2.west);
   \draw[assoc] (visitor.east) -- (uc3.west);
-  \draw[assoc] (visitor.east) -- (uc4.west);
   \draw[assoc] (visitor.east) -- (uc5.west);
 
-  % Registered User associations (UC6..UC8)
+  % Registered User associations (account-only — UC6, UC4 See Potential Savings, UC7, UC8)
   \draw[assoc] (user.east) -- (uc6.west);
+  \draw[assoc] (user.east) -- (uc4.west);
   \draw[assoc] (user.east) -- (uc7.west);
   \draw[assoc] (user.east) -- (uc8.west);
 
