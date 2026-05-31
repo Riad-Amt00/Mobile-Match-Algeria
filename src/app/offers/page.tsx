@@ -11,7 +11,7 @@ import {
 import { useSession } from 'next-auth/react'
 import { useToast } from '@/components/toast'
 import { OfferCard, type Offer } from '@/components/offer-card'
-import { formatDA, formatData } from '@/lib/utils'
+import { formatDA, formatData, OPERATOR_LOGOS } from '@/lib/utils'
 import { useLang } from '@/lib/lang-context'
 import { parseSearchTokens, type SearchToken } from '@/lib/search-tokens'
 
@@ -199,9 +199,11 @@ export default function OffersPage() {
               key={op.slug}
               onClick={() => setActiveOperator(op.slug)}
               className={`filter-pill${activeOperator === op.slug ? ' active' : ''}`}
-              style={{ padding: '0.5rem 1.125rem', fontSize: 14, gap: 8 }}
+              style={{ padding: '0.5rem 1.125rem', fontSize: 14, gap: 8, display: 'flex', alignItems: 'center' }}
             >
-              {op.slug === 'all' ? <LayoutGrid size={14} /> : null}
+              {op.slug === 'all'
+                ? <LayoutGrid size={14} />
+                : <img src={OPERATOR_LOGOS[op.slug]} alt={(op as any).name} style={{ width: 18, height: 18, objectFit: 'contain' }} />}
               {op.slug === 'all' ? t('filter.all') : (op as any).name}
             </button>
           ))}

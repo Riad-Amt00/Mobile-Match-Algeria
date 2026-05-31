@@ -305,8 +305,10 @@ export default function CompareContent({ initialIds, fromRecommend, fromSaved }:
                             borderRadius: 'var(--radius-md)', padding: '0.6rem 0.875rem',
                             cursor: 'pointer', fontFamily: 'inherit', transition: 'border-color 0.15s',
                           }}>
-                            <div style={{ width: 28, height: 28, borderRadius: 8, background: 'var(--bg-card)', border: '1px solid var(--border-base)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                              <Signal size={14} color="var(--text-muted)" />
+                            <div style={{ width: 28, height: 28, borderRadius: 8, background: 'var(--bg-card)', border: '1px solid var(--border-base)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+                              {OPERATOR_LOGOS[op.slug]
+                                ? <img src={OPERATOR_LOGOS[op.slug]} alt={op.name} style={{ width: '75%', height: '75%', objectFit: 'contain' }} />
+                                : <Signal size={14} color="var(--text-muted)" />}
                             </div>
                             <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{op.name}</span>
                             <span style={{ marginLeft: 'auto', color: 'var(--text-muted)', fontSize: 14 }}>›</span>

@@ -1,8 +1,8 @@
 'use client'
 
 import Link from 'next/link'
-import { Signal, Wifi, Phone, MessageSquare, Calendar, Zap, Sparkles, Bookmark, BookmarkCheck, CheckCircle2, BarChart3, Loader2 } from 'lucide-react'
-import { formatData, formatCalls, formatSmsScoped, formatValidity, getPricePerGB, getNetworkStyle, OPERATOR_LOGOS, cleanOfferName } from '@/lib/utils'
+import { Signal, Wifi, Phone, MessageSquare, Calendar, Zap, Sparkles, Bookmark, BookmarkCheck, CheckCircle2, BarChart3, Loader2, Wallet } from 'lucide-react'
+import { formatData, formatCalls, formatSmsScoped, formatValidity, getPricePerGB, getNetworkStyle, OPERATOR_LOGOS, cleanOfferName, offerCredit } from '@/lib/utils'
 import { useLang } from '@/lib/lang-context'
 
 export interface Offer {
@@ -45,6 +45,7 @@ export function OfferCard({
   const { t } = useLang()
   const pricePerGB = getPricePerGB(offer.priceDA, offer.dataGB)
   const networkStyle = getNetworkStyle(offer.network)
+  const credit = offerCredit(offer)
   const color = offer.operator.primaryColor
 
   const specs = [
@@ -174,8 +175,8 @@ export function OfferCard({
           ))}
         </div>
 
-        {/* ── Network tag + feature chips ── */}
-        <div style={{ marginBottom: '1rem' }}>
+        {/* ── Network tag + credit chip ── */}
+        <div style={{ marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
           <span style={{
             display: 'inline-flex', alignItems: 'center', gap: 4,
             fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 20,
@@ -184,6 +185,16 @@ export function OfferCard({
           }}>
             <Zap size={10} /> {offer.network}
           </span>
+          {credit && (
+            <span style={{
+              display: 'inline-flex', alignItems: 'center', gap: 4,
+              fontSize: 11, fontWeight: 600, padding: '3px 10px', borderRadius: 20,
+              background: 'rgba(34,197,94,0.10)', color: 'var(--color-success)',
+              border: '1px solid rgba(34,197,94,0.22)',
+            }}>
+              <Wallet size={10} /> {credit}
+            </span>
+          )}
         </div>
 
         {/* ── Actions ── */}

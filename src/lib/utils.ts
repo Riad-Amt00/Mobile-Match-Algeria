@@ -95,6 +95,15 @@ export function formatSmsScoped(o: OfferLike, t?: TFn): string {
   return scopedUnlimited(offerFeatures(o), 'sms', o.operator?.name, t)
 }
 
+/**
+ * The recharge/airtime credit an offer includes, if any (e.g. "300 DA credit",
+ * "International credit included"). Read from the scraped feature list and surfaced
+ * on the offer card. Returns null when the offer grants no credit.
+ */
+export function offerCredit(o: OfferLike): string | null {
+  return offerFeatures(o).find(f => /cr[ée]dit|credit/i.test(f)) ?? null
+}
+
 export function formatValidity(days: number, t?: TFn): string {
   if (!t) {
     if (days === 1) return '24h'

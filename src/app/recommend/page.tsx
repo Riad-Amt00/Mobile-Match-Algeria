@@ -9,7 +9,7 @@ import {
   Target, BarChart2, MessageSquare, Lock, Loader2,
 } from 'lucide-react'
 
-import { formatDA, formatData, formatMinutes, RANK_GRADIENTS, RANK_COLORS, cleanOfferName } from '@/lib/utils'
+import { formatDA, formatData, formatMinutes, RANK_GRADIENTS, RANK_COLORS, cleanOfferName, OPERATOR_LOGOS } from '@/lib/utils'
 import { useLang } from '@/lib/lang-context'
 
 interface ReasonToken { key: string; params?: Record<string, string | number> }
@@ -269,7 +269,10 @@ export default function RecommendPage() {
                   <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                     {[{ id: 'any', label: t('type.any') }, { id: 'djezzy', label: 'Djezzy' }, { id: 'ooredoo', label: 'Ooredoo' }, { id: 'mobilis', label: 'Mobilis' }].map(o => (
                       <button key={o.id} onClick={() => { setOperator(o.id); onSliderChange() }}
-                        className={`filter-pill ${operator === o.id ? 'active' : ''}`} style={{ fontSize: 12 }}>
+                        className={`filter-pill ${operator === o.id ? 'active' : ''}`} style={{ fontSize: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
+                        {o.id !== 'any' && OPERATOR_LOGOS[o.id] && (
+                          <img src={OPERATOR_LOGOS[o.id]} alt={o.label} style={{ width: 15, height: 15, objectFit: 'contain' }} />
+                        )}
                         {o.label}
                       </button>
                     ))}

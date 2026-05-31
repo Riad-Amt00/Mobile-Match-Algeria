@@ -334,8 +334,8 @@ export function parseDjezzyNet($: cheerio.CheerioAPI, pageUrl: string): ScrapedO
   return offers
 }
 
-// ── Parser for 3ayla tab-based layout (1/3/6/12 months) ──────────────────────
-function parseDjezzy3ayla($: cheerio.CheerioAPI, pageUrl: string): ScrapedOffer[] {
+// ── Parser for Hayla tab-based layout (1/3/6/12 months) ──────────────────────
+function parseDjezzyHayla($: cheerio.CheerioAPI, pageUrl: string): ScrapedOffer[] {
   const offers: ScrapedOffer[] = []
 
   const tabPanels = $('[role="tabpanel"]')
@@ -352,12 +352,12 @@ function parseDjezzy3ayla($: cheerio.CheerioAPI, pageUrl: string): ScrapedOffer[
       if (anMatch) validityDays = parseInt(anMatch[1]) * 365
       else if (moisMatch) validityDays = parseInt(moisMatch[1]) * 30
 
-      const tabOffers = parseDjezzyTableCards($, pageUrl, '3ayla', OfferType.DATA_ONLY, validityDays, $panel)
+      const tabOffers = parseDjezzyTableCards($, pageUrl, 'Hayla', OfferType.DATA_ONLY, validityDays, $panel)
       offers.push(...tabOffers)
     })
   } else {
     // No tabs — flat table layout
-    const flat = parseDjezzyTableCards($, pageUrl, '3ayla', OfferType.DATA_ONLY, 30)
+    const flat = parseDjezzyTableCards($, pageUrl, 'Hayla', OfferType.DATA_ONLY, 30)
     offers.push(...flat)
   }
 
@@ -461,21 +461,21 @@ export async function scrapeDjezzy(emit: Emit = () => {}): Promise<ScrapedOffer[
     emit('WARN', 'DjezzyNet: unreachable — using fallback')
   }
 
-  // ── 3ayla multi-month internet plans ─────────────────────────────────────
-  const aaylaUrl = `${BASE}/particuliers/offres/djezzy-3ayla/`
-  const aaylaHtml = await fetchPage(aaylaUrl)
-  if (aaylaHtml) {
-    const $ = cheerio.load(aaylaHtml)
-    const parsed = parseDjezzy3ayla($, aaylaUrl)
+  // ── Hayla multi-month internet plans (operator URL is still /djezzy-3ayla/) ──
+  const haylaUrl = `${BASE}/particuliers/offres/djezzy-3ayla/`
+  const haylaHtml = await fetchPage(haylaUrl)
+  if (haylaHtml) {
+    const $ = cheerio.load(haylaHtml)
+    const parsed = parseDjezzyHayla($, haylaUrl)
     if (parsed.length > 0) {
       liveOffers.push(...parsed)
-      emit('OK', `3ayla: ${parsed.length} offers scraped live`)
-      scrapedFamilies.add('3ayla')
+      emit('OK', `Hayla: ${parsed.length} offers scraped live`)
+      scrapedFamilies.add('Hayla')
     } else {
-      emit('WARN', '3ayla: no offers parsed — using fallback')
+      emit('WARN', 'Hayla: no offers parsed — using fallback')
     }
   } else {
-    emit('WARN', '3ayla: unreachable — using fallback')
+    emit('WARN', 'Hayla: unreachable — using fallback')
   }
 
   // ── ZID prepaid (table layout) ────────────────────────────────────────────
@@ -507,7 +507,7 @@ export async function scrapeDjezzy(emit: Emit = () => {}): Promise<ScrapedOffer[
     if (o.name.startsWith('Djezzy CONFORT PARTAGE') && scrapedFamilies.has('CONFORT PARTAGE')) return false
     if (o.name.startsWith('Djezzy CAMPUCE') && scrapedFamilies.has('CAMPUCE')) return false
     if (o.name.startsWith('DjezzyNet') && scrapedFamilies.has('DjezzyNet')) return false
-    if ((o.name.startsWith('Djezzy 3ayla') || o.name.startsWith('Djezzy SIM Internet')) && scrapedFamilies.has('3ayla')) return false
+    if ((o.name.startsWith('Djezzy Hayla') || o.name.startsWith('Djezzy SIM Internet')) && scrapedFamilies.has('Hayla')) return false
     if (o.name.startsWith('Djezzy ZID') && scrapedFamilies.has('ZID')) return false
     return true
   })
@@ -570,11 +570,11 @@ function getDjezzyFallbackOffers(): ScrapedOffer[] {
     { name: 'DjezzyNet Monthly 750 DA', type: OfferType.DATA_ONLY, priceDA: 750, dataGB: 60, voiceMinutes: 0, smsCount: 0, validityDays: 30, network: '4G', features: ['50% discount on 2nd subscription'], sourceUrl: `${SRC}offres-internet/` },
     { name: 'DjezzyNet Monthly 2000 DA', type: OfferType.DATA_ONLY, priceDA: 2000, dataGB: 100, voiceMinutes: 0, smsCount: 0, validityDays: 30, network: '4G', features: [], sourceUrl: `${SRC}offres-internet/` },
     { name: 'DjezzyNet Monthly 4000 DA', type: OfferType.DATA_ONLY, priceDA: 4000, dataGB: 220, voiceMinutes: 0, smsCount: 0, validityDays: 30, network: '4G', features: ['Bonus app data available'], sourceUrl: `${SRC}offres-internet/` },
-    // ── 3ayla / SIM Internet ─────────────────────────────────────────────────
+    // ── Hayla / SIM Internet ─────────────────────────────────────────────────
     { name: 'Djezzy SIM Internet 1000 DA', type: OfferType.DATA_ONLY, priceDA: 1000, dataGB: 15, voiceMinutes: 0, smsCount: 0, validityDays: 30, network: '4G', features: ['Internet SIM', '4G modem compatible', 'Activate via *720#'], sourceUrl: `${SRC}nouveaux-forfaits-internet-de-djezzy/` },
     { name: 'Djezzy SIM Internet 1500 DA', type: OfferType.DATA_ONLY, priceDA: 1500, dataGB: 50, voiceMinutes: 0, smsCount: 0, validityDays: 30, network: '4G', features: ['Internet SIM', '4G modem compatible'], sourceUrl: `${SRC}nouveaux-forfaits-internet-de-djezzy/` },
-    { name: 'Djezzy 3ayla 3 Months', type: OfferType.DATA_ONLY, priceDA: 2500, dataGB: 60, voiceMinutes: 0, smsCount: 0, validityDays: 90, network: '4G', features: ['Family internet plan', '4G modem bundle option'], sourceUrl: `${SRC}djezzy-3ayla/` },
-    { name: 'Djezzy 3ayla 6 Months', type: OfferType.DATA_ONLY, priceDA: 4000, dataGB: 150, voiceMinutes: 0, smsCount: 0, validityDays: 180, network: '4G', features: ['Family internet plan', '4G modem bundle option'], sourceUrl: `${SRC}djezzy-3ayla/` },
-    { name: 'Djezzy 3ayla Annual', type: OfferType.DATA_ONLY, priceDA: 7500, dataGB: 350, voiceMinutes: 0, smsCount: 0, validityDays: 365, network: '4G', features: ['Annual plan', 'Family internet', '4G modem compatible'], sourceUrl: `${SRC}djezzy-3ayla/` },
+    { name: 'Djezzy Hayla 3 Months', type: OfferType.DATA_ONLY, priceDA: 2500, dataGB: 60, voiceMinutes: 0, smsCount: 0, validityDays: 90, network: '4G', features: ['Family internet plan', '4G modem bundle option'], sourceUrl: `${SRC}djezzy-3ayla/` },
+    { name: 'Djezzy Hayla 6 Months', type: OfferType.DATA_ONLY, priceDA: 4000, dataGB: 150, voiceMinutes: 0, smsCount: 0, validityDays: 180, network: '4G', features: ['Family internet plan', '4G modem bundle option'], sourceUrl: `${SRC}djezzy-3ayla/` },
+    { name: 'Djezzy Hayla Annual', type: OfferType.DATA_ONLY, priceDA: 7500, dataGB: 350, voiceMinutes: 0, smsCount: 0, validityDays: 365, network: '4G', features: ['Annual plan', 'Family internet', '4G modem compatible'], sourceUrl: `${SRC}djezzy-3ayla/` },
   ]
 }
