@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { Signal, Wifi, Phone, MessageSquare, Calendar, Zap, Sparkles, Bookmark, BookmarkCheck, CheckCircle2, BarChart3, Loader2, Wallet } from 'lucide-react'
+import { Signal, Wifi, Phone, MessageSquare, Calendar, Zap, Bookmark, BookmarkCheck, CheckCircle2, BarChart3, Loader2, Wallet } from 'lucide-react'
 import { formatData, formatCalls, formatSmsScoped, formatValidity, getPricePerGB, getNetworkStyle, OPERATOR_LOGOS, cleanOfferName, offerCredit } from '@/lib/utils'
 import { useLang } from '@/lib/lang-context'
 
@@ -39,7 +39,6 @@ export function OfferCard({
   isSaved = false,
   onToggleSave,
   isSaving = false,
-  isRecommended = false,
   isLoggedIn = true,
 }: OfferCardProps) {
   const { t } = useLang()
@@ -67,21 +66,6 @@ export function OfferCard({
     >
       {/* Operator colour bar — grows on hover via CSS */}
       <div className="card-operator-bar" style={{ background: color }} />
-
-      {/* Recommended badge */}
-      {isRecommended && (
-        <div style={{
-          position: 'absolute', top: 14, right: 14, zIndex: 2,
-          background: 'linear-gradient(135deg, #7C3AED, #2563EB)',
-          color: '#fff', fontSize: 11, fontWeight: 700,
-          padding: '3px 10px', borderRadius: 20,
-          display: 'flex', alignItems: 'center', gap: 4,
-          boxShadow: '0 2px 8px rgba(124,58,237,0.40)',
-          animation: 'badge-pop 0.4s cubic-bezier(0.34,1.56,0.64,1) both',
-        }}>
-          <Sparkles size={10} /> {t('offer.forYou')}
-        </div>
-      )}
 
       <div style={{ padding: '1.25rem 1.25rem 1rem', display: 'flex', flexDirection: 'column', flex: 1, gap: 0 }}>
 
