@@ -1,5 +1,5 @@
 % ─────────────────────────────────────────────────────────────────────────────
-% chapters/ch2_analysis.tex — Chapter 2: Requirements Analysis and System Design
+% chapters/ch2_analysis.tex, Chapter 2: Requirements Analysis and System Design
 % ─────────────────────────────────────────────────────────────────────────────
 
 \chapter{Requirements Analysis and System Design}
@@ -8,7 +8,7 @@ Building on the state of the art surveyed in Chapter~1, this chapter formalises 
 
 \section{Requirements Gathering}
 
-\subsection{Methodology — Secondary Documentary Research}
+\subsection{Methodology, Secondary Documentary Research}
 
 The needs-analysis phase of this project follows a documentary-research methodology grounded in the official publications of the Algerian telecommunications sector, supplemented by one regional report. Three country-specific sources form the primary foundation:
 
@@ -128,22 +128,22 @@ The main use cases of the system are organised around three actors. Figure~\ref{
   \node[sys, minimum width=9.4cm, minimum height=13.6cm] (sys) at (6.7,-6.4) {};
   \node[font=\small\bfseries, anchor=north west] at (sys.north west) {\textit{Mobile Match Algeria}};
 
-  % Use cases (10 total — visitor-level on top, registered in middle, admin at bottom)
-  % Visitor-level (public) use cases — top
+  % Use cases (10 total, visitor-level on top, registered in middle, admin at bottom)
+  % Visitor-level (public) use cases, top
   \node[uc]    (uc1) at (6.7,-0.8)  {Browse \& Filter Offers};
   \node[uc]    (uc2) at (6.7,-2.0)  {Advanced Search};
   \node[uc]    (uc3) at (6.7,-3.2)  {Compare Plans (table + charts)};
   \node[uc]    (uc5) at (6.7,-4.4)  {View Help / Tutorial};
-  % Registered-user (account-only) use cases — middle
+  % Registered-user (account-only) use cases, middle
   \node[uc]    (uc6) at (6.7,-5.9)  {Get Recommendations};
   \node[uc]    (uc4) at (6.7,-7.1)  {See Potential Savings};
   \node[uc]    (uc7) at (6.7,-8.3)  {Save \& Manage Plans};
   \node[uc]    (uc8) at (6.7,-9.5)  {Edit Usage Profile};
-  % Administrator use cases — bottom
+  % Administrator use cases, bottom
   \node[ucadm] (uc9) at (6.7,-10.8) {Trigger Scrape Run};
   \node[ucadm] (uc10) at (6.7,-12.0) {View Scrape Logs \& Statistics};
 
-  % Actors — all on the LEFT in a vertical column
+  % Actors, all on the LEFT in a vertical column
   \node[actor] (visitor) at (0.2,-2.6)  {Visitor};
   \node[actor] (user)    at (0.2,-7.7)  {Registered\\User};
   \node[actor] (admin)   at (0.2,-11.4) {Administrator};
@@ -152,13 +152,13 @@ The main use cases of the system are organised around three actors. Figure~\ref{
   \draw[gen] (user.north)  -- (visitor.south);
   \draw[gen] (admin.north) -- (user.south);
 
-  % Visitor associations (public use cases — UC1, UC2, UC3, UC5)
+  % Visitor associations (public use cases, UC1, UC2, UC3, UC5)
   \draw[assoc] (visitor.east) -- (uc1.west);
   \draw[assoc] (visitor.east) -- (uc2.west);
   \draw[assoc] (visitor.east) -- (uc3.west);
   \draw[assoc] (visitor.east) -- (uc5.west);
 
-  % Registered User associations (account-only — UC6, UC4 See Potential Savings, UC7, UC8)
+  % Registered User associations (account-only, UC6, UC4 See Potential Savings, UC7, UC8)
   \draw[assoc] (user.east) -- (uc6.west);
   \draw[assoc] (user.east) -- (uc4.west);
   \draw[assoc] (user.east) -- (uc7.west);
@@ -264,7 +264,7 @@ Figure~\ref{fig:seq-recommend} illustrates the sequence of interactions between 
   note/.style={font=\scriptsize, fill=yellow!20, draw=gray!60,
                rounded corners=2pt, inner sep=3pt, align=left}
 ]
-  % Participants — 4.0 cm apart
+  % Participants, 4.0 cm apart
   \node[actor] (client) at (0,0)    {Client Browser};
   \node[actor] (api)    at (4.0,0)  {API Server};
   \node[actor] (db)     at (8.0,0)  {Database};
@@ -303,7 +303,7 @@ Figure~\ref{fig:seq-recommend} illustrates the sequence of interactions between 
   % 7. Client-internal: render (node, not zero-length arrow)
   \node[note, anchor=west] at (0.3,-7.1) {Render ranked plan cards};
 \end{tikzpicture}
-\caption{Sequence diagram --- recommendation request flow}
+\caption{Sequence diagram, recommendation request flow}
 \label{fig:seq-recommend}
 \end{figure}
 
@@ -478,21 +478,21 @@ Figure~\ref{fig:arch-overview} illustrates the high-level component architecture
                minimum width=3.5cm, minimum height=0.72cm, align=center, font=\scriptsize},
   biarrow/.style={{Stealth[length=5pt]}-{Stealth[length=5pt]}, thick, black!60}
 ]
-  % ── Tier 1 — Presentation ──────────────────────────────────────────
+  % ── Tier 1, Presentation ──────────────────────────────────────────
   \node[tierbox,  fill=blue!6]   (box1) at (7.0, 4.0) {};
   \node[tierlabel, fill=blue!18, anchor=west]  at ([xshift=2mm]box1.west) {Presentation\\Tier};
   \node[comp, fill=blue!14] at (5.0, 4.0) {Offers / Search};
   \node[comp, fill=blue!14] at (8.5, 4.0) {Compare / Savings};
   \node[comp, fill=blue!14] at (12.0, 4.0) {Recommend / Admin};
 
-  % ── Tier 2 — Logic / API ───────────────────────────────────────────
+  % ── Tier 2, Logic / API ───────────────────────────────────────────
   \node[tierbox,  fill=green!5]  (box2) at (7.0, 2.0) {};
   \node[tierlabel, fill=green!18, anchor=west] at ([xshift=2mm]box2.west) {Logic Tier\\(API)};
   \node[comp, fill=green!14] at (5.0, 2.0) {/api/offers \& search};
   \node[comp, fill=green!14] at (8.5, 2.0) {/api/recommendations};
   \node[comp, fill=green!14] at (12.0, 2.0) {Scraper + cron};
 
-  % ── Tier 3 — Data ──────────────────────────────────────────────────
+  % ── Tier 3, Data ──────────────────────────────────────────────────
   \node[tierbox,  fill=orange!5] (box3) at (7.0, 0.0) {};
   \node[tierlabel, fill=orange!20, anchor=west] at ([xshift=2mm]box3.west) {Data Tier};
   \node[comp, fill=orange!14] at (5.0, 0.0) {Prisma ORM};
@@ -591,7 +591,7 @@ Two principles guided every choice in the technology stack: keep the front-end a
 \end{longtable}
 }
 
-Every row above represents a deliberate decision rather than a default, and each is anchored either by measured evidence (load-test numbers for SQLite, test-suite duration for Vitest) or by a structural argument that ties the tool to a specific requirement of the project (operator anti-bot for Playwright, schema as single source of truth for Prisma, security surface for NextAuth.js). The cross-reference pattern --- consolidated reasoning here, depth deferred to the corresponding chapter --- keeps this section dense and scannable without losing analytical content.
+Every row above represents a deliberate decision rather than a default, and each is anchored either by measured evidence (load-test numbers for SQLite, test-suite duration for Vitest) or by a structural argument that ties the tool to a specific requirement of the project (operator anti-bot for Playwright, schema as single source of truth for Prisma, security surface for NextAuth.js). The cross-reference pattern, consolidated reasoning here, depth deferred to the corresponding chapter, keeps this section dense and scannable without losing analytical content.
 
 \section*{Chapter Summary}
 

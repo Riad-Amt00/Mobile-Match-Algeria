@@ -1,5 +1,5 @@
 % ─────────────────────────────────────────────────────────────────────────────
-% chapters/ch4_tests.tex — Chapter 4: Evaluation
+% chapters/ch4_tests.tex, Chapter 4: Evaluation
 % ─────────────────────────────────────────────────────────────────────────────
 
 \chapter{Evaluation}
@@ -35,10 +35,10 @@ All five objectives defined in the subject fiche have been implemented and are o
 
 \section{Validation of the Recommendation Engine}
 
-The recommendation engine is a deterministic function: given a fixed input profile and a fixed offer catalogue, it always produces the same ranked list. This property makes it possible to validate the engine analytically — by deriving the expected outcome from the engine's rules before running it, then checking that the actual output matches the prediction. Four scenario tests cover the key behavioural properties of the engine and are persisted as automated unit tests in \textit{src/lib/\_\_tests\_\_/recommendation.test.ts}. Table~\ref{tab:rec-validation} reports each scenario, its analytically predicted outcome, the engine's actual output, and the resulting pass / fail verdict.
+The recommendation engine is a deterministic function: given a fixed input profile and a fixed offer catalogue, it always produces the same ranked list. This property makes it possible to validate the engine analytically, by deriving the expected outcome from the engine's rules before running it, then checking that the actual output matches the prediction. Four scenario tests cover the key behavioural properties of the engine and are persisted as automated unit tests in \textit{src/lib/\_\_tests\_\_/recommendation.test.ts}. Table~\ref{tab:rec-validation} reports each scenario, its analytically predicted outcome, the engine's actual output, and the resulting pass / fail verdict.
 
 \begin{table}[H]
-  \caption{Recommendation engine --- four scenario tests}
+  \caption{Recommendation engine, four scenario tests}
   \label{tab:rec-validation}
   \centering\small
   \begin{tabular}{|p{3.0cm}|p{5.0cm}|p{4.2cm}|p{1.0cm}|}
@@ -52,7 +52,7 @@ The recommendation engine is a deterministic function: given a fixed input profi
     \hline
     Budget 5\,000\,DA, data 100\,Go, no priorities &
     The top result must be the offer covering the largest data volume within budget (unlimited preferred). &
-    Ooredoo Premium 5G / 5\,000\,DA \newline \textit{Unlimited data --- preferred over any finite volume} &
+    Ooredoo Premium 5G / 5\,000\,DA \newline \textit{Unlimited data, preferred over any finite volume} &
     \checkmark \\
     \hline
     Budget 1\,400\,DA, data 20\,Go, priorities = [price, data] &
@@ -79,7 +79,7 @@ The validation tests above are passed by the tiered-ranking model described in C
 To characterise the platform's capacity, the application was built in production mode (\texttt{npm run build} followed by \texttt{npm start}) and exercised with synthetic load using a concurrent-worker harness written in plain Node.js. Three endpoints were tested under increasing concurrency (one, ten, fifty, and one-hundred concurrent workers) over a ten-second window each. The rate-limit cap on \textit{/api/recommendations} was bypassed during benchmarking by varying the \texttt{X-Forwarded-For} header per request; in production this cap remains a real safety brake against abuse. Table~\ref{tab:bench} reports the results.
 
 \begin{table}[H]
-  \caption{Load-test results --- production build, single-machine deployment}
+  \caption{Load-test results, production build, single-machine deployment}
   \label{tab:bench}
   \centering\small
   \begin{tabular}{|p{3.6cm}|c|c|c|c|c|c|}
@@ -108,7 +108,7 @@ The platform sustains zero errors at every concurrency level, on every endpoint.
 
 The system was exercised in a multi-account configuration to verify that user isolation is correctly enforced across all stateful features. Four accounts (one administrator, one demo account from the seed, and two test accounts) were created and used concurrently from a single development machine. The verification covered four properties: session isolation (signing in as one account never exposes another account's session), profile separation (one account's \texttt{UserProfile} is never returned for another user), saved-plans separation (one account's \texttt{SavedOffer} list is never visible to another), and notification separation (administrator-stream notifications never appear in a non-admin user's notification list, and conversely). No leakage was observed in any of these dimensions. This functional verification is complementary to, and does not substitute for, the formal usability study with end users that is identified in the Perspectives section.
 
-The four evaluation axes covered above --- objectives achievement, engine validation, load characterisation, and multi-account isolation --- all return positive results within their scope.
+The four evaluation axes covered above, objectives achievement, engine validation, load characterisation, and multi-account isolation, all return positive results within their scope.
 
 \section*{Chapter Summary}
 
