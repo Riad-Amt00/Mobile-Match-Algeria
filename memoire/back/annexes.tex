@@ -10,7 +10,7 @@
 \label{annexe:manual}
 % ─────────────────────────────────────────────────────────────────────────────
 
-This annexe gathers the user-facing manual of \textit{Mobile Match Algeria} in a single place. The same content is also rendered inside the running application at \textit{/help}, accessible from the navbar of every page. The manual is organised by actor role, Visitor, Registered User, and Administrator, so each reader can navigate directly to the workflows relevant to them. The screenshots referenced throughout this manual are collected in Annexe~B.
+This annexe gathers the user facing manual of \textit{Mobile Match Algeria} in a single place. The same content is also rendered inside the running application at \textit{/help}, accessible from the navbar of every page. The manual is organised by actor role, Visitor, Registered User, and Administrator, so each reader can navigate directly to the workflows relevant to them. The screenshots referenced throughout this manual are collected in Annexe~B.
 
 \section{Visitor (no account required)}
 
@@ -18,11 +18,11 @@ A visitor can use the platform without registering. The following workflows are 
 
 \begin{enumerate}
   \item \textbf{Land on the home page.} The application opens at the home route, which presents the language selector (English, French, Arabic), the headline feature tiles, and the three operator logos (Figure~\ref{fig:ss-home}). From here, a click on any feature tile or on \guillemotleft{}Browse offers\guillemotright{} takes the visitor to the offers catalogue.
-  \item \textbf{Browse the catalogue.} Open \textit{/offers} from the navbar. The grid lists every active plan grouped by operator. Filter pills above the grid restrict the view to a single operator or a single plan type (prepaid, postpaid, data-only). The advanced-filter panel exposes price, data-volume, and network-generation ranges (Figure~\ref{fig:ss-offers}); applying these filters narrows the grid to the matching subset (Figure~\ref{fig:ss-offers-filtered}).
-  \item \textbf{Search.} Type a free-text query in the search bar above the grid; the query is parsed into typed tokens (operator, data volume, price range, plan type, network) and the matching tokens are displayed as \guillemotleft{}Read as\guillemotright{} chips immediately under the input. A \guillemotleft{}?\guillemotright{} popover next to the input lists the recognised token kinds with examples.
-  \item \textbf{View an offer in detail.} Click any plan card to open the dedicated detail page \textit{/offers/[id]} (Figure~\ref{fig:ss-offer-detail}). The detail page shows the full plan specification, the price-history line chart, and the matching operator's brand colours.
-  \item \textbf{Compare up to three plans.} Tick the \guillemotleft{}Compare\guillemotright{} button on each plan card; a sticky bottom bar appears once at least two plans are selected. Click \guillemotleft{}Compare\guillemotright{} on the sticky bar to open \textit{/compare}, which presents a side-by-side specification table and per-metric bar charts for price and data volume (Figure~\ref{fig:ss-compare}). An additional annual-savings chart appears when the comparison is launched from the recommendations page.
-  \item \textbf{See the integrated help.} The \textit{/help} page (Figure~\ref{fig:ss-help}) contains five sections (search, recommendations, compare, filters, saved) each with description, step-by-step instructions, and annotated screenshots. Sections that require authentication are marked with a \guillemotleft{}sign-in required\guillemotright{} badge.
+  \item \textbf{Browse the catalogue.} Open \textit{/offers} from the navbar. The grid lists every active plan grouped by operator. Filter pills above the grid restrict the view to a single operator or a single plan type (prepaid, postpaid, data only). The advanced filter panel exposes price, data volume, and network generation ranges (Figure~\ref{fig:ss-offers}); applying these filters narrows the grid to the matching subset (Figure~\ref{fig:ss-offers-filtered}).
+  \item \textbf{Search.} Type a free text query in the search bar above the grid; the query is parsed into typed tokens (operator, data volume, price range, plan type, network) and the matching tokens are displayed as \guillemotleft{}Read as\guillemotright{} chips immediately under the input. A \guillemotleft{}?\guillemotright{} popover next to the input lists the recognised token kinds with examples.
+  \item \textbf{View an offer in detail.} Click any plan card to open the dedicated detail page \textit{/offers/[id]} (Figure~\ref{fig:ss-offer-detail}). The detail page shows the full plan specification, the price history line chart, and the matching operator's brand colours.
+  \item \textbf{Compare up to three plans.} Tick the \guillemotleft{}Compare\guillemotright{} button on each plan card; a sticky bottom bar appears once at least two plans are selected. Click \guillemotleft{}Compare\guillemotright{} on the sticky bar to open \textit{/compare}, which presents a side by side specification table and per metric bar charts for price and data volume (Figure~\ref{fig:ss-compare}). An additional annual savings chart appears when the comparison is launched from the recommendations page.
+  \item \textbf{See the integrated help.} The \textit{/help} page (Figure~\ref{fig:ss-help}) contains five sections (search, recommendations, compare, filters, saved) each with description, step by step instructions, and annotated screenshots. Sections that require authentication are marked with a \guillemotleft{}sign in required\guillemotright{} badge.
 \end{enumerate}
 
 \section{Registered User}
@@ -30,21 +30,21 @@ A visitor can use the platform without registering. The following workflows are 
 Creating an account at \textit{/register} (Figure~\ref{fig:ss-register}) and signing in at \textit{/login} (Figure~\ref{fig:ss-login}) unlocks the personalised workflows:
 
 \begin{enumerate}
-  \item \textbf{Edit the usage profile.} Open \textit{/profile} (Figure~\ref{fig:ss-profile}) and set the monthly budget, expected data usage, calls and SMS toggles (any / unlimited), preferred plan type, preferred network generation, preferred operator, and the two-slot priority ranking (1st = primary, 2nd = secondary; choose between price and data). The same form is also exposed inline on the recommendations page.
-  \item \textbf{Get personalised recommendations.} Open \textit{/recommend} (Figure~\ref{fig:ss-recommend}). Adjust the usage-profile form if needed, then click \guillemotleft{}Run recommendation\guillemotright{}. The engine returns the three best-matched plans as ranked cards (gold / silver / bronze) with the match reasons and an integrated savings indicator showing the monthly, annual, and percentage saving against the user's budget.
+  \item \textbf{Edit the usage profile.} Open \textit{/profile} (Figure~\ref{fig:ss-profile}) and set the monthly budget, expected data usage, calls and SMS toggles (any / unlimited), preferred plan type, preferred network generation, preferred operator, and the two slot priority ranking (1st = primary, 2nd = secondary; choose between price and data). The same form is also exposed inline on the recommendations page.
+  \item \textbf{Get personalised recommendations.} Open \textit{/recommend} (Figure~\ref{fig:ss-recommend}). Adjust the usage profile form if needed, then click \guillemotleft{}Run recommendation\guillemotright{}. The engine returns the three best matched plans as ranked cards (gold / silver / bronze) with the match reasons and an integrated savings indicator showing the monthly, annual, and percentage saving against the user's budget.
   \item \textbf{Save plans for later.} Click the bookmark icon on any plan card or detail page to add the plan to the saved list. The saved list is available at \textit{/saved} (Figure~\ref{fig:ss-saved}) and can be sent directly to the comparison page in one click.
   \item \textbf{Read notifications.} The navbar bell shows the count of unread notifications. Clicking the bell expands the notification feed; clicking any individual notification routes the user to the most relevant page (offer detail, recommendations page, or admin history depending on the type) and marks the row as read.
 \end{enumerate}
 
 \section{Administrator}
 
-The administrator role is granted by claiming a one-time code at \textit{/admin/claim}. Once granted, the administrator inherits all the registered-user workflows and adds the following operational workflows:
+The administrator role is granted by claiming a one time code at \textit{/admin/claim}. Once granted, the administrator inherits all the registered user workflows and adds the following operational workflows:
 
 \begin{enumerate}
-  \item \textbf{Open the admin dashboard.} Navigate to \textit{/admin} (Figure~\ref{fig:ss-admin}). The dashboard groups four statistics cards (active offers, registered users, scrape sessions, scrape success rate), an operator-health panel showing the live / fallback / fixed counts per operator, a per-family plan breakdown, and a scrape-history log.
-  \item \textbf{Trigger a manual scrape run.} The \guillemotleft{}Run scrape\guillemotright{} button at the top of the admin dashboard invokes the scraper orchestrator for all three operators. The run completes in approximately 20 to 60 seconds depending on operator-side latency.
-  \item \textbf{Inspect a scrape run.} Each row of the scrape history can be expanded to reveal the per-family event log (offers added, updated, deactivated, parser warnings, fetch errors). Failed runs are marked in red and produce a \texttt{scrape\_failed} administrator notification.
-  \item \textbf{Configure the environment.} Three environment variables must be set before the application is started: \texttt{DATABASE\_URL} (path to the SQLite file), \texttt{NEXTAUTH\_SECRET} (JWT signing key), and \texttt{NEXTAUTH\_URL} (base URL). A fourth variable, \texttt{ADMIN\_CLAIM\_CODE}, controls the one-time admin-claim flow.
+  \item \textbf{Open the admin dashboard.} Navigate to \textit{/admin} (Figure~\ref{fig:ss-admin}). The dashboard groups four statistics cards (active offers, registered users, scrape sessions, scrape success rate), an operator health panel showing the live / fallback / fixed counts per operator, a per family plan breakdown, and a scrape history log.
+  \item \textbf{Trigger a manual scrape run.} The \guillemotleft{}Run scrape\guillemotright{} button at the top of the admin dashboard invokes the scraper orchestrator for all three operators. The run completes in approximately 20 to 60 seconds depending on operator side latency.
+  \item \textbf{Inspect a scrape run.} Each row of the scrape history can be expanded to reveal the per family event log (offers added, updated, deactivated, parser warnings, fetch errors). Failed runs are marked in red and produce a \texttt{scrape\_failed} administrator notification.
+  \item \textbf{Configure the environment.} Three environment variables must be set before the application is started: \texttt{DATABASE\_URL} (path to the SQLite file), \texttt{NEXTAUTH\_SECRET} (JWT signing key), and \texttt{NEXTAUTH\_URL} (base URL). A fourth variable, \texttt{ADMIN\_CLAIM\_CODE}, controls the one time admin claim flow.
 \end{enumerate}
 
 % ─────────────────────────────────────────────────────────────────────────────
@@ -78,21 +78,21 @@ This annexe collects the full set of application screenshots referenced by the u
 \begin{figure}[H]
   \centering
   \includegraphics[width=0.9\textwidth]{images/screenshot_offer_detail}
-  \caption{Offer detail page, full specification and price-history line chart.}
+  \caption{Offer detail page, full specification and price history line chart.}
   \label{fig:ss-offer-detail}
 \end{figure}
 
 \begin{figure}[H]
   \centering
   \includegraphics[width=0.9\textwidth]{images/screenshot_compare}
-  \caption{Comparison page, side-by-side specification table and per-metric bar charts.}
+  \caption{Comparison page, side by side specification table and per metric bar charts.}
   \label{fig:ss-compare}
 \end{figure}
 
 \begin{figure}[H]
   \centering
   \includegraphics[width=0.9\textwidth]{images/screenshot_recommend}
-  \caption{Recommendations page, usage-profile form and ranked plan cards with savings indicator.}
+  \caption{Recommendations page, usage profile form and ranked plan cards with savings indicator.}
   \label{fig:ss-recommend}
 \end{figure}
 
@@ -106,14 +106,14 @@ This annexe collects the full set of application screenshots referenced by the u
 \begin{figure}[H]
   \centering
   \includegraphics[width=0.9\textwidth]{images/screenshot_saved}
-  \caption{Saved-plans page, bookmarked offers with a direct path to comparison.}
+  \caption{Saved plans page, bookmarked offers with a direct path to comparison.}
   \label{fig:ss-saved}
 \end{figure}
 
 \begin{figure}[H]
   \centering
   \includegraphics[width=0.9\textwidth]{images/screenshot_help}
-  \caption{Help / tutorial page, five-section integrated user guide with annotated screenshots.}
+  \caption{Help / tutorial page, five section integrated user guide with annotated screenshots.}
   \label{fig:ss-help}
 \end{figure}
 
@@ -127,13 +127,13 @@ This annexe collects the full set of application screenshots referenced by the u
 \begin{figure}[H]
   \centering
   \includegraphics[width=0.65\textwidth]{images/screenshot_register}
-  \caption{Registration page, account creation with client-side validation and inline error feedback.}
+  \caption{Registration page, account creation with client side validation and inline error feedback.}
   \label{fig:ss-register}
 \end{figure}
 
 \begin{figure}[H]
   \centering
   \includegraphics[width=0.9\textwidth]{images/screenshot_admin}
-  \caption{Admin dashboard, statistics cards, operator-health panel, per-family breakdown, and scrape history log.}
+  \caption{Admin dashboard, statistics cards, operator health panel, per family breakdown, and scrape history log.}
   \label{fig:ss-admin}
 \end{figure}

@@ -4,23 +4,23 @@
 
 \chapter{Requirements Analysis and System Design}
 
-Building on the state of the art surveyed in Chapter~1, this chapter formalises the requirements of \textit{Mobile Match Algeria} and presents the architectural and design decisions taken to meet them. The chapter covers requirements gathering, actor identification, UML modelling (use-case, activity, and sequence diagrams), the data model as a UML class diagram, the three-tier system architecture, and the technology stack justification.
+Building on the state of the art surveyed in Chapter~1, this chapter formalises the requirements of \textit{Mobile Match Algeria} and presents the architectural and design decisions taken to meet them. The chapter covers requirements gathering, actor identification, UML modelling (use case, activity, and sequence diagrams), the data model as a UML class diagram, the three tier system architecture, and the technology stack justification.
 
 \section{Requirements Gathering}
 
 \subsection{Methodology, Secondary Documentary Research}
 
-The needs-analysis phase of this project follows a documentary-research methodology grounded in the official publications of the Algerian telecommunications sector, supplemented by one regional report. Three country-specific sources form the primary foundation:
+The needs analysis phase of this project follows a documentary research methodology grounded in the official publications of the Algerian telecommunications sector, supplemented by one regional report. Three country specific sources form the primary foundation:
 
 \begin{itemize}
   \item The \textbf{ARPCE annual report and quarterly observatories on the Algerian telecommunications market} (the national regulator) provide the most current subscriber counts (more than 54~million mobile subscribers in Q1 2025), the market shares of the three operators, average revenue per user, and the breakdown of prepaid and postpaid subscriptions \parencite{ARPCE2025, ARPCE2024}.
-  \item The \textbf{DataReportal \textit{Digital 2025: Algeria}} country survey provides the average monthly mobile-data consumption per user, the time spent on mobile services, and the internet-penetration figures specific to Algeria \parencite{DataReportal2025}.
+  \item The \textbf{DataReportal \textit{Digital 2025: Algeria}} country survey provides the average monthly mobile data consumption per user, the time spent on mobile services, and the internet penetration figures specific to Algeria \parencite{DataReportal2025}.
   \item The \textbf{Mordor Intelligence Algeria Telecom Market} sectoral analysis covers the 2025--2030 outlook for the Algerian market, with growth projections and competitive dynamics \parencite{Mordor2025}.
 \end{itemize}
 
-These three country-specific reports are complemented by the \textbf{GSMA Intelligence \textit{Mobile Economy MENA}} report \parencite{GSMA2024}, used here as a regional reference for the 4G and 5G penetration rates and the smartphone-adoption trend, with Algeria appearing as one country within the MENA aggregate. GSMA is deliberately positioned as a supplement rather than a primary source because its analysis is regional rather than national, and the country-specific reports above are the load-bearing references for the needs-analysis claims.
+These three country specific reports are complemented by the \textbf{GSMA Intelligence \textit{Mobile Economy MENA}} report \parencite{GSMA2024}, used here as a regional reference for the 4G and 5G penetration rates and the smartphone adoption trend, with Algeria appearing as one country within the MENA aggregate. GSMA is deliberately positioned as a supplement rather than a primary source because its analysis is regional rather than national, and the country specific reports above are the load bearing references for the needs analysis claims.
 
-These secondary indicators substitute for a primary user survey within the project timeline and provide a defensible, citable empirical foundation for the requirement set. A complementary structural analysis of the three operator websites (Mobilis, Djezzy, Ooredoo) and of the international comparison platforms reviewed in Chapter~1 was conducted to identify the information currently exposed to consumers and the user-interface conventions established by the comparison-platform domain. A formal usability study with end users is acknowledged as a limitation of this work and is proposed in the Perspectives chapter.
+These secondary indicators substitute for a primary user survey within the project timeline and provide a defensible, citable empirical foundation for the requirement set. A complementary structural analysis of the three operator websites (Mobilis, Djezzy, Ooredoo) and of the international comparison platforms reviewed in Chapter~1 was conducted to identify the information currently exposed to consumers and the user interface conventions established by the comparison platform domain. A formal usability study with end users is acknowledged as a limitation of this work and is proposed in the Perspectives chapter.
 
 \subsection{Functional Requirements}
 
@@ -36,37 +36,37 @@ Table~\ref{tab:fr} lists the twelve functional requirements elicited, ordered by
     \hline
     FR1 & Display all current mobile plans from Mobilis, Djezzy, and Ooredoo with their key attributes: price, data volume, voice minutes, SMS allowance, validity period, and network generation. & All users \\
     \hline
-    FR2 & Filter the plan catalogue by operator, plan type (prepaid, postpaid, data-only), maximum price, minimum data volume, and network generation. & All users \\
+    FR2 & Filter the plan catalogue by operator, plan type (prepaid, postpaid, data only), maximum price, minimum data volume, and network generation. & All users \\
     \hline
-    FR3 & Search the plan catalogue through a structured free-text query (operator name, data volume, price range, keyword features such as ``unlimited'' or ``streaming''), with the parsed query tokens visualised to the user. & All users \\
+    FR3 & Search the plan catalogue through a structured free text query (operator name, data volume, price range, keyword features such as ``unlimited'' or ``streaming''), with the parsed query tokens visualised to the user. & All users \\
     \hline
-    FR4 & Select up to three plans and view them in a side-by-side comparison table together with per-metric bar charts for price and data volume; a third bar chart for annual savings (against the user's monthly budget) is added when the comparison was launched from the recommendations page. & All users \\
+    FR4 & Select up to three plans and view them in a side by side comparison table together with per metric bar charts for price and data volume; a third bar chart for annual savings (against the user's monthly budget) is added when the comparison was launched from the recommendations page. & All users \\
     \hline
-    FR5 & Define a usage profile (budget, data, voice, SMS, preferred type, preferred network, preferred operator, ranked priorities) and receive a ranked list of the three best-matching plans produced by the recommendation engine. & Registered User \\
+    FR5 & Define a usage profile (budget, data, voice, SMS, preferred type, preferred network, preferred operator, ranked priorities) and receive a ranked list of the three best matching plans produced by the recommendation engine. & Registered User \\
     \hline
     FR6 & Display, on each recommendation card, the monthly, annual and percentage savings obtained by switching to that plan, computed against the user's monthly budget. & Registered User \\
     \hline
-    FR7 & Bookmark any plan from the offers page, access all bookmarked plans from a dedicated saved-plans page, and remove individual bookmarks. & Registered User \\
+    FR7 & Bookmark any plan from the offers page, access all bookmarked plans from a dedicated saved plans page, and remove individual bookmarks. & Registered User \\
     \hline
-    FR8 & Receive in-app notifications when new plans are added to the catalogue, when the user's recommended plan changes, or when the price of a saved plan drops. Notifications can be marked as read individually or all at once and deleted individually. & Registered User \\
+    FR8 & Receive in app notifications when new plans are added to the catalogue, when the user's recommended plan changes, or when the price of a saved plan drops. Notifications can be marked as read individually or all at once and deleted individually. & Registered User \\
     \hline
-    FR9 & Provide a guided help page that documents each of the five core features (search, recommendations, comparison, filters, saved plans) with step-by-step instructions and annotated screenshots. & All users \\
+    FR9 & Provide a guided help page that documents each of the five core features (search, recommendations, comparison, filters, saved plans) with step by step instructions and annotated screenshots. & All users \\
     \hline
     FR10 & Automatically scrape offer data from the three operator websites on a scheduled basis and update the database with newly added, modified, and deactivated plans. & System \\
     \hline
-    FR11 & Trigger manual scrape runs, view detailed per-operator scrape logs, monitor platform statistics, and manage system notifications from the admin dashboard. & Administrator \\
+    FR11 & Trigger manual scrape runs, view detailed per operator scrape logs, monitor platform statistics, and manage system notifications from the admin dashboard. & Administrator \\
     \hline
-    FR12 & Register a new account, log in with email and password, and log out. Passwords must be stored using a one-way hashing algorithm. & All users \\
+    FR12 & Register a new account, log in with email and password, and log out. Passwords must be stored using a one way hashing algorithm. & All users \\
     \hline
   \end{tabular}
 \end{table}
 
-\subsection{Non-Functional Requirements}
+\subsection{Non Functional Requirements}
 
-Table~\ref{tab:nfr} lists the five non-functional requirements that constrain the system's quality attributes.
+Table~\ref{tab:nfr} lists the five non functional requirements that constrain the system's quality attributes.
 
 \begin{table}[H]
-  \caption{Non-functional requirements}
+  \caption{Non functional requirements}
   \label{tab:nfr}
   \centering\small
   \begin{tabular}{|p{1.3cm}|p{2.8cm}|p{9.9cm}|}
@@ -77,7 +77,7 @@ Table~\ref{tab:nfr} lists the five non-functional requirements that constrain th
     \hline
     NFR2 & Responsiveness & The interface must be fully usable on mobile devices (320~px viewport and above), tablets, and desktop screens. \\
     \hline
-    NFR3 & Security       & User sessions must be managed with signed JWT tokens; passwords must be hashed with bcrypt; all admin-only routes must verify the user role before processing the request. \\
+    NFR3 & Security       & User sessions must be managed with signed JWT tokens; passwords must be hashed with bcrypt; all admin only routes must verify the user role before processing the request. \\
     \hline
     NFR4 & Maintainability & The codebase must be organised into clearly separated modules (scrapers, recommendation engine, API routes, UI components) to facilitate future extension and maintenance. \\
     \hline
@@ -109,7 +109,7 @@ Three actor types interact with the system, as summarised in Table~\ref{tab:acto
 
 \section{UML Use Case Diagrams}
 
-The main use cases of the system are organised around three actors. Figure~\ref{fig:usecase-main} illustrates the top-level use case diagram.
+The main use cases of the system are organised around three actors. Figure~\ref{fig:usecase-main} illustrates the top level use case diagram.
 
 \begin{figure}[H]
 \centering
@@ -168,7 +168,7 @@ The main use cases of the system are organised around three actors. Figure~\ref{
   \draw[assoc] (admin.east) -- (uc9.west);
   \draw[assoc] (admin.east) -- (uc10.west);
 \end{tikzpicture}
-\caption{Top-level use case diagram for Mobile Match Algeria}
+\caption{Top level use case diagram for Mobile Match Algeria}
 \label{fig:usecase-main}
 \end{figure}
 
@@ -184,15 +184,15 @@ Table~\ref{tab:usecases} describes each primary use case, the actor who triggers
     \hline
     UC1 & Browse \& Filter Offers     & All users         & Access the offers page and apply any combination of filters (operator, plan type, price, data, network); the system retrieves matching plans and renders them as interactive cards. \\
     \hline
-    UC2 & Advanced Search             & All users         & Enter a free-text query describing the desired plan; the system parses the query into structured tokens (operator, data volume, price range, feature keywords) and filters the catalogue accordingly. The parsed tokens are displayed as chips so the user sees how the query was interpreted. \\
+    UC2 & Advanced Search             & All users         & Enter a free text query describing the desired plan; the system parses the query into structured tokens (operator, data volume, price range, feature keywords) and filters the catalogue accordingly. The parsed tokens are displayed as chips so the user sees how the query was interpreted. \\
     \hline
-    UC3 & Compare Plans               & All users         & Select up to three plans and view them in a side-by-side table together with per-metric bar charts for price and data volume; if launched from the recommendations page, a third bar chart shows annual savings against the user's monthly budget. Requires at least two plans selected. \\
+    UC3 & Compare Plans               & All users         & Select up to three plans and view them in a side by side table together with per metric bar charts for price and data volume; if launched from the recommendations page, a third bar chart shows annual savings against the user's monthly budget. Requires at least two plans selected. \\
     \hline
     UC4 & See Potential Savings       & Registered User   & After running a recommendation, view on each ranked plan the monthly, annual, and percentage savings obtained by switching, computed automatically from the user's monthly budget. \\
     \hline
-    UC5 & View Help / Tutorial        & All users         & Open a guided tutorial page describing the five core features with step-by-step instructions and annotated screenshots. \\
+    UC5 & View Help / Tutorial        & All users         & Open a guided tutorial page describing the five core features with step by step instructions and annotated screenshots. \\
     \hline
-    UC6 & Get Recommendations         & Registered User   & Submit a usage profile and receive a ranked list of the three best-matching plans produced by the tiered-ranking recommendation engine, with the match reasons displayed alongside each result. \\
+    UC6 & Get Recommendations         & Registered User   & Submit a usage profile and receive a ranked list of the three best matching plans produced by the tiered ranking recommendation engine, with the match reasons displayed alongside each result. \\
     \hline
     UC7 & Save \& Manage Plans        & Registered User   & Bookmark any plan from the offers page, access all saved plans from a dedicated page, compare them, or remove individual bookmarks. \\
     \hline
@@ -200,7 +200,7 @@ Table~\ref{tab:usecases} describes each primary use case, the actor who triggers
     \hline
     UC9 & Trigger Scrape Run          & Administrator     & Initiate a scrape run for one or all operators from the admin dashboard; the system updates the catalogue, creates notifications for new offers, and records a ScrapeLog entry. \\
     \hline
-    UC10 & View Scrape Logs \& Statistics & Administrator & Consult the full scrape history log, inspect per-operator event lines (offers found, inserted, updated, errors), and monitor platform statistics (registered users, active offers, scrape success rate). \\
+    UC10 & View Scrape Logs \& Statistics & Administrator & Consult the full scrape history log, inspect per operator event lines (offers found, inserted, updated, errors), and monitor platform statistics (registered users, active offers, scrape success rate). \\
     \hline
   \end{tabular}
 \end{table}
@@ -307,13 +307,13 @@ Figure~\ref{fig:seq-recommend} illustrates the sequence of interactions between 
 \label{fig:seq-recommend}
 \end{figure}
 
-The client sends a POST request to \textit{/api/recommendations} with the user's profile parameters. The API server validates the session token, retrieves all active offers from the database, passes the offer list and user profile to the recommendation engine, and returns the top three scored results. The entire server-side operation is stateless and completes in under 100~ms for the current catalogue size.
+The client sends a POST request to \textit{/api/recommendations} with the user's profile parameters. The API server validates the session token, retrieves all active offers from the database, passes the offer list and user profile to the recommendation engine, and returns the top three scored results. The entire server side operation is stateless and completes in under 100~ms for the current catalogue size.
 
 \section{Data Model}
 
 \subsection{Class Diagram}
 
-{\sloppy The data model comprises eight application-defined classes: \texttt{Operator}, \texttt{Offer}, \texttt{PriceHistory}, \texttt{User}, \texttt{UserProfile}, \texttt{SavedOffer}, \texttt{Notification}, and \texttt{ScrapeLog}. Authentication-infrastructure models managed by NextAuth.js (\texttt{Account}, \texttt{Session}, \texttt{VerificationToken}) and the system-level rate-limit table are excluded from the application diagram. Figure~\ref{fig:class-diagram-main} shows each class with its principal attributes; the associations between classes carry standard UML multiplicities (1, N).\par}
+{\sloppy The data model comprises eight application defined classes: \texttt{Operator}, \texttt{Offer}, \texttt{PriceHistory}, \texttt{User}, \texttt{UserProfile}, \texttt{SavedOffer}, \texttt{Notification}, and \texttt{ScrapeLog}. Authentication infrastructure models managed by NextAuth.js (\texttt{Account}, \texttt{Session}, \texttt{VerificationToken}) and the system level rate limit table are excluded from the application diagram. Figure~\ref{fig:class-diagram-main} shows each class with its principal attributes; the associations between classes carry standard UML multiplicities (1, N).\par}
 
 \begin{figure}[H]
 \centering
@@ -456,15 +456,15 @@ The Prisma schema defines the relational structure. Table~\ref{tab:entities} sum
   \end{tabular}
 \end{table}
 
-With the data model now defined, the next question is how the application code is organised around it. The eight entities of Table~\ref{tab:entities} naturally cluster into three groups: the catalogue layer (\texttt{Operator}, \texttt{Offer}, \texttt{PriceHistory}, \texttt{ScrapeLog}), the user layer (\texttt{User}, \texttt{UserProfile}, \texttt{SavedOffer}, \texttt{Notification}), and the relations that bridge them. The next section describes the three-tier architecture that exposes these entities to the application's presentation, business-logic, and data-access layers.
+With the data model now defined, the next question is how the application code is organised around it. The eight entities of Table~\ref{tab:entities} naturally cluster into three groups: the catalogue layer (\texttt{Operator}, \texttt{Offer}, \texttt{PriceHistory}, \texttt{ScrapeLog}), the user layer (\texttt{User}, \texttt{UserProfile}, \texttt{SavedOffer}, \texttt{Notification}), and the relations that bridge them. The next section describes the three tier architecture that exposes these entities to the application's presentation, business logic, and data access layers.
 
 \section{System Architecture}
 
-\subsection{Three-Tier Architecture}
+\subsection{Three Tier Architecture}
 
-The application follows a classic three-tier architecture. The \textbf{presentation tier} consists of React components rendered by Next.js, either on the server (for initial page load) or on the client (for interactive elements). The \textbf{logic tier} consists of Next.js API route handlers located in the \textit{src/app/api/} directory, which implement the business logic and data access layer. The \textbf{data tier} consists of a SQLite database accessed exclusively through Prisma.
+The application follows a classic three tier architecture. The \textbf{presentation tier} consists of React components rendered by Next.js, either on the server (for initial page load) or on the client (for interactive elements). The \textbf{logic tier} consists of Next.js API route handlers located in the \textit{src/app/api/} directory, which implement the business logic and data access layer. The \textbf{data tier} consists of a SQLite database accessed exclusively through Prisma.
 
-Figure~\ref{fig:arch-overview} illustrates the high-level component architecture.
+Figure~\ref{fig:arch-overview} illustrates the high level component architecture.
 
 \begin{figure}[H]
 \centering
@@ -503,7 +503,7 @@ Figure~\ref{fig:arch-overview} illustrates the high-level component architecture
   \draw[biarrow] (7.0, 3.2) -- node[right=2mm, font=\scriptsize]{HTTP requests / JSON responses} (7.0, 2.8);
   \draw[biarrow] (7.0, 1.2) -- node[right=2mm, font=\scriptsize]{Prisma queries / typed results}  (7.0, 0.8);
 \end{tikzpicture}
-\caption{High-level three-tier architecture of Mobile Match Algeria}
+\caption{High level three tier architecture of Mobile Match Algeria}
 \label{fig:arch-overview}
 \end{figure}
 
@@ -521,34 +521,34 @@ Table~\ref{tab:api-routes-design} lists the main API routes, their HTTP methods,
     \hline
     \textit{/api/offers}              & GET                & List and filter active offers; supports a structured \texttt{search} parameter; also serves by \texttt{ids} for comparison (bypasses \texttt{isActive}) \\
     \hline
-    \textit{/api/offers/[id]}         & GET, PATCH, DELETE & Retrieve offer detail with similar offers; admin-only toggle of \texttt{isActive} (PATCH) or soft-delete (DELETE) \\
+    \textit{/api/offers/[id]}         & GET, PATCH, DELETE & Retrieve offer detail with similar offers; admin only toggle of \texttt{isActive} (PATCH) or soft delete (DELETE) \\
     \hline
     \textit{/api/saved-offers}        & GET, POST          & List saved offer IDs; toggle save/unsave for authenticated user \\
     \hline
-    \textit{/api/recommendations}     & POST               & Return top-3 tier-ranked plans for the submitted user profile (rate-limited: 60 requests per minute per IP) \\
+    \textit{/api/recommendations}     & POST               & Return top 3 tier ranked plans for the submitted user profile (rate limited: 60 requests per minute per IP) \\
     \hline
     \textit{/api/notifications}       & GET, PATCH, DELETE & List user notifications; mark one or all as read; delete one \\
     \hline
     \textit{/api/profile}             & GET, PUT           & Retrieve or update the authenticated user's profile (priorities, preferred operator, budget, needs) \\
     \hline
-    \textit{/api/auth/register}       & POST               & Create a user account (rate-limited: 5 requests per 15 minutes per IP) \\
+    \textit{/api/auth/register}       & POST               & Create a user account (rate limited: 5 requests per 15 minutes per IP) \\
     \hline
-    \texttt{/api/auth/{[}...nextauth{]}} & GET, POST       & NextAuth.js sign-in / sign-out / session endpoints \\
+    \texttt{/api/auth/{[}...nextauth{]}} & GET, POST       & NextAuth.js sign in / sign out / session endpoints \\
     \hline
     \textit{/api/admin/stats}         & GET                & Platform statistics (users, active offers, scrape sessions, operator health) \\
     \hline
-    \textit{/api/admin/claim}         & POST               & One-time admin role claim using the server-side \texttt{ADMIN\_CLAIM\_CODE} environment variable \\
+    \textit{/api/admin/claim}         & POST               & One time admin role claim using the server side \texttt{ADMIN\_CLAIM\_CODE} environment variable \\
     \hline
     \textit{/api/stats}               & GET                & Public platform statistics (offer count, operator count) \\
     \hline
   \end{tabular}
 \end{table}
 
-The route map of Table~\ref{tab:api-routes-design} defines the contract the front-end consumes. Each presentation-tier page calls one or more of these routes: the offers grid binds to \textit{/api/offers}, the comparison view to the same endpoint with an \texttt{ids} parameter, the recommendation page to \textit{/api/recommendations}, the profile and saved-plans pages to \textit{/api/profile} and \textit{/api/saved-offers} respectively, and the admin dashboard to the \textit{/api/admin/*} family. The concrete interface screens that consume these routes are illustrated by the screenshots embedded in Chapter~3, Section~3.8.
+The route map of Table~\ref{tab:api-routes-design} defines the contract the front end consumes. Each presentation tier page calls one or more of these routes: the offers grid binds to \textit{/api/offers}, the comparison view to the same endpoint with an \texttt{ids} parameter, the recommendation page to \textit{/api/recommendations}, the profile and saved plans pages to \textit{/api/profile} and \textit{/api/saved-offers} respectively, and the admin dashboard to the \textit{/api/admin/*} family. The concrete interface screens that consume these routes are illustrated by the screenshots embedded in Chapter~3, Section~3.8.
 
 \section{Justification of the Technology Choices}
 
-Two principles guided every choice in the technology stack: keep the front-end and the back-end in a single project so that type definitions travel through every layer without manual synchronisation, and select the lightest tool that fully solves the problem rather than the most fashionable one. Table~\ref{tab:tech-choices} consolidates each retained tool together with the alternatives that were genuinely considered and the reasons that decided the choice. Two cross-references point to chapters where the depth is greatest: the browser-automation row refers to Chapter~1 §1.2, where the full scraping-tool landscape is evaluated; the database row refers to the load-test results in Chapter~4 §4.3, which anchor the SQLite choice empirically.
+Two principles guided every choice in the technology stack: keep the front end and the back end in a single project so that type definitions travel through every layer without manual synchronisation, and select the lightest tool that fully solves the problem rather than the most fashionable one. Table~\ref{tab:tech-choices} consolidates each retained tool together with the alternatives that were genuinely considered and the reasons that decided the choice. Two cross references point to chapters where the depth is greatest: the browser automation row refers to Chapter~1 §1.2, where the full scraping tool landscape is evaluated; the database row refers to the load test results in Chapter~4 §4.3, which anchor the SQLite choice empirically.
 
 {\footnotesize
 \begin{longtable}{|p{2.3cm}|p{2.0cm}|p{2.6cm}|p{7.2cm}|}
@@ -561,38 +561,38 @@ Two principles guided every choice in the technology stack: keep the front-end a
   \textbf{Component} & \textbf{Chosen} & \textbf{Alternatives considered} & \textbf{Reasons for selection} \\
   \hline
   \endhead
-    Full-stack framework & Next.js 16 & Nuxt (Vue), SvelteKit, Express + React separated &
-    Single project for both front-end (React server components in \textit{page.tsx}) and back-end (\textit{route.ts} handlers); App Router file-system routing; native server-side rendering and incremental static regeneration; TypeScript types flow from Prisma through API handlers into React components without manual export. Nuxt and SvelteKit are comparable on features but offer smaller ecosystems for the specific authentication and ORM libraries required \parencite{NextJSDocs2024}. \\
+    Full stack framework & Next.js 16 & Nuxt (Vue), SvelteKit, Express + React separated &
+    Single project for both front end (React server components in \textit{page.tsx}) and back end (\textit{route.ts} handlers); App Router file system routing; native server side rendering and incremental static regeneration; TypeScript types flow from Prisma through API handlers into React components without manual export. Nuxt and SvelteKit are comparable on features but offer smaller ecosystems for the specific authentication and ORM libraries required \parencite{NextJSDocs2024}. \\
     \hline
     ORM & Prisma 7 & TypeORM, Drizzle, raw SQL &
-    The single \textit{schema.prisma} file is the unique source of truth for the data model: types are auto-generated, migrations are derived mechanically, and any column change propagates at compile time. Prisma~7's driver-adapter system gives a clean migration path to PostgreSQL by swapping the adapter alone. Raw SQL forces duplicate type definitions in two places with no static sync guarantee; TypeORM and Drizzle keep declarations inside application code rather than in a dedicated schema file \parencite{PrismaDocs2024}. \\
+    The single \textit{schema.prisma} file is the unique source of truth for the data model: types are auto generated, migrations are derived mechanically, and any column change propagates at compile time. Prisma~7's driver adapter system gives a clean migration path to PostgreSQL by swapping the adapter alone. Raw SQL forces duplicate type definitions in two places with no static sync guarantee; TypeORM and Drizzle keep declarations inside application code rather than in a dedicated schema file \parencite{PrismaDocs2024}. \\
     \hline
     Database & SQLite & PostgreSQL, MySQL &
-    The most-deployed database engine in the world; embedded in every smartphone and modern browser \parencite{Mitchell2018}. Load tests (Ch4 §4.3) sustain 215~req/s on the offers endpoint with zero errors at fifty concurrent connections; the recommendation endpoint hits its CPU-bound ceiling of 60~req/s before the database becomes a bottleneck. PostgreSQL or MySQL would add a daemon, credentials, and a non-trivial deployment footprint for no measurable benefit at the project's scale. \\
+    The most deployed database engine in the world; embedded in every smartphone and modern browser \parencite{Mitchell2018}. Load tests (Ch4 §4.3) sustain 215~req/s on the offers endpoint with zero errors at fifty concurrent connections; the recommendation endpoint hits its CPU bound ceiling of 60~req/s before the database becomes a bottleneck. PostgreSQL or MySQL would add a daemon, credentials, and a non trivial deployment footprint for no measurable benefit at the project's scale. \\
     \hline
     Authentication & NextAuth.js v5 & Custom JWT, Passport.js, Clerk, Auth0 &
-    Purpose-built for Next.js: JWT sessions out of the box, native Prisma-adapter integration, fully self-hosted in the project repository. Custom JWT rejected because authentication is too security-critical to write from scratch. Passport.js abstractions assume a separate back-end and contradict the unified Next.js model. Clerk and Auth0 introduce a recurring fee plus a transfer of user data to a third-party identity store, which is incompatible with an academic deliverable. \\
+    Purpose built for Next.js: JWT sessions out of the box, native Prisma adapter integration, fully self hosted in the project repository. Custom JWT rejected because authentication is too security critical to write from scratch. Passport.js abstractions assume a separate back end and contradict the unified Next.js model. Clerk and Auth0 introduce a recurring fee plus a transfer of user data to a third party identity store, which is incompatible with an academic deliverable. \\
     \hline
     Browser automation & Playwright (headless Microsoft Edge) & Puppeteer, Selenium, plain HTTP, Scrapy, crawlee, OCR, paid scraping APIs &
-    A real-browser fingerprint defeats operator anti-bot layers that reject plain HTTP. Spaced retries (0\,s, 7\,s, 18\,s) and a per-operator circuit breaker ride out intermittent operator-server resets. Full alternatives evaluation in Chapter~1 §1.2. \\
+    A real browser fingerprint defeats operator anti bot layers that reject plain HTTP. Spaced retries (0\,s, 7\,s, 18\,s) and a per operator circuit breaker ride out intermittent operator server resets. Full alternatives evaluation in Chapter~1 §1.2. \\
     \hline
     Language & TypeScript & JavaScript &
-    Compile-time type safety across 8 entities and 11 API routes; editor-level refactoring catches schema-drift errors before run-time; types travel through Prisma, API handlers, and React components without manual export. \\
+    Compile time type safety across 8 entities and 11 API routes; editor level refactoring catches schema drift errors before run time; types travel through Prisma, API handlers, and React components without manual export. \\
     \hline
     Unit testing & Vitest & Jest, Mocha + Chai &
-    Native ESM and TypeScript support without an additional Babel pipeline; configuration shared with the project's Vite build; the 118-test suite completes in approximately two seconds. \\
+    Native ESM and TypeScript support without an additional Babel pipeline; configuration shared with the project's Vite build; the 118 test suite completes in approximately two seconds. \\
     \hline
     Styling & CSS custom properties & Tailwind CSS, CSS Modules &
-    Operator-coloured theming via inheritance from a single \texttt{--accent} variable per card; the comparison columns are tinted to match. Tailwind would require dynamic class composition or arbitrary-value classes that defeat its design-system purpose; CSS Modules introduce build-time class-name mangling that does not coexist gracefully with Next.js server components. \\
+    Operator coloured theming via inheritance from a single \texttt{--accent} variable per card; the comparison columns are tinted to match. Tailwind would require dynamic class composition or arbitrary value classes that defeat its design system purpose; CSS Modules introduce build time class name mangling that does not coexist gracefully with Next.js server components. \\
     \hline
     Animations & Framer Motion & React Spring, plain CSS keyframes &
-    Declarative \texttt{motion.*} props integrate with React component lifecycles; physics-based defaults match the visual polish of the operator brand pages and require considerably less effort than hand-written keyframes for equivalent quality. \\
+    Declarative \texttt{motion.*} props integrate with React component lifecycles; physics based defaults match the visual polish of the operator brand pages and require considerably less effort than hand written keyframes for equivalent quality. \\
     \hline
 \end{longtable}
 }
 
-Every row above represents a deliberate decision rather than a default, and each is anchored either by measured evidence (load-test numbers for SQLite, test-suite duration for Vitest) or by a structural argument that ties the tool to a specific requirement of the project (operator anti-bot for Playwright, schema as single source of truth for Prisma, security surface for NextAuth.js). The cross-reference pattern, consolidated reasoning here, depth deferred to the corresponding chapter, keeps this section dense and scannable without losing analytical content.
+Every row above represents a deliberate decision rather than a default, and each is anchored either by measured evidence (load test numbers for SQLite, test suite duration for Vitest) or by a structural argument that ties the tool to a specific requirement of the project (operator anti bot for Playwright, schema as single source of truth for Prisma, security surface for NextAuth.js). The cross reference pattern, consolidated reasoning here, depth deferred to the corresponding chapter, keeps this section dense and scannable without losing analytical content.
 
 \section*{Chapter Summary}
 
-This chapter has formalised the functional and non-functional requirements of the system, identified the three actor types, modelled the key use cases and interaction flows through UML diagrams, defined the data model as a UML class diagram, described the three-tier architecture and API route map, and justified the technology stack. The design decisions documented here form the blueprint for the implementation described in Chapter~3.
+This chapter has formalised the functional and non functional requirements of the system, identified the three actor types, modelled the key use cases and interaction flows through UML diagrams, defined the data model as a UML class diagram, described the three tier architecture and API route map, and justified the technology stack. The design decisions documented here form the blueprint for the implementation described in Chapter~3.
