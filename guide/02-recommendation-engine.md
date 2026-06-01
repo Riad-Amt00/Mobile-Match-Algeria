@@ -34,8 +34,9 @@ and not AI. Why:
   (price, data, minutes, SMS). Matching those numbers against the user's stated needs is
   enough, and it is instant.
 
-This is a known, cited technique (lexicographic preference ordering, Fishburn 1974), not
-something we invented.
+This is a known, cited technique (the lexicographic semiorder — Fishburn 1974, Luce 1956,
+Tversky 1969; still used today, e.g. Safarzadeh & Rasti-Barzoki 2018), not something we
+invented.
 
 **In one line:** *filter out what doesn't fit, score what's left against the user's own
 needs, then rank by what they said matters most.*
@@ -66,13 +67,19 @@ price merit = 1 - (price / budget)     (clamped to 0..1; cheaper is better)
 data merit  = data / need              (clamped to 0..1; unlimited = 1)
 ```
 
-Then, when the user ranks two priorities (say #1 = price, #2 = data):
+Then, when the user ranks two priorities (say #1 = price, #2 = data), we rank by a
+**lexicographic order** (most-important criterion first, like dictionary order):
 
 ```
-tier  = round(price merit × 4) / 4     ->  one of {0, 0.25, 0.5, 0.75, 1}   (5 bands)
-score = tier + 0.24 × data merit
-rank by score, highest first
+tier = round(price merit × 4) / 4   ->  one of {0, 0.25, 0.5, 0.75, 1}   (5 bands)
+
+rank, in order:
+  1) higher tier first             (your #1 priority decides across bands)
+  2) ties broken by the 2nd merit  (your #2 priority, only WITHIN a band)
 ```
+
+There is no magic weight here — it is a plain two-key sort: compare the tier first, and
+only look at the second criterion when two plans land in the same tier.
 
 **What a "tier" is.** A merit is a decimal from 0 to 1. We **round it to the nearest
 0.25**, onto one of five rungs (0, 0.25, 0.5, 0.75, 1) — that is all `round(m × 4)/4`
@@ -83,11 +90,14 @@ rounding groups "close enough" plans so the 2nd priority has room to act.)
 
 **Worked example.** Budget = 2000 DA, need = 10 GB, priority #1 = price, #2 = data.
 
-| Plan | Price | Data | Price merit | Tier | Data merit | Score |
-|------|-------|------|-------------|------|------------|-------|
-| A | 1000 DA | 8 GB  | 0.50 | 0.50 | 0.80 | 0.50 + 0.24×0.80 = **0.692** |
-| B | 1100 DA | 15 GB | 0.45 | 0.50 | 1.00 | 0.50 + 0.24×1.00 = **0.740** |
-| C | 600 DA  | 4 GB  | 0.70 | 0.75 | 0.40 | 0.75 + 0.24×0.40 = **0.846** |
+| Plan | Price | Data | Price merit | Tier | Data merit |
+|------|-------|------|-------------|------|------------|
+| A | 1000 DA | 8 GB  | 0.50 | 0.50 | 0.80 |
+| B | 1100 DA | 15 GB | 0.45 | 0.50 | 1.00 |
+| C | 600 DA  | 4 GB  | 0.70 | 0.75 | 0.40 |
+
+Rank by tier first: **C** is alone in the top tier (0.75). **A** and **B** share the next
+tier (0.50), so the **data merit** breaks that tie: B (1.00) beats A (0.80).
 
 **Ranking: C → B → A.**
 
@@ -98,7 +108,8 @@ What to say about it:
 - **A and B are in the same price tier** (both 0.50), so there the **data merit** breaks
   the tie, and B (15 GB) beats A (8 GB).
 - This is the whole point: the **#2 priority only reorders within a band; it can never
-  overtake the #1 priority** — because 0.24 is smaller than one tier step (0.25).
+  overtake the #1 priority** — because the sort compares the tier first and only looks at
+  the 2nd criterion when two plans share a tier.
 
 If the user picks only **one** priority, we skip the tiers and rank directly by that
 merit.
@@ -140,21 +151,33 @@ and the #2 can only reorder inside a band. We rejected five designs before this 
 (documented in Chapter 3, §3.4).
 
 **Q — Did you invent this formula, or is it researched?**
-The **method** is researched and cited — lexicographic preference ordering with bounded
-relaxation, from operations research (Fishburn 1974, Roberts 1979; modern treatment by
-Goswami, Mitra & Sen 2021). The **specific numbers** (5 tiers, the 0.24 weight) are our
-own engineering choices, each justified by the maths below — the thesis says clearly that
-the contribution is *the adaptation*, not the algorithm.
+The **method and the formula's structure are researched and cited**; only the two
+**parameters are tuned by us** — and that is normal, not a weakness. The method is the
+**lexicographic semiorder**: a lexicographic order (Fishburn 1974) combined with an
+indifference threshold — the *semiorder* of Luce (1956), introduced as a choice model by
+Tversky (1969), and still used today in multi-attribute decision making (Safarzadeh &
+Rasti-Barzoki 2018; Taherdoost & Madanchian 2023). The ranking is a plain lexicographic
+two-key sort, with **no invented constant**. What is ours: the **5-tier threshold** and
+the value functions' **reference points** (budget, need), tuned to our catalogue. Honest
+line for the jury: *"the technique is established; applying and tuning it to mobile plans
+is our contribution"* — never *"nothing is invented."*
 
-**Q — Isn't the formula arbitrary? Why 0.24 and 0.25?**
-0.25 gives 5 tiers (0, 0.25, 0.5, 0.75, 1) — enough bands to separate cheap / medium /
-expensive without splitting hairs on ~100 plans (we tried a finer step of 0.1 and it
-broke: each band held ~1 plan, so the 2nd priority never acted). 0.24 is deliberately just
-**under** 0.25: the 2nd priority adds at most `0.24 × 1 = 0.24`, which is less than one
-tier step (0.25), so its biggest possible push still can't reach the next tier — that is
-what guarantees the #1 priority always wins across bands. **Proof:** a tier-0.50 plan with
-perfect data scores 0.50 + 0.24 = 0.74; a tier-0.75 plan with zero data scores 0.75, and
-0.75 > 0.74, so the higher tier still wins. The 0.01 gap absorbs floating-point rounding.
+**Q — Why 5 tiers (the threshold)?**
+Five bands (rounding to the nearest 0.25) is enough to separate cheap / medium / expensive
+without splitting hairs on ~100 plans. We tried a finer step (0.1 → 11 bands) and it broke:
+each band held about one plan, so the 2nd priority never got to act. The number of bands is
+the semiorder's "just-noticeable difference" — a tuned parameter, justified by the catalogue
+size. There is no secondary *weight* any more: the ranking is an explicit two-key sort, so
+the 2nd criterion is consulted only when two plans already share a tier.
+
+**Q — Why this method and not TOPSIS, AHP, a weighted sum, or collaborative filtering?**
+Each was ruled out for a concrete reason. **Collaborative filtering / deep learning** need a
+click history we don't have at launch (cold-start). **Weighted sum, weighted product, and
+TOPSIS** are *compensatory* — great data can offset a bad price, which breaks "price matters
+most". **AHP** needs numeric weights or many pairwise comparisons that ordinary users can't
+give. The **lexicographic semiorder** needs only a *ranking* of the criteria, is strictly
+non-compensatory, works with no history, and is fully transparent — the best fit for a
+cold-start, two-criterion, ~100-plan problem.
 
 **Q — What if no plan fits the budget or filters?**
 Budget is a hard ceiling, so if nothing fits, the list is simply empty and the screen says
@@ -169,9 +192,10 @@ There is nothing to game — the result is a deterministic function of the user'
 profile and the live catalogue. No clicks, no popularity, no ads influence it.
 
 **Q — Is this a real algorithm or just sorting?**
-It is an applied form of **lexicographic preference ordering with bounded relaxation**, a
-multi-criteria decision method from operations research (Fishburn 1974, Roberts 1979). The
-"tier, then refine" rule **is** that method; sorting is only the final step.
+It is an applied form of the **lexicographic semiorder**, a non-compensatory multi-criteria
+decision method from operations research (Fishburn 1974; Luce 1956; Tversky 1969). The
+"order by tier, then break ties within a tier" rule **is** that method; the sort is only
+the final step.
 
 **Q — How is "savings" computed?**
 Simply budget − plan price (never negative). It shows how much of the monthly budget the

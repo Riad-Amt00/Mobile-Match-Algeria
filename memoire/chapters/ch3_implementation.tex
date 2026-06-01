@@ -135,10 +135,10 @@ User authentication is implemented with NextAuth.js using the Credentials provid
 
 \subsection{Two Layer Decision Model}
 
-The recommendation engine is implemented in \textit{src/lib/recommendation.ts}. It separates the recommendation problem into two distinct layers: a categorical filtering layer that excludes offers incompatible with the user's hard constraints, and a tiered ranking layer that orders the remaining offers according to the user's primary and secondary continuous priorities. The second layer is an applied form of \textbf{lexicographic preference ordering with bounded relaxation}, a well established technique in multi criteria decision making \parencite{Fishburn1974, Roberts1979}: the contribution of this work is the adaptation of that technique to a cold start consumer plan context, not the algorithm itself. The final defensible design (Table~\ref{tab:rec-algo}) was reached after several rejected attempts (Section~3.4.3), each of which exposed a specific failure mode of the previous one.
+The recommendation engine is implemented in \textit{src/lib/recommendation.ts}. It separates the recommendation problem into two distinct layers: a categorical filtering layer that excludes offers incompatible with the user's hard constraints, and a tiered ranking layer that orders the remaining offers according to the user's primary and secondary continuous priorities. The second layer is an applied form of the \textbf{lexicographic semiorder}, a non compensatory multi criteria decision rule that combines the lexicographic ordering of \textcite{Fishburn1974, Roberts1979} with the indifference threshold (semiorder) of \textcite{Luce1956} and \textcite{Tversky1969}, and which remains in current use in multi attribute decision making \parencite{SafarzadehBarzoki2018, TaherdoostMadanchian2023}: the contribution of this work is the adaptation of that established technique to a cold start consumer plan context, the choice of criteria and the tuning of the indifference threshold, not the algorithm itself. The final defensible design (Table~\ref{tab:rec-algo}) was reached after several rejected attempts (Section~3.4.3), each of which exposed a specific failure mode of the previous one.
 
 \begin{table}[H]
-  \caption{Tiered ranking recommendation algorithm}
+  \caption{Recommendation ranking algorithm (lexicographic semiorder)}
   \label{tab:rec-algo}
   \centering\small
   \begin{tabular}{|p{0.8cm}|p{12.5cm}|}
@@ -150,9 +150,9 @@ The recommendation engine is implemented in \textit{src/lib/recommendation.ts}. 
     1c  & \textit{Plan type, network, calls, SMS}: discard offers that do not satisfy the user's categorical preferences. \\ \hline
     2a  & Compute the price merit $m_1 = \mathrm{clamp01}(1 - \mathrm{priceDA} / \mathrm{needs.budget})$, cheaper is better, since the budget is a ceiling rather than a target. \\ \hline
     2b  & Compute the data merit $m_2 = \mathrm{clamp01}(\mathrm{dataGB} / \mathrm{needs.dataGB})$, coverage of declared need. \\ \hline
-    3a  & Tier ($P_1$ = primary priority): $\mathrm{tier} = \mathrm{round}(m_{P_1} \times 4) / 4 \in \{0,\,0.25,\,0.5,\,0.75,\,1\}$. \\ \hline
-    3b  & Composite key ($P_2$ = secondary): $C = \mathrm{tier} + 0.24 \times m_{P_2}$ (within tier term $<0.25$, never crosses a tier boundary). \\ \hline
-    4   & Sort by composite key; ties broken by the base fitness score. When only one priority is set, $m_1$ is used directly as the ranking key (no tier coarsening). \\ \hline
+    3a  & Quantise the primary merit into five ordered indifference classes (the semiorder threshold): $\mathrm{tier} = \mathrm{round}(m_{P_1} \times 4) / 4 \in \{0,\,0.25,\,0.5,\,0.75,\,1\}$. \\ \hline
+    3b  & Secondary key ($P_2$ = secondary priority): the merit $m_{P_2}$, used only to order offers within a tier. \\ \hline
+    4   & Order lexicographically: by tier first, then by $m_{P_2}$, then by the base fitness score as a deterministic tiebreak. With only one priority, rank directly by the continuous merit $m_1$ (no quantisation). \\ \hline
     5   & Return the top-$N$ results with \texttt{matchReasons[~]}. \\ \hline
   \end{tabular}
 \end{table}
@@ -175,7 +175,7 @@ The hard filter layer treats every categorical preference as a binary go / no go
   \end{tabular}
 \end{table}
 
-The ranking layer then asks the user to rank two criteria from the set \{price, data\} rather than to assign numeric weights, a known difficulty in multi criteria decision contexts where users have well defined preferences but cannot accurately quantify the corresponding weights \parencite{Roberts1979}. Each rankable criterion is scored as a need relative ratio rather than a pool normalised one, so a catalogue outlier (a 10~DA plan with no data) cannot distort the ranking for users with a typical budget. The two key parameters of the algorithm and their justifications are summarised in Table~\ref{tab:rec-params}.
+The ranking layer then asks the user to rank two criteria from the set \{price, data\} rather than to assign numeric weights, a known difficulty in multi criteria decision contexts where users have well defined preferences but cannot accurately quantify the corresponding weights \parencite{Roberts1979}. Each rankable criterion is scored as a need relative ratio rather than a pool normalised one, so a catalogue outlier (a 10~DA plan with no data) cannot distort the ranking for users with a typical budget. The two key parameters of the algorithm and their justifications are summarised in Table~\ref{tab:rec-params}. The $0$ to $100$ base fitness score, used only to break exact ties and to gauge match strength for the daily notifications, is a simple additive weighting of the per attribute fits, a standard (compensatory) aggregation in multi criteria decision making \parencite{TaherdoostMadanchian2023} whose weights are tuned to the domain.
 
 \begin{table}[H]
   \caption{Justification of the key parameters of the tiered ranking layer}
@@ -184,8 +184,8 @@ The ranking layer then asks the user to rank two criteria from the set \{price, 
   \begin{tabular}{|p{3.0cm}|p{10.3cm}|}
     \hline
     \textbf{Parameter} & \textbf{Why this value} \\ \hline
-    Five tier centres ($h = 0.25$) & A smaller catalogue (~100 plans) does not statistically support finer partitioning; a larger number of tiers would shrink each tier toward a single offer and defeat the within tier ordering. \\ \hline
-    Secondary multiplier $= 0.24$ & Strictly below the tier width $h = 0.25$: guarantees that no within tier improvement on the secondary criterion can lift an offer past a higher tier; the $0.01$ safety margin absorbs floating point rounding. \\ \hline
+    Five indifference classes (threshold $h = 0.25$) & The semiorder's just noticeable difference, tuned to the catalogue: a smaller catalogue (~100 plans) does not support finer partitioning, and more classes would shrink each toward a single offer and defeat the within class ordering. \\ \hline
+    Lexicographic ordering (no secondary weight) & The ranking compares the tier first and the secondary merit only within a tier (an explicit two key sort), so by construction no secondary gain can cross a tier boundary; no numeric weight is introduced. \\ \hline
   \end{tabular}
 \end{table}
 
@@ -204,11 +204,11 @@ The tiered model was reached only after four earlier designs were rejected, each
     2 & Weighted sum of merits ($0.6, 0.4$) & A great score on one criterion compensated for a poor score on the other, contradicting the user's stated priority. \\ \hline
     3 & Weighted geometric mean & Tuning the weights merely shifted the symptom between \guillemotleft{}follows only price\guillemotright{} and \guillemotleft{}follows only data\guillemotright{} without ever producing a clean primary then secondary order. \\ \hline
     4 & Tiered ranking with tier step $h = 0.1$ & Cheapest tier so narrow it contained only micro plans, producing degenerate results. \\ \hline
-    5 & \textbf{Tiered ranking, $h = 0.25$, secondary multiplier $0.24$ (retained)} & Reliably produces \guillemotleft{}follow the first priority, then get as close as possible to the second\guillemotright{}, matching the user's mental model. \\ \hline
+    5 & \textbf{Lexicographic semiorder: primary quantised into five indifference classes ($h = 0.25$), secondary breaks within class ties (retained)} & Reliably produces \guillemotleft{}follow the first priority, then get as close as possible to the second\guillemotright{}, matching the user's mental model. \\ \hline
   \end{tabular}
 \end{table}
 
-To illustrate the rejection of design~3 concretely, consider a user with budget 1\,400~DA, data need 20~GB, priorities \texttt{[price, data]}, and two candidate offers $O_A$ (200~DA / 3~GB) and $O_B$ (1\,400~DA / 25~GB). The geometric mean composite $m_1^{0.6} \cdot m_2^{0.4}$ returns $0.14$ for $O_A$ and $1.00$ for $O_B$, ranking $O_B$ first, directly contradicting the user's stated primary preference for price. The tiered model places $O_A$ in tier $0.00$ and $O_B$ in tier $1.00$; the primary priority strictly determines the tier, so $O_A$ leads. The two models produce opposite top results from the same inputs, which is the failure mode the iterative process was eliminating.
+To illustrate the rejection of design~3 concretely, consider a user with budget 1\,400~DA, data need 20~GB, priorities \texttt{[price, data]}, and two candidate offers $O_A$ (200~DA / 3~GB) and $O_B$ (1\,400~DA / 25~GB). The geometric mean composite $m_1^{0.6} \cdot m_2^{0.4}$ returns $0.14$ for $O_A$ and $1.00$ for $O_B$, ranking $O_B$ first, directly contradicting the user's stated primary preference for price. The lexicographic semiorder places $O_A$ in tier $0.00$ and $O_B$ in tier $1.00$; the primary priority strictly determines the tier, so $O_A$ leads. The two models produce opposite top results from the same inputs, which is the failure mode the iterative process was eliminating.
 
 The engine is called from two distinct contexts: the \textit{/api/recommendations} route handler executes the algorithm synchronously in response to an explicit user request (rate limited at sixty requests per minute per IP), and the scraper orchestrator runs it in batch after each successful scrape cycle to dispatch personalised \texttt{recommendation} notifications when a user's top match has changed. The engine covers the case where the user has filled out a profile and wants the system to choose for them; the complementary case, the user has a query in mind and wants the catalogue filtered by it, is handled by the structured search interface described next.
 

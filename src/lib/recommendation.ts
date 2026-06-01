@@ -14,15 +14,18 @@
  *     (saturating utility — extra data beyond the need does not raise the merit).
  *
  * Merit is target-relative, never pool-relative, so a catalogue outlier cannot
- * distort the scale. Offers are then ranked in TIERS by the top priority's merit
- * (rounded to 0.25 → 5 discrete bands); within a tier the 2nd priority decides
- * the order. The 2nd priority's contribution is bounded below the tier width
- * (0.24 < 0.25) so it can never lift an offer past a higher tier — "follow the
- * top priority strictly, then get as close as possible on the 2nd". This is
- * applied lexicographic preference ordering with bounded relaxation, after
- * Fishburn (1974) and Roberts (1979); the bounded-relaxation framing is
- * characterised in modern preference theory by Goswami, Mitra and Sen (2021).
- * The base fitness score is used only as a tiebreaker.
+ * distort the scale. Offers are then ranked by a LEXICOGRAPHIC SEMIORDER: the
+ * primary priority's merit is quantised into 5 ordered indifference classes
+ * ("tiers"), the just-noticeable-difference threshold of a semiorder (Luce 1956;
+ * Tversky 1969). Offers in the same tier are treated as indifferent on the
+ * primary criterion, so the SECONDARY priority orders them; offers in different
+ * tiers are ordered by the primary alone. This is a strict, non-compensatory
+ * lexicographic decision rule (Fishburn 1974), still in current use as a
+ * multi-attribute method (Safarzadeh & Rasti-Barzoki 2018; Taherdoost &
+ * Madanchian 2023): no secondary gain can move an offer across a primary tier.
+ * With a single priority there is
+ * no tie to break, so offers are ranked by its continuous merit directly. The
+ * additive base fitness score is used only as a final deterministic tiebreaker.
  */
 
 export interface UserNeeds {
@@ -109,34 +112,27 @@ export function recommendOffers(
       return 0
     }
 
-    // Tier by the TOP priority's merit (rounded to 0.25 → ~4 broad tiers, so a real
-    // range of e.g. "cheap" offers shares a tier); within a tier the 2nd priority
-    // refines the order. The 2nd term is kept strictly below one tier-step (0.25), so
-    // it can never push an offer past a higher tier. The base fitness score (r.score
-    // so far) only breaks an exact tie.
+    // Lexicographic semiorder. PRIMARY key: with two priorities, the primary merit
+    // is quantised into 5 ordered indifference classes — tier = round(m1 × 4)/4 ∈
+    // {0, .25, .5, .75, 1} — so a real range of e.g. "cheap" offers shares a tier
+    // (the semiorder's just-noticeable difference, after Luce 1956 / Tversky 1969);
+    // with one priority the primary key is the continuous merit (no tie to break).
+    // SECONDARY key: the 2nd priority's merit, which orders offers WITHIN a tier
+    // only. FINAL key: the additive base fitness score, a deterministic tiebreak.
+    // Because the sort compares the primary key first, no secondary gain can ever
+    // move an offer across a primary tier — the rule is strictly non-compensatory.
     const keyed = scored.map(r => {
       const m1 = merit(ranked[0], r.offer)
       const m2 = ranked[1] ? merit(ranked[1], r.offer) : 0
       if (m1 >= 0.66) r.matchReasons.push({ key: `match.priority.${ranked[0]}` })
       if (ranked[1] && m2 >= 0.66) r.matchReasons.push({ key: `match.priority.${ranked[1]}` })
-      // Two priorities: TIER by the 1st (round to 0.25), then refine by the 2nd
-      // (bounded below the tier width 0.25, so the 2nd cannot cross a tier).
-      // One priority: rank purely by the 1st priority's continuous merit — no
-      // tier coarsening to lose precision when there is no 2nd criterion that
-      // would need a tier band to act inside.
-      const composite = ranked[1]
-        ? Math.round(m1 * 4) / 4 + m2 * 0.24
-        : m1
-      return { r, composite, base: r.score }
+      const primary = ranked[1] ? Math.round(m1 * 4) / 4 : m1
+      return { r, primary, secondary: m2, base: r.score }
     })
-    keyed.sort((a, b) => b.composite - a.composite || b.base - a.base)
+    keyed.sort((a, b) =>
+      b.primary - a.primary || b.secondary - a.secondary || b.base - a.base)
     scored.length = 0
-    const maxComposite = ranked[1] ? 1.24 : 1.0
-    for (const k of keyed) {
-      // composite ∈ [0, maxComposite] → scale to 0–100.
-      k.r.score = Math.round((k.composite / maxComposite) * 100)
-      scored.push(k.r)
-    }
+    for (const k of keyed) scored.push(k.r)
   } else {
     scored.sort((a, b) => b.score - a.score)
   }
