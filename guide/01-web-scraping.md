@@ -126,10 +126,15 @@ be read as text. Those are entered by hand and re-checked regularly. We tested O
 it was only 29–43 % accurate, so we rejected it; a paid vision API is the future option
 (in the Perspectives chapter).
 
-**Q — How do you detect new offers and price changes?**
-On each run we compare to the database: a new plan is inserted, a changed price is
-logged to the price history (and users are alerted on a drop), and a plan that
-disappeared is marked inactive — with a guard so a broken run can't wipe the catalogue.
+**Q — How do you detect new offers and updates?**
+On each run we match every scraped plan to the database by operator + name. Three cases:
+a plan we've never seen is **inserted**; a plan that already exists is **updated in
+place**, we overwrite all its fields (data, minutes, SMS, validity, features, price), so
+if Djezzy's data goes from 10 GB to 15 GB it is corrected automatically; and a plan that
+was active but is no longer on the site is **marked inactive**. Price gets extra
+treatment on top: every change is written to the price-history table, and a drop also
+alerts users. A guard skips the deactivation step if a run returns suspiciously few
+offers, so a broken scrape can't wipe the catalogue.
 
 **Q — What is the main weakness or risk?**
 A site could block us or redesign its pages. We reduce that with a real browser, spaced
