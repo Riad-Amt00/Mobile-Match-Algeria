@@ -28,7 +28,7 @@
 \usepackage{titlesec}
 \titleformat{\chapter}[block]
   {\centering\bfseries\fontsize{14}{17}\selectfont}
-  {Chapter \thechapter~---~}{0pt}{}
+  {Chapter \thechapter~:~}{0pt}{}
 \titlespacing*{\chapter}{0pt}{0pt}{12pt}
 \titleformat{name=\chapter,numberless}[block]
   {\centering\bfseries\fontsize{14}{17}\selectfont}{}
@@ -65,10 +65,10 @@
 \usepackage{booktabs}
 \usepackage{longtable}
 \usepackage{caption}
-% IFAG format: "Figure X.Y — Description" / "Table X.Y — Description"
-\DeclareCaptionLabelSeparator{emdash}{ --- }
-\captionsetup[figure]{position=below,font={small,it},labelfont=bf,justification=centering,labelsep=emdash}
-\captionsetup[table]{position=above,font={small,it},labelfont=bf,justification=centering,labelsep=emdash}
+% IFAG format: "Figure X.Y : Description" / "Table X.Y : Description" (colon, matches TOC)
+\DeclareCaptionLabelSeparator{ifagcolon}{ : }
+\captionsetup[figure]{position=below,font={small,it},labelfont=bf,justification=centering,labelsep=ifagcolon}
+\captionsetup[table]{position=above,font={small,it},labelfont=bf,justification=centering,labelsep=ifagcolon}
 \usepackage{chngcntr}
 \counterwithin{figure}{chapter}
 \counterwithin{table}{chapter}
