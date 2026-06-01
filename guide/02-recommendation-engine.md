@@ -74,6 +74,13 @@ score = tier + 0.24 × data merit
 rank by score, highest first
 ```
 
+**What a "tier" is.** A merit is a decimal from 0 to 1. We **round it to the nearest
+0.25**, onto one of five rungs (0, 0.25, 0.5, 0.75, 1) — that is all `round(m × 4)/4`
+does. A *tier* is a rung, and plans on the same rung count as **equally good** on that
+criterion, so the 2nd priority can decide between them. (Why round at all? Otherwise a
+plan 1 DA cheaper would always beat a slightly pricier one even with far less data;
+rounding groups "close enough" plans so the 2nd priority has room to act.)
+
 **Worked example.** Budget = 2000 DA, need = 10 GB, priority #1 = price, #2 = data.
 
 | Plan | Price | Data | Price merit | Tier | Data merit | Score |
@@ -132,12 +139,22 @@ contradicts "price matters most to me". Tiers fix that: the #1 priority decides 
 and the #2 can only reorder inside a band. We rejected five designs before this one
 (documented in Chapter 3, §3.4).
 
+**Q — Did you invent this formula, or is it researched?**
+The **method** is researched and cited — lexicographic preference ordering with bounded
+relaxation, from operations research (Fishburn 1974, Roberts 1979; modern treatment by
+Goswami, Mitra & Sen 2021). The **specific numbers** (5 tiers, the 0.24 weight) are our
+own engineering choices, each justified by the maths below — the thesis says clearly that
+the contribution is *the adaptation*, not the algorithm.
+
 **Q — Isn't the formula arbitrary? Why 0.24 and 0.25?**
 0.25 gives 5 tiers (0, 0.25, 0.5, 0.75, 1) — enough bands to separate cheap / medium /
-expensive without splitting hairs on ~100 plans. 0.24 is deliberately just **under** 0.25,
-so the secondary priority's largest possible push still can't reach the next tier — that
-is exactly what guarantees the #1 priority always wins across bands. The 0.01 gap absorbs
-rounding.
+expensive without splitting hairs on ~100 plans (we tried a finer step of 0.1 and it
+broke: each band held ~1 plan, so the 2nd priority never acted). 0.24 is deliberately just
+**under** 0.25: the 2nd priority adds at most `0.24 × 1 = 0.24`, which is less than one
+tier step (0.25), so its biggest possible push still can't reach the next tier — that is
+what guarantees the #1 priority always wins across bands. **Proof:** a tier-0.50 plan with
+perfect data scores 0.50 + 0.24 = 0.74; a tier-0.75 plan with zero data scores 0.75, and
+0.75 > 0.74, so the higher tier still wins. The 0.01 gap absorbs floating-point rounding.
 
 **Q — What if no plan fits the budget or filters?**
 Budget is a hard ceiling, so if nothing fits, the list is simply empty and the screen says
