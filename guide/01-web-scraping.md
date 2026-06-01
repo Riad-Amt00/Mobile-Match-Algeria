@@ -51,7 +51,7 @@ Cheerio parses it, and node-cron runs the whole thing daily.*
               price / data / minutes / SMS / validity / features.           │
                                                                             │
   3. NORMALISE Raw text → clean numbers (e.g. "1 500 DA" → 1500,            │
-               "60 Go" → 60, "24سا" → 1 day). Units in FR / EN / AR.        │
+               "60 Go" → 60, "24hr" → 1 day). Units in FR / EN / AR.        │
                                                                             │
   4. VALIDATE  Every offer must pass 12 sanity rules before it can be       │
                saved (price in range, no HTML in the name, etc.).           │
