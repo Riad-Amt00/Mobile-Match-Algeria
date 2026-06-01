@@ -68,7 +68,137 @@ A healthy run for all three operators finishes in a few seconds and ends with
 
 ---
 
-## 4. The files, one by one
+## 4. A live example: one Djezzy LEGEND plan, from HTML to a saved offer
+
+Let's trace a single real plan all the way through, so the pipeline stops being
+abstract. (This is the exact HTML our tests use as a fixture.)
+
+### Step 1 — the raw HTML the operator page gives us
+A plan on the Djezzy LEGEND page is one `<article class="price-card">`. Each line
+is a `<li class="feature-item">` whose `<i>` icon class tells us *what kind* of
+value it is, and whose text holds the value. (Inline styles trimmed for clarity.)
+
+```html
+<article class="price-card" aria-label="Offer 4000">
+  <div class="price-logo"><img src=".../logo-legend.png" alt="Offer logo"></div>
+  <ul class="price-features">
+    <li class="feature-item"><i class="icon-Internet"></i>
+        <span><span>200 GO</span><br><span>Internet</span></span></li>
+    <li class="feature-item"><i class="icon-Appels-Illimite"></i>
+        <span><span>APPELS ILLIMITÉS</span><br><span>VERS TOUS LES RÉSEAUX</span></span></li>
+    <li class="feature-item"><i class="icon-SMS-illimite"></i>
+        <span><span>SMS ILLIMITÉS</span><br><span>VERS DJEZZY</span></span></li>
+    <li class="feature-item"><i class="icon-Courrier"></i>
+        <span><span>30 SMS</span><br><span>VERS LES AUTRES RÉSEAUX</span></span></li>
+    <li class="feature-item"><i class="icon-Historique"></i>
+        <span>30 Jours<br>Validité</span></li>
+    <li class="feature-item"><span>Pour 4000 DA</span></li>
+  </ul>
+</article>
+```
+
+### Step 2 — the function that reads the card
+This is the part of `parsePriceCards()` (in [djezzy.ts](../src/lib/scraper/djezzy.ts))
+that does the work. It loops over the `feature-item` lines and routes each one by
+its icon class. (Trimmed to the branches that fire for this card.)
+
+```ts
+$('article.price-card').each((_, el) => {
+  const card = $(el)
+  let priceDA = 0, dataGB = 0, voiceMinutes = -1, smsCount = -1, validityDays = 30
+  const features: string[] = []
+
+  card.find('li.feature-item').each((_, fi) => {
+    const item = $(fi)
+    const iconClass = item.find('i').attr('class') || ''  // e.g. "icon-Internet"
+    const text = item.text().replace(/\s+/g, ' ').trim()  // e.g. "200 GO Internet"
+
+    if (iconClass.includes('icon-Internet')) {
+      const gb = parseGB(text); if (gb > 0) dataGB = gb               // "200 GO" -> 200
+    } else if (iconClass.includes('icon-Appels-Illimite')) {
+      voiceMinutes = -1                                               // -1 = unlimited
+      features.push(/tous les r.seaux/i.test(text)
+        ? 'Unlimited calls (all networks)' : 'Unlimited Djezzy calls')
+    } else if (iconClass.includes('icon-SMS-illimite')) {
+      smsCount = -1
+      features.push(/djezzy/i.test(text) ? 'Unlimited Djezzy SMS' : 'Unlimited SMS')
+    } else if (iconClass.includes('icon-Courrier')) {
+      const sm = text.match(/(\d+)\s*SMS/i)                           // "30 SMS ..." -> 30
+      if (sm) features.push(`${sm[1]} SMS to other networks`)
+    } else if (iconClass.includes('icon-Historique')) {
+      validityDays = parseValidityDays(text)                          // "30 Jours" -> 30
+    }
+    const p = parsePriceDA(text); if (p > 0 && !priceDA) priceDA = p  // "Pour 4000 DA" -> 4000
+  })
+
+  pushIfValid(offers, {
+    name: `Djezzy LEGEND ${priceDA}`, type, priceDA, dataGB,
+    voiceMinutes, smsCount, validityDays, network: '4G', features, sourceUrl: pageUrl,
+  })
+})
+```
+
+### Step 3 — the normalizers that turn messy text into clean numbers
+The helpers above (`parseGB`, `parsePriceDA`, `parseValidityDays`, in
+[validate.ts](../src/lib/scraper/validate.ts)) are **unit-anchored**: a bare number
+with no unit returns 0, which is what stops a price being misread as a data volume.
+(Trimmed to the branches this card hits; the real ones also read MB, weeks, months,
+hours, and Arabic.)
+
+```ts
+export function parseGB(text: string): number {
+  const gb = text.match(/([\d.,]+)\s*(?:go|gb|giga)/i)   // needs a unit
+  if (gb) return parseFloat(gb[1].replace(',', '.'))     // "200 GO" -> 200
+  return 0                                               // "200" alone -> 0
+}
+
+export function parsePriceDA(text: string): number {
+  const la = text.match(/(\d[\d\s]*?)\s*da\b/i)          // "Pour 4000 DA" -> 4000
+  return la ? parseInt(la[1].replace(/\s/g, '')) : 0
+}
+
+export function parseValidityDays(text: string): number {
+  const d = text.match(/(\d+)\s*jours?/i)                // "30 Jours" -> 30
+  return d ? parseInt(d[1]) : 30
+}
+```
+
+### Step 4 — the clean offer object the parser produces
+After the loop, the messy card has become one tidy record:
+
+```jsonc
+{
+  "name": "Djezzy LEGEND 4000",
+  "type": "PREPAID",
+  "priceDA": 4000,        // from "Pour 4000 DA"
+  "dataGB": 200,          // from "200 GO"
+  "voiceMinutes": -1,     // -1 = unlimited  (APPELS ILLIMITÉS)
+  "smsCount": -1,         // -1 = unlimited  (SMS ILLIMITÉS VERS DJEZZY)
+  "validityDays": 30,     // from "30 Jours"
+  "network": "4G",
+  "features": [
+    "Unlimited calls (all networks)",   // VERS TOUS LES RÉSEAUX
+    "Unlimited Djezzy SMS",             // VERS DJEZZY
+    "30 SMS to other networks"          // icon-Courrier "30 SMS"
+  ],
+  "sourceUrl": "https://www.djezzy.dz/legend"
+}
+```
+
+### Step 5 — the validation gate
+`validateOffer()` checks it: price 4000 is within 10–50000, data 200 within range,
+the name is clean, the type is valid, and `dataGB !== priceDA`. It returns
+`{ valid: true }`, so the orchestrator saves it (insert or update + price-history row).
+
+### Step 6 — what you finally see in the app
+The card rebuilds human labels from those fields: the `-1` sentinels plus the feature
+lines become **Data 200 GB · Calls Unlimited (all networks) · SMS Unlimited (Djezzy)
++ 30 off-net · 4000 DA**. That "+ 30 off-net" is exactly the `icon-Courrier` line
+surviving all the way from the raw HTML to the screen.
+
+---
+
+## 5. The files, one by one
 
 All scraping code lives in [src/lib/scraper/](../src/lib/scraper/). Here is each file
 and what it does.
@@ -151,7 +281,7 @@ correctly without hitting the live sites.
 
 ---
 
-## 5. The smart parts worth mentioning at the defense
+## 6. The smart parts worth mentioning at the defense
 
 - **Why a real browser?** Plain HTTP is blocked by anti-bot; a genuine headless
   Edge passes. (This is the static-vs-dynamic choice from Chapter 1.)
@@ -168,7 +298,7 @@ correctly without hitting the live sites.
 
 ---
 
-## 6. Likely jury questions (and short answers)
+## 7. Likely jury questions (and short answers)
 
 - **"Is scraping legal?"** — We read only public pages, obey `robots.txt` and rate
   limits, identify ourselves, and store no personal data. Same data any visitor
