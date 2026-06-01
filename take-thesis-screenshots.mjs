@@ -40,7 +40,15 @@ try {
   await page.evaluate(() => window.scrollTo(0, 0))
   await shot('screenshot_login', { x: 0, y: 0, width: 1440, height: 720 })
 
+  // ── 2b) screenshot_register — account creation screen (before sign-in)
+  await page.goto('http://localhost:3000/register')
+  await page.waitForTimeout(2500)
+  await page.evaluate(() => window.scrollTo(0, 0))
+  await shot('screenshot_register', { x: 0, y: 0, width: 1440, height: 720 })
+
   // Sign in as admin for the remaining captures
+  await page.goto('http://localhost:3000/login')
+  await page.waitForTimeout(2000)
   await page.fill('input[type=email]', 'admin@mobilematch.dz')
   await page.fill('input[type=password]', 'admin123456')
   await page.click('button[type=submit]')
@@ -55,8 +63,41 @@ try {
   await page.evaluate(() => window.scrollTo(0, 0))
   await shot('screenshot_offers')
 
+  // ── 3b) screenshot_offers_filtered — advanced filter panel expanded
+  await page.locator('input[type=search]').first().fill('')
+  await page.waitForTimeout(400)
+  await page.locator('button:has-text("Filters")').first().click().catch(() => {})
+  await page.waitForTimeout(900)
+  await page.evaluate(() => window.scrollTo(0, 0))
+  await shot('screenshot_offers_filtered')
+
+  // ── 3c) screenshot_offer_detail — detail page with spec + price-history panel.
+  // Pick an offer that actually has a price-history row so the panel renders
+  // (a multi-point line chart needs >=2 points; pick the richest available).
+  try {
+    const list = await fetch('http://localhost:3000/api/offers?limit=48').then(r => r.json())
+    let id = list.offers?.[0]?.id, bestPts = -1
+    for (const o of (list.offers || [])) {
+      const det = await fetch(`http://localhost:3000/api/offers/${o.id}`).then(r => r.json()).catch(() => null)
+      const pts = det?.offer?.priceHistory?.length ?? 0
+      if (pts > bestPts) { bestPts = pts; id = o.id }
+      if (bestPts >= 2) break // a real line chart — stop early
+    }
+    if (id) {
+      await page.goto(`http://localhost:3000/offers/${id}`)
+      await page.waitForTimeout(4000)
+      await page.evaluate(() => window.scrollTo(0, 0))
+      await page.waitForTimeout(800) // let the price-history chart render
+      // full page so the specification AND the price-history chart both appear
+      await page.screenshot({ path: `${OUT}/screenshot_offer_detail.png`, fullPage: true })
+      console.log('✓ screenshot_offer_detail (full page)')
+    }
+  } catch {}
+
   // ── 4) compare_bar — sticky bottom bar shown when offers are selected
   // Open offers fresh (clear the search), then click 2 offer card checkboxes
+  await page.goto('http://localhost:3000/offers')
+  await page.waitForTimeout(3500)
   await page.locator('input[type=search]').first().fill('')
   await page.waitForTimeout(500)
   // Click the first two compare checkboxes / select buttons
