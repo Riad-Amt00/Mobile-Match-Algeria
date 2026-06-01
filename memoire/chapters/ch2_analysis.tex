@@ -4,7 +4,7 @@
 
 \chapter{Requirements Analysis and System Design}
 
-Building on the state of the art surveyed in Chapter~1, this chapter formalises the requirements of \textit{Mobile Match Algeria} and presents the architectural and design decisions taken to meet them. The chapter covers requirements gathering, actor identification, UML modelling (use case, activity, and sequence diagrams), the data model as a UML class diagram, the three tier system architecture, and the technology stack justification.
+Building on the state of the art surveyed in Chapter~1, this chapter formalises the requirements of \textit{Mobile Match Algeria} and presents the architectural and design decisions taken to meet them. The chapter covers requirements gathering, actor identification, UML modelling (use case and activity diagrams), the data model as a UML class diagram, the three tier system architecture, and the technology stack justification.
 
 \section{Requirements Gathering}
 
@@ -205,7 +205,7 @@ Table~\ref{tab:usecases} describes each primary use case, the actor who triggers
   \end{tabular}
 \end{table}
 
-\section{UML Activity and Sequence Diagrams}
+\section{UML Activity Diagram}
 
 \subsection{Scraping Pipeline Activity Diagram}
 
@@ -249,65 +249,6 @@ Figure~\ref{fig:activity-scrape} represents the activity flow of the automated s
 \end{figure}
 
 The pipeline begins when a cron trigger or administrator action initiates a scrape for a given operator. The scraper fetches the operator's plan page, parses and normalises the data, and compares each scraped offer against the existing database entries. New offers are inserted; existing offers with changed attributes are updated; offers absent from the scraped data are marked inactive. A ScrapeLog record is created regardless of outcome, recording the number of offers found, inserted, updated, and any error encountered.
-
-\subsection{Recommendation Request Sequence Diagram}
-
-Figure~\ref{fig:seq-recommend} illustrates the sequence of interactions between the client, the API server, the database, and the recommendation engine when a registered user requests personalised recommendations.
-
-\begin{figure}[H]
-\centering
-\begin{tikzpicture}[
-  actor/.style={rectangle, draw=black!70, fill=gray!15, minimum width=2.8cm,
-                minimum height=0.55cm, align=center, font=\small\bfseries},
-  msg/.style={-{Stealth[length=4pt]}, thick},
-  retmsg/.style={-{Stealth[length=4pt]}, thick, dashed},
-  note/.style={font=\scriptsize, fill=yellow!20, draw=gray!60,
-               rounded corners=2pt, inner sep=3pt, align=left}
-]
-  % Participants, 4.0 cm apart
-  \node[actor] (client) at (0,0)    {Client Browser};
-  \node[actor] (api)    at (4.0,0)  {API Server};
-  \node[actor] (db)     at (8.0,0)  {Database};
-  \node[actor] (engine) at (12.0,0) {Rec.\ Engine};
-
-  % Lifelines
-  \foreach \x in {0,4.0,8.0,12.0}
-    \draw[gray!50, thick] (\x,-0.35) -- (\x,-7.8);
-
-  % 1. POST request
-  \draw[msg] (0,-0.9) -- (4.0,-0.9)
-    node[midway, above, font=\scriptsize]{POST /api/recommendations \{profile\}};
-
-  % 2. API-internal: validate (node, not zero-length arrow)
-  \node[note, anchor=west] at (4.3,-1.7) {Validate JWT session};
-
-  % 3. Fetch active offers
-  \draw[msg] (4.0,-2.5) -- (8.0,-2.5)
-    node[midway, above, font=\scriptsize]{SELECT * WHERE isActive = true};
-  \draw[retmsg] (8.0,-3.2) -- (4.0,-3.2)
-    node[midway, above, font=\scriptsize]{offers[ ]};
-
-  % 4. Score via engine
-  \draw[msg] (4.0,-4.0) -- (12.0,-4.0)
-    node[midway, above, font=\scriptsize]{recommendOffers(offers, profile)};
-  \draw[retmsg] (12.0,-4.7) -- (4.0,-4.7)
-    node[midway, above, font=\scriptsize]{top-3 scored results};
-
-  % 5. API-internal: build response (node, not zero-length arrow)
-  \node[note, anchor=west] at (4.3,-5.5) {Build JSON response};
-
-  % 6. Return to client
-  \draw[retmsg] (4.0,-6.3) -- (0,-6.3)
-    node[midway, above, font=\scriptsize]{200 OK \{recommendations[ ]\}};
-
-  % 7. Client-internal: render (node, not zero-length arrow)
-  \node[note, anchor=west] at (0.3,-7.1) {Render ranked plan cards};
-\end{tikzpicture}
-\caption{Sequence diagram, recommendation request flow}
-\label{fig:seq-recommend}
-\end{figure}
-
-The client sends a POST request to \textit{/api/recommendations} with the user's profile parameters. The API server validates the session token, retrieves all active offers from the database, passes the offer list and user profile to the recommendation engine, and returns the top three scored results. The entire server side operation is stateless and completes in under 100~ms for the current catalogue size.
 
 \section{Data Model}
 
