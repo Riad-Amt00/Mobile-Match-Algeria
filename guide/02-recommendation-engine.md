@@ -58,61 +58,50 @@ needs, then rank by what they said matters most.*
 
 ---
 
-## 4. The formula, on a real example
+## 4. How a plan gets ranked (the simple version)
 
-This is the part worth memorising. Two merits, each between 0 and 1:
+Think of it like **sorting a list by two columns** — the way a spreadsheet sorts
+"by Price, then by Data." Three small steps.
 
-```
-price merit = 1 - (price / budget)     (clamped to 0..1; cheaper is better)
-data merit  = data / need              (clamped to 0..1; unlimited = 1)
-```
+**Step 1 — give each plan two scores out of 1 (we call them "merits").**
+A merit just says *how good is this plan on one thing, from 0 (bad) to 1 (perfect):*
+- **Price merit** = how cheap it is for your budget → `1 − price ÷ budget`.
+  With a 2000 DA budget: a 600 DA plan scores `1 − 600/2000 = 0.70`; a 1000 DA plan scores `0.50`.
+- **Data merit** = how well its data covers your need → `data ÷ need` (capped at 1).
+  With a 10 GB need: a 4 GB plan scores `0.40`; a 15 GB plan scores `1.0` (more than enough).
 
-Then, when the user ranks two priorities (say #1 = price, #2 = data), we rank by a
-**lexicographic order** (most-important criterion first, like dictionary order):
+**Step 2 — drop each plan into one of 5 price "bands".**
+We round the price merit to the nearest 0.25, so every plan lands on a rung:
+**0, 0.25, 0.5, 0.75, or 1**. Plans on the same rung are treated as **"about equally cheap."**
+*(Why bother? So a 1 DA price difference doesn't decide everything. Plans that are close on
+price share a band, and then data is allowed to break the tie.)*
 
-```
-tier = round(price merit × 4) / 4   ->  one of {0, 0.25, 0.5, 0.75, 1}   (5 bands)
+**Step 3 — sort, exactly like a dictionary.**
+- First by **band** (your #1 priority, price). A cheaper band **always** beats a pricier band.
+- Only when two plans are in the **same band** do we look at your **#2 priority** (data) to
+  decide who goes first.
 
-rank, in order:
-  1) higher tier first             (your #1 priority decides across bands)
-  2) ties broken by the 2nd merit  (your #2 priority, only WITHIN a band)
-```
+That's the whole thing — no secret formula, no magic number: *"sort by band, then by the
+tie-breaker."*
 
-There is no magic weight here — it is a plain two-key sort: compare the tier first, and
-only look at the second criterion when two plans land in the same tier.
+**See it on 3 real plans** — budget 2000 DA, need 10 GB, you ranked **price #1, data #2**:
 
-**What a "tier" is.** A merit is a decimal from 0 to 1. We **round it to the nearest
-0.25**, onto one of five rungs (0, 0.25, 0.5, 0.75, 1) — that is all `round(m × 4)/4`
-does. A *tier* is a rung, and plans on the same rung count as **equally good** on that
-criterion, so the 2nd priority can decide between them. (Why round at all? Otherwise a
-plan 1 DA cheaper would always beat a slightly pricier one even with far less data;
-rounding groups "close enough" plans so the 2nd priority has room to act.)
+| Plan | Price | Data | Price merit → band | Data merit |
+|------|-------|------|--------------------|------------|
+| C | 600 DA  | 4 GB  | 0.70 → **band 0.75** | 0.40 |
+| A | 1000 DA | 8 GB  | 0.50 → **band 0.50** | 0.80 |
+| B | 1100 DA | 15 GB | 0.45 → **band 0.50** | 1.00 |
 
-**Worked example.** Budget = 2000 DA, need = 10 GB, priority #1 = price, #2 = data.
+- **C is alone in the top band (0.75)** → C is **#1**, even though it has the *least* data.
+  You said price matters most, so the cheapest band wins.
+- **A and B are both in band 0.50** (about equally priced) → now **data** decides:
+  B (15 GB) beats A (8 GB).
+- **Final order: C → B → A.**
 
-| Plan | Price | Data | Price merit | Tier | Data merit |
-|------|-------|------|-------------|------|------------|
-| A | 1000 DA | 8 GB  | 0.50 | 0.50 | 0.80 |
-| B | 1100 DA | 15 GB | 0.45 | 0.50 | 1.00 |
-| C | 600 DA  | 4 GB  | 0.70 | 0.75 | 0.40 |
-
-Rank by tier first: **C** is alone in the top tier (0.75). **A** and **B** share the next
-tier (0.50), so the **data merit** breaks that tie: B (1.00) beats A (0.80).
-
-**Ranking: C → B → A.**
-
-What to say about it:
-- **C wins** because it sits in a higher **price tier** (0.75). The user said price matters
-  most, so a cheaper plan beats a pricier one **across bands** — no matter how much data
-  the pricier plan has.
-- **A and B are in the same price tier** (both 0.50), so there the **data merit** breaks
-  the tie, and B (15 GB) beats A (8 GB).
-- This is the whole point: the **#2 priority only reorders within a band; it can never
-  overtake the #1 priority** — because the sort compares the tier first and only looks at
-  the 2nd criterion when two plans share a tier.
-
-If the user picks only **one** priority, we skip the tiers and rank directly by that
-merit.
+The one idea to remember: **your #2 priority can only shuffle plans *inside* a band — it can
+never lift a plan into a better band.** That's how "price matters most" is guaranteed.
+*(If you pick only one priority, there's nothing to tie-break, so we just sort by that one
+merit directly.)*
 
 ---
 
@@ -123,9 +112,20 @@ merit.
 - **[src/app/recommend/page.tsx](../src/app/recommend/page.tsx)** — the screen: the profile form and the ranked result cards (each showing its savings).
 - **[src/app/profile/page.tsx](../src/app/profile/page.tsx)** — where a logged-in user saves their profile, so the daily job can recommend for them automatically.
 
-*Note:* each plan also gets a 0–100 "fitness score" (budget, data, voice, value…), but we
-use it **only as a tiebreaker** and we **don't show a match %** on the cards — we show the
-**rank** (1st / 2nd / 3rd) and the **savings**, which users find clearer.
+### A note on the "%" (a separate, minor number)
+
+The band-sort above **is** the recommendation. Separately, each plan also gets a rough
+**0–100 "match score"** — a quick *how-good-overall* number made by **adding up points**:
+budget 25, data 25, voice 15, value 15, and small amounts for SMS, features, validity, and
+network. Two honest things about it:
+
+- The **method** of adding weighted points is a standard one, called **Simple Additive
+  Weighting (SAW)**.
+- The **point values** (25, 25, 15, …) are **our own sensible choices**, not from a paper.
+
+And it barely matters: this score does **not** decide the ranking (the band-sort does). It
+is used only as a **last-resort tie-break** and as the **"%" in the daily "Match found!"
+notification**. The cards on screen show the **rank** and the **savings**, not a %.
 
 ---
 
