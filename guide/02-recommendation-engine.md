@@ -70,22 +70,30 @@ pass the budget filter:
 | B | 1100 DA | 15 GB |
 | C | 600 DA  | 4 GB |
 
-**Step 1 — turn each plan into two comparable scores, then weight them.**
-Dinars and GB can't be compared directly, so each column is rescaled into fractions
-(square the values, add them, take the square root, then divide — the computer does this),
-and each fraction is multiplied by its weight (price × 0.75, data × 0.25). Each plan
-becomes **two numbers** — picture it as a dot on a graph:
+**Step 1 — turn each plan into two comparable scores.**
+Dinars and GB can't be compared directly, so we rescale each column. First a **scaling
+number** for the column = square every value, add them, take the square root:
 
-| Plan | price-score | data-score |
-|------|-------------|------------|
-| A | 0.468 | 0.114 |
-| B | 0.515 | 0.215 |
-| C | 0.281 | 0.057 |
+$$\text{price scaling} = \sqrt{1000^2 + 1100^2 + 600^2} = \sqrt{2{,}570{,}000} = 1603$$
+$$\text{data scaling} = \sqrt{8^2 + 15^2 + 4^2} = \sqrt{305} = 17.46$$
 
-**Step 2 — the dream and nightmare dots** (price: lower is better; data: higher is better):
+Then each **score = (value ÷ the column's scaling number) × its weight** (price × 0.75,
+data × 0.25):
 
-- **Dream** = cheapest price-score (0.281, from C) + most data-score (0.215, from B) → **(0.281, 0.215)**
-- **Nightmare** = priciest (0.515, from B) + least data (0.057, from C) → **(0.515, 0.057)**
+| Plan | price-score = (price ÷ 1603) × 0.75 | data-score = (data ÷ 17.46) × 0.25 |
+|------|-------------------------------------|-------------------------------------|
+| A | (1000 ÷ 1603) × 0.75 = **0.468** | (8 ÷ 17.46) × 0.25 = **0.114** |
+| B | (1100 ÷ 1603) × 0.75 = **0.515** | (15 ÷ 17.46) × 0.25 = **0.215** |
+| C | (600 ÷ 1603) × 0.75 = **0.281** | (4 ÷ 17.46) × 0.25 = **0.057** |
+
+Each plan is now **two numbers** — picture it as a dot on a graph (across = price-score, up = data-score).
+
+**Step 2 — build the dream and nightmare dots** from those two score columns. Price: lower
+is better, so the *smallest* price-score is best. Data: higher is better, so the *largest*
+data-score is best:
+
+- **Dream** = smallest price-score **0.281** (C's) + largest data-score **0.215** (B's) → **(0.281, 0.215)**
+- **Nightmare** = largest price-score **0.515** (B's) + smallest data-score **0.057** (C's) → **(0.515, 0.057)**
 
 **Step 3 — plug each dot into the two formulas from §3.** Take **C** (dot $x=0.281$,
 $y=0.057$), measured against the dream $(0.281,\,0.215)$ and the nightmare $(0.515,\,0.057)$.
