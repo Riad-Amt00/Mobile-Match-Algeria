@@ -6,7 +6,7 @@ import Link from 'next/link'
 import { motion, type Variants } from 'framer-motion'
 import {
   Filter, ChevronDown, Zap, BarChart3, SearchX, LayoutGrid, ChevronLeft, ChevronRight,
-  Search, X, HelpCircle,
+  Search, X, HelpCircle, AlertTriangle,
 } from 'lucide-react'
 import { useSession } from 'next-auth/react'
 import { useToast } from '@/components/toast'
@@ -358,6 +358,12 @@ export default function OffersPage() {
           </div>
         )}
 
+
+        {/* Image-only families notice */}
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, fontSize: 13, fontWeight: 500, color: '#FBBF24', background: 'rgba(245,158,11,0.10)', border: '1px solid rgba(245,158,11,0.4)', borderRadius: 10, padding: '10px 14px', marginBottom: '1rem' }}>
+          <AlertTriangle size={16} style={{ flexShrink: 0, marginTop: 2 }} />
+          <span>{t('filter.imageOnlyNotice')}</span>
+        </div>
 
         {/* Result count */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8, marginBottom: '1rem' }}>
