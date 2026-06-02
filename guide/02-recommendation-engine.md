@@ -27,16 +27,18 @@ other users' data, only this user's profile, so it works from day one.
 
 ---
 
-## 3. The one formula to remember
+## 3. The two formulas
 
-```
-closeness  C  =  (distance to the nightmare plan)
-                 ---------------------------------------------------
-                 (distance to the dream) + (distance to the nightmare)
-```
+**Distance** between two dots is the **Euclidean (straight-line) distance**, where $x$ is a
+dot's price-score and $y$ its data-score:
 
-The "distance" is a plain **straight-line distance** between two plans on a price-vs-data
-graph. A plan sitting on the dream gets C = 1; one sitting on the nightmare gets C = 0.
+$$d = \sqrt{(x_1 - x_2)^2 + (y_1 - y_2)^2}$$
+
+**Closeness** is how near a plan is to the dream versus the nightmare:
+
+$$C = \frac{d_{\text{nightmare}}}{d_{\text{dream}} + d_{\text{nightmare}}}$$
+
+A plan sitting on the dream gets $C = 1$; one sitting on the nightmare gets $C = 0$.
 
 ---
 
@@ -85,25 +87,28 @@ becomes **two numbers** — picture it as a dot on a graph:
 - **Dream** = cheapest price-score (0.281, from C) + most data-score (0.215, from B) → **(0.281, 0.215)**
 - **Nightmare** = priciest (0.515, from B) + least data (0.057, from C) → **(0.515, 0.057)**
 
-**Step 3 — for each plan, the straight-line distance to each dot** (gap on price squared +
-gap on data squared, then square root), then `C = nightmare ÷ (dream + nightmare)`:
+**Step 3 — plug each dot into the two formulas from §3.** Take **C** (dot $x=0.281$,
+$y=0.057$), measured against the dream $(0.281,\,0.215)$ and the nightmare $(0.515,\,0.057)$.
 
-```
-C  (0.281, 0.057):
-   to dream     = sqrt( 0^2             + (0.057-0.215)^2 ) = sqrt(0.025) = 0.158
-   to nightmare = sqrt( (0.281-0.515)^2 + 0^2             ) = sqrt(0.055) = 0.234
-   closeness    = 0.234 / (0.158 + 0.234) = 0.60     -> 1st
+Distance to the dream:
 
-B  (0.515, 0.215):
-   to dream     = sqrt( (0.515-0.281)^2 + 0^2             ) = 0.234
-   to nightmare = sqrt( 0^2             + (0.215-0.057)^2 ) = 0.158
-   closeness    = 0.158 / (0.234 + 0.158) = 0.40     -> 2nd
+$$d_{\text{dream}} = \sqrt{(0.281-0.281)^2 + (0.057-0.215)^2} = \sqrt{0 + 0.025} = 0.158$$
 
-A  (0.468, 0.114):
-   to dream     = sqrt( (0.468-0.281)^2 + (0.114-0.215)^2 ) = sqrt(0.045) = 0.212
-   to nightmare = sqrt( (0.468-0.515)^2 + (0.114-0.057)^2 ) = sqrt(0.005) = 0.074
-   closeness    = 0.074 / (0.212 + 0.074) = 0.26     -> 3rd
-```
+Distance to the nightmare:
+
+$$d_{\text{nightmare}} = \sqrt{(0.281-0.515)^2 + (0.057-0.057)^2} = \sqrt{0.055 + 0} = 0.234$$
+
+Closeness:
+
+$$C = \frac{0.234}{0.158 + 0.234} = \frac{0.234}{0.392} = 0.60$$
+
+The same two formulas, applied to every plan, give:
+
+| Plan | distance to dream | distance to nightmare | closeness C | Rank |
+|------|-------------------|-----------------------|-------------|------|
+| C | 0.158 | 0.234 | 0.234 / 0.392 = **0.60** | 1st |
+| B | 0.234 | 0.158 | 0.158 / 0.392 = **0.40** | 2nd |
+| A | 0.212 | 0.074 | 0.074 / 0.286 = **0.26** | 3rd |
 
 **Result: C → B → A.** C is the cheapest, so on price it sits *exactly on the dream*
 (distance 0) and price weighs most → highest closeness, 0.60. B is best on data but is the
