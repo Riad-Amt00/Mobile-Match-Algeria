@@ -7,7 +7,7 @@ import { useSession } from 'next-auth/react'
 import {
   CheckCircle, XCircle, Clock, Signal,
   Users, Database, Bell, Activity, Download, Trash2,
-  ChevronDown, ArrowLeft, Play, RefreshCw, ExternalLink,
+  ChevronDown, ArrowLeft, Play, RefreshCw, ExternalLink, AlertTriangle,
 } from 'lucide-react'
 import { useLang } from '@/lib/lang-context'
 
@@ -57,6 +57,12 @@ interface FamilyStatus {
 
 const PERMANENT_FAMILIES = /ZID/i
 
+// Image-only families (Mobilis Revolution, Djezzy iZZY) are excluded from the
+// catalogue: their prices are published as carousel images with no scrapable
+// text. Skip them here so they never surface in the operator-health panel, even
+// from scrape logs recorded before they were removed.
+const EXCLUDED_FAMILIES = /Revolution|iZZY|IZZY/i
+
 function parseScraperFamilies(details: string | null | undefined): FamilyStatus[] {
   if (!details) return []
   let entries: { ts: number; level: string; msg: string }[] = []
@@ -66,10 +72,10 @@ function parseScraperFamilies(details: string | null | undefined): FamilyStatus[
   for (const { level, msg } of entries) {
     if (level === 'OK') {
       const m = msg.match(/^([^:]+):\s+(\d+)\s+offers?\s+scraped\s+live/)
-      if (m) families.push({ family: m[1].trim(), status: 'live', count: parseInt(m[2]) })
+      if (m && !EXCLUDED_FAMILIES.test(m[1])) families.push({ family: m[1].trim(), status: 'live', count: parseInt(m[2]) })
     } else if (level === 'WARN') {
       const m = msg.match(/^([^:]+):.*(using fallback|unreachable)/)
-      if (m) {
+      if (m && !EXCLUDED_FAMILIES.test(m[1])) {
         const name = m[1].trim()
         families.push({ family: name, status: PERMANENT_FAMILIES.test(name) ? 'permanent' : 'fallback', count: null })
       }
@@ -377,6 +383,10 @@ function AdminPage() {
                 <h2 style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '0.875rem' }}>
                   Last Scrape — Plan Family Breakdown
                 </h2>
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, fontSize: 13, fontWeight: 500, color: '#FBBF24', background: 'rgba(245,158,11,0.10)', border: '1px solid rgba(245,158,11,0.4)', borderRadius: 10, padding: '10px 14px', marginBottom: '0.875rem' }}>
+                  <AlertTriangle size={16} style={{ flexShrink: 0, marginTop: 2 }} />
+                  <span>Mobilis Revolution and Djezzy iZZY! plans are published only as images and cannot be web-scraped, so they are not listed here. Check them directly on the operator websites until a future update enables automated image reading.</span>
+                </div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '0.875rem' }}>
                   {lastSession.logs.map(log => {
                     const families = parseScraperFamilies(log.details)
