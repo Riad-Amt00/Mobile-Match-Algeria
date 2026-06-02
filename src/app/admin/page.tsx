@@ -364,7 +364,6 @@ function AdminPage() {
                   { icon: <Database size={18} color="#a78bfa"/>, label: t('admin.stat.activeOffers'), value: stats.totalActiveOffers },
                   { icon: <Users size={18} color="#f59e0b"/>,    label: t('admin.stat.users'),        value: stats.totalUsers },
                   { icon: <Activity size={18} color="#A78BFA"/>, label: t('admin.stat.sessions'),     value: stats.scrapeSessionCount },
-                  { icon: <CheckCircle size={18} color="#4ade80"/>, label: t('admin.stat.successRate'), value: `${stats.successRate}%` },
                 ].map(s => (
                   <div key={s.label} className="glass" style={{ borderRadius: 12, padding: '1rem 1.25rem', display: 'flex', alignItems: 'center', gap: 12 }}>
                     {s.icon}
