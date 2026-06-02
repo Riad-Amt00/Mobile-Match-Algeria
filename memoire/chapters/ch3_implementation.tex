@@ -156,7 +156,7 @@ The recommendation engine is implemented in \textit{src/lib/recommendation.ts}. 
 
 \subsection{Hard Filters and TOPSIS Ranking}
 
-The hard filter layer treats every categorical preference as a binary go / no go condition rather than a scoring contribution: any offer that fails a constraint is discarded outright. Table~\ref{tab:hard-filters} lists the four constraint categories applied at this layer. The continuous trade offs (price, data) are deliberately excluded from this layer because they belong to the ranking stage.
+The hard filter layer treats every categorical preference as a binary go / no go condition rather than a scoring contribution: any offer that fails a constraint is discarded outright. This is the \emph{conjunctive (constraint) method}, the non compensatory screening step of multi attribute decision making \parencite{HwangYoon1981}, in which an alternative must satisfy every minimum requirement to remain eligible. Table~\ref{tab:hard-filters} lists the four constraint categories applied at this layer. The continuous trade offs (price, data) are deliberately excluded from this layer because they belong to the ranking stage.
 
 \begin{table}[H]
   \caption{Hard filter constraints applied at the categorical layer}

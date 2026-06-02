@@ -45,13 +45,14 @@ Nothing here is invented — each step is a published method:
 
 | Part of the engine | What it does | Comes from (research) |
 |--------------------|--------------|------------------------|
-| Hard filters | remove plans that don't fit | standard constraint screening |
+| **Hard filters** | remove plans that don't fit | **Conjunctive (constraint) method** — a non-compensatory MADM screening step (**Hwang & Yoon, 1981**) |
 | **Weights from a ranking** | "price #1, data #2" → 0.75 / 0.25 | **Rank-Order Centroid — Barron & Barrett (1996)** |
 | **Ranking by closeness to the ideal** | the whole formula in §3 | **TOPSIS — Hwang & Yoon (1981)**; recent guide: **Taherdoost & Madanchian (2023)** |
 
-**The only things that are *ours* (and they are not formulas):** *which* criteria the
-user may rank (price, data), and that the **budget is a hard ceiling**. Everything that
-calculates a number is from the references above.
+Every step — filtering, weighting, and **the ranking itself** — is a published method.
+**The only thing that is *ours* is a configuration choice, not a formula:** *which*
+attributes are used as filters versus ranked criteria (price, data), and that the
+**budget is a hard ceiling**.
 
 ---
 
