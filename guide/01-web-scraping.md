@@ -121,10 +121,11 @@ Arabic word for "giga"; for validity: jours, mois, and the Arabic words for day 
 month), so the same code reads all three operators.
 
 **Q — Some prices are inside images. How do you handle those?**
-A few families (Mobilis Revolution, Djezzy iZZY) publish prices as images, which can't
-be read as text. Those are entered by hand and re-checked regularly. We tested OCR but
-it was only 29–43 % accurate, so we rejected it; a paid vision API is the future option
-(in the Perspectives chapter).
+Two families (Mobilis Revolution, Djezzy iZZY) publish their prices only as images, with
+no text to read. We deliberately leave them out of the catalogue rather than typing them
+in by hand, so every plan on the site comes from a real scrapable page (100 % live data,
+no hand-entered numbers). We tested OCR but it was only 29–43 % accurate, so we rejected
+it; a paid vision API is the future option to bring them back in (Perspectives chapter).
 
 **Q — How do you detect new offers and updates?**
 On each run we match every scraped plan to the database by operator + name. Three cases:

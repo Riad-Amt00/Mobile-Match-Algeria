@@ -307,9 +307,9 @@ For data acquisition we chose web scraping over an API or feed integration, beca
     \hline
     changedetection.io & Site change monitor & Redundant: price changes are already tracked through the \texttt{PriceHistory} table and the price drop notification stream. \\
     \hline
-    Tesseract.js (OCR) & Text in image extraction & Empirically tested on the image only plan families in the target catalogue; confidence remained between 29\,\% and 43\,\% with garbled multilingual output. Removed from the dependency tree after the test. \\
+    Tesseract.js (OCR) & Text in image extraction & Empirically tested on the operators' image only plan families (Mobilis Revolution, Djezzy iZZY!); confidence remained between 29\,\% and 43\,\% with garbled multilingual output. Removed from the dependency tree after the test, and those families are excluded from the catalogue rather than transcribed by hand. \\
     \hline
-    Cloud Vision LLM API & AI image extraction & Technically viable (above 90\,\% accuracy in offline trials) but requires a paid commercial account; deferred to the Perspectives chapter as the production path for fully live image based plan families. \\
+    Cloud Vision LLM API & AI image extraction & Technically viable (above 90\,\% accuracy in offline trials) but requires a paid commercial account; deferred to the Perspectives chapter as the path to re-including the excluded image only plan families. \\
     \hline
   \end{tabular}
 \end{table}

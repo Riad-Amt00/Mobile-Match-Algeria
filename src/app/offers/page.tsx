@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { motion, type Variants } from 'framer-motion'
 import {
-  Filter, ChevronDown, Zap, BarChart3, SearchX, LayoutGrid, Info, ChevronLeft, ChevronRight,
+  Filter, ChevronDown, Zap, BarChart3, SearchX, LayoutGrid, ChevronLeft, ChevronRight,
   Search, X, HelpCircle,
 } from 'lucide-react'
 import { useSession } from 'next-auth/react'
@@ -61,7 +61,6 @@ export default function OffersPage() {
   const [page, setPage] = useState(1)
   const [totalOffers, setTotalOffers] = useState(0)
   const [totalPages, setTotalPages] = useState(1)
-  const [lastVerified, setLastVerified] = useState<string | null>(null)
   const [search, setSearch] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
   const [helpOpen, setHelpOpen] = useState(false)
@@ -69,13 +68,6 @@ export default function OffersPage() {
   const { data: session, status } = useSession()
   const { success, error: toastError, warning, info } = useToast()
   const router = useRouter()
-
-  useEffect(() => {
-    fetch('/api/stats')
-      .then(r => r.json())
-      .then(d => { if (d.lastUpdated) setLastVerified(d.lastUpdated) })
-      .catch(() => {})
-  }, [])
 
   // Debounce the search input — avoids a request on every keystroke
   useEffect(() => {
@@ -367,14 +359,8 @@ export default function OffersPage() {
         )}
 
 
-        {/* Data freshness + count */}
+        {/* Result count */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8, marginBottom: '1rem' }}>
-          {lastVerified && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 600, color: '#FBBF24', background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.4)', borderRadius: 10, padding: '9px 14px' }}>
-              <Info size={16} style={{ flexShrink: 0 }} />
-              {t('filter.dataVerified').replace('{date}', new Date(lastVerified).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }))}
-            </div>
-          )}
           {!loading && totalOffers > 0 && (
             <span style={{ fontSize: 12, color: 'var(--text-muted)', marginLeft: 'auto' }}>
               {t('filter.showing')

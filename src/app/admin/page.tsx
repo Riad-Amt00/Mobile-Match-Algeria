@@ -55,7 +55,7 @@ interface FamilyStatus {
   count: number | null
 }
 
-const PERMANENT_FAMILIES = /ZID|IZZY|Revolution/i
+const PERMANENT_FAMILIES = /ZID/i
 
 function parseScraperFamilies(details: string | null | undefined): FamilyStatus[] {
   if (!details) return []

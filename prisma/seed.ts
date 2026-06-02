@@ -109,9 +109,6 @@ async function main() {
     { name:'ZID 1500',  type:OfferType.PREPAID, priceDA:1500, dataGB:40,  voiceMinutes:-1,  smsCount:300, validityDays:30, network:'4G',    isFeatured:false, features:['Appels illimités toutes réseaux','Réseaux sociaux offerts','15 GB bonus nuit'] },
     { name:'ZID 2000',  type:OfferType.PREPAID, priceDA:2000, dataGB:60,  voiceMinutes:-1,  smsCount:-1,  validityDays:30, network:'4G/5G', isFeatured:true,  features:['Appels illimités toutes réseaux','SMS illimités','Réseaux sociaux offerts','20 GB bonus nuit'] },
     { name:'ZID 3000',  type:OfferType.PREPAID, priceDA:3000, dataGB:100, voiceMinutes:-1,  smsCount:-1,  validityDays:30, network:'4G/5G', isFeatured:false, features:['Appels illimités toutes réseaux','SMS illimités','Réseaux sociaux offerts','30 GB bonus nuit','5G prioritaire'] },
-    // ── Prépayé IZZY (court terme) ──
-    { name:'IZZY Jour', type:OfferType.PREPAID, priceDA:50,   dataGB:0.5, voiceMinutes:20,  smsCount:10,  validityDays:1,  network:'4G',    isFeatured:false, features:['Appels Djezzy illimités'] },
-    { name:'IZZY Semaine', type:OfferType.PREPAID, priceDA:300, dataGB:5, voiceMinutes:100, smsCount:50, validityDays:7,   network:'4G',    isFeatured:false, features:['Appels Djezzy illimités','Facebook offert'] },
     // ── Postpayé ──
     { name:'Djezzy Pro 1500', type:OfferType.POSTPAID, priceDA:1500, dataGB:30,  voiceMinutes:200, smsCount:100, validityDays:30, network:'4G',    isFeatured:false, features:['Facturation mensuelle','Appels Djezzy illimités'] },
     { name:'Djezzy Pro 2500', type:OfferType.POSTPAID, priceDA:2500, dataGB:80,  voiceMinutes:-1,  smsCount:200, validityDays:30, network:'4G/5G', isFeatured:true,  features:['Facturation mensuelle','Appels illimités toutes réseaux','Roaming disponible'] },

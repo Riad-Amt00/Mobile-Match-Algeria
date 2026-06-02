@@ -13,13 +13,6 @@ import { slugify } from '@/lib/utils'
 import { recommendOffers, UserNeeds } from '../recommendation'
 import { rebuildOfferFtsIndex } from '../search-fts'
 
-// The image-only plan families (Mobilis Revolution, Djezzy iZZY) publish their
-// prices inside carousel images, so they are transcribed by hand and can't be
-// auto-verified. Update this date whenever that fallback data is re-checked against
-// the operator pages; the orchestrator reminds admins once it ages past the threshold.
-const FALLBACK_VERIFIED_AT = '2026-05-28'
-const FALLBACK_STALE_DAYS = 45
-
 export interface ScrapeResult {
   operator: string
   status: ScrapeStatus
@@ -75,40 +68,7 @@ export async function runAllScrapers(): Promise<ScrapeResult[]> {
     console.error('Failed to send admin notifications:', err)
   }
 
-  // Remind admins to re-verify the hand-maintained image-only data once it's stale.
-  try {
-    await notifyAdminsStaleFallback()
-  } catch (err) {
-    console.error('Failed to send stale-data reminder:', err)
-  }
-
   return results
-}
-
-// Proactive freshness check for the image-only fallback families. We cannot scrape
-// their prices (they're pixels in carousel images), so instead of letting that data
-// rot silently we alert admins to re-verify it once it ages past FALLBACK_STALE_DAYS.
-// Guarded so a daily cron can't spam: at most one reminder per week.
-async function notifyAdminsStaleFallback() {
-  const ageDays = Math.floor((Date.now() - new Date(FALLBACK_VERIFIED_AT).getTime()) / 86_400_000)
-  if (ageDays < FALLBACK_STALE_DAYS) return
-
-  const recent = await db.notification.findFirst({
-    where: { type: 'data_stale', createdAt: { gte: new Date(Date.now() - 7 * 86_400_000) } },
-  })
-  if (recent) return
-
-  const admins = await db.user.findMany({ where: { role: 'ADMIN' } })
-  if (admins.length === 0) return
-
-  await db.notification.createMany({
-    data: admins.map(admin => ({
-      userId: admin.id,
-      title: `Re-verify image-only offers (${ageDays} days old)`,
-      message: `Mobilis Revolution and Djezzy iZZY prices are published as images and were last verified on ${FALLBACK_VERIFIED_AT}. Please re-check the operator pages and update the fallback data.`,
-      type: 'data_stale',
-    })),
-  })
 }
 
 async function notifyAdminsFailure(failed: ScrapeResult[]) {

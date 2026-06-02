@@ -36,7 +36,7 @@ Run: `npm run dev` · Test: `npm test` (**121 tests pass**, `tsc --noEmit` clean
 
 | Subsystem | Key files | State |
 |-----------|-----------|-------|
-| **Scraping** | [src/lib/scraper/](src/lib/scraper/) — `fetch.ts` (Edge+Playwright, retries 0/7/18s, circuit breaker), `validate.ts` (FR/EN/AR parsers + 12-rule `validateOffer`), `djezzy.ts`/`ooredoo.ts`/`mobilis.ts` (+ verified fallback datasets), `index.ts` (orchestrator: upsert, price history, deactivation guard, notifications) | ~96–98 offers; daily cron 03:00 Africa/Algiers via [src/instrumentation.ts](src/instrumentation.ts); image-only families (Mobilis Revolution, Djezzy iZZY) hand-maintained |
+| **Scraping** | [src/lib/scraper/](src/lib/scraper/) — `fetch.ts` (Edge+Playwright, retries 0/7/18s, circuit breaker), `validate.ts` (FR/EN/AR parsers + 12-rule `validateOffer`), `djezzy.ts`/`ooredoo.ts`/`mobilis.ts` (+ verified fallback datasets), `index.ts` (orchestrator: upsert, price history, deactivation guard, notifications) | **83 active offers** (live / scrapable only); daily cron 03:00 Africa/Algiers via [src/instrumentation.ts](src/instrumentation.ts); image-only families (Mobilis Revolution, Djezzy iZZY) **excluded 2026-06-02** so the catalogue is 100% live — see Perspectives |
 | **Recommendation** | [src/lib/recommendation.ts](src/lib/recommendation.ts) | **TOPSIS + ROC** (see §5) — fully researched |
 | **Search** | `src/app/api/offers/route.ts`, `src/lib/search-tokens.ts`, `src/lib/search-fts.ts` | regex token parser → Prisma `where` + SQLite FTS5 (BM25); "Read as" chips |
 | **Comparison / charts** | `src/app/compare/compare-content.tsx`, `src/components/offer-card.tsx` | side-by-side table + Recharts bar charts + faceted filters + savings indicator |
@@ -94,7 +94,7 @@ Simple, defense-focused, **md + PDF** (build: `pandoc x.md -s -o _g.tex --toc -V
 
 - **Body ≈ 59 pp** vs IFAG 60–70 → expand Ch.4 (Evaluation) from real artefacts if you want to clear 60.
 - **No real user study** (FICHE wanted 50+ testers, >85% satisfaction) — documented honestly as future work; never fabricate satisfaction numbers.
-- Image-only offers are hand-transcribed (OCR tested, 29–43%, rejected; vision API = future path).
+- Image-only families (Mobilis Revolution, Djezzy iZZY) are **excluded** so the catalogue is 100% live / machine-readable (OCR tested 29–43%, rejected; Cloud Vision = future path, documented in Perspectives). Removed 2026-06-02 from DB + scraper + seeds.
 - A few "this project" phrasings may remain in Ch.1 §1.3/§1.4 (optional polish).
 - IFAG §2.18 AI-use declaration — verify it exists.
 

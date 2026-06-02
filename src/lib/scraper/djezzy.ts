@@ -4,7 +4,10 @@
  * changed its HTML structure.
  *
  * Live: LEGEND, DjezzyNet, LEGEND MAX, CONFORT PARTAGE, CAMPUCE, 3ayla
- * Fallback only: ZID (connection timeout), IZZY! (marketing page, no structured data)
+ * Fallback only: ZID (connection timeout).
+ * Excluded: IZZY! is an image/marketing page with no structured data, so it is
+ *   not collected at all (see the thesis Perspectives chapter), which keeps the
+ *   catalogue fully scrapable / live.
  */
 import * as cheerio from 'cheerio'
 import { OfferType } from '@prisma/client'

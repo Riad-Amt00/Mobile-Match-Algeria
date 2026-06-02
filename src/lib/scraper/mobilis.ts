@@ -7,9 +7,13 @@
  *   mobinet        — same div.item_price structure
  *   naviguiinternet — Arabic Quill text with pattern "X جيغا بـ Z دج"
  *
- * Not parseable (Revolution plans use image-only carousels):
+ * Excluded (Revolution plans use image-only carousels, no machine-readable text):
  *   revolution_prepaid / revolution_postpaid / revolution_control
- *   → Fallback to verified dataset for these three plan families.
+ *   → Not collected. Their prices live inside carousel images that cannot be
+ *     scraped or auto-verified, so rather than ship hand-transcribed image data
+ *     they are dropped entirely (see the thesis Perspectives chapter — OCR /
+ *     Cloud Vision is the future path). This keeps the catalogue fully live /
+ *     machine-readable.
  */
 import * as cheerio from 'cheerio'
 import { OfferType } from '@prisma/client'
@@ -218,12 +222,13 @@ export async function scrapeMobilis(emit: Emit = () => {}): Promise<ScrapedOffer
     emit('WARN', 'Navigui Internet: unreachable — using fallback')
   }
 
-  // ── Revolution plans (image-only — always use verified dataset) ───────────
-  emit('WARN', 'Revolution Prepaid: image-only carousel, no parseable text — using fallback')
-  emit('WARN', 'Revolution Control: image-only carousel, no parseable text — using fallback')
-  emit('WARN', 'Revolution Postpaid: image-only carousel, no parseable text — using fallback')
+  // Revolution plans (image-only carousels) are intentionally excluded: their
+  // prices are pixels inside carousel images with no machine-readable text, so
+  // they cannot be scraped or auto-verified. They are dropped rather than shipped
+  // as hand-transcribed data (see the thesis Perspectives chapter), keeping the
+  // catalogue entirely live / machine-readable.
 
-  // Merge live with fallback for families that weren't scraped
+  // Merge live offers with the verified dataset for live families that failed
   const fallback = getMobilisFallbackOffers().filter(o => {
     if (o.sourceUrl.includes('passinternet') && liveScrapedFamilies.has('passinternet')) return false
     if (o.sourceUrl.includes('mobinet_plus') && liveScrapedFamilies.has('mobinet_plus')) return false
@@ -240,35 +245,9 @@ export async function scrapeMobilis(emit: Emit = () => {}): Promise<ScrapedOffer
   }
 }
 
-// ── Fallback verified dataset (Revolution plans + any failed live pages) ──────
+// ── Verified dataset for live families, used only when a live page fails ──────
 function getMobilisFallbackOffers(): ScrapedOffer[] {
   return [
-    // ── Revolution Prepaid ────────────────────────────────────────────────────
-    // Manually verified 2026-05-28 against mobilis.dz/revolution_prepaid (offers
-    // are image-only, read visually). Each tier is a Mobilis-Unit (MU) pool; the
-    // dataGB figure is the advertised max internet allocation if the whole pool
-    // is spent on data. Calls/SMS toward Mobilis are unlimited on every tier.
-    { name: 'Mobilis Revolution Prepaid 100', type: OfferType.PREPAID, priceDA: 100, dataGB: 2, voiceMinutes: -1, smsCount: -1, validityDays: 1, network: '4G/5G', features: ['Unlimited Mobilis calls & SMS', '100 MU pool', '5G compatible'], sourceUrl: 'https://mobilis.dz/revolution_prepaid' },
-    { name: 'Mobilis Revolution Prepaid 500', type: OfferType.PREPAID, priceDA: 500, dataGB: 12, voiceMinutes: -1, smsCount: -1, validityDays: 15, network: '4G/5G', features: ['Unlimited Mobilis calls & SMS', '600 MU pool', '5G compatible'], sourceUrl: 'https://mobilis.dz/revolution_prepaid' },
-    { name: 'Mobilis Revolution Prepaid 1000', type: OfferType.PREPAID, priceDA: 1000, dataGB: 25, voiceMinutes: -1, smsCount: -1, validityDays: 30, network: '4G/5G', features: ['Unlimited Mobilis calls & SMS', '1250 MU pool', '5G compatible'], sourceUrl: 'https://mobilis.dz/revolution_prepaid' },
-    { name: 'Mobilis Revolution Prepaid 1200', type: OfferType.PREPAID, priceDA: 1200, dataGB: 35, voiceMinutes: -1, smsCount: -1, validityDays: 30, network: '4G/5G', features: ['Unlimited Mobilis calls & SMS', 'Unlimited Facebook', '1750 MU pool', '5G compatible'], sourceUrl: 'https://mobilis.dz/revolution_prepaid' },
-    { name: 'Mobilis Revolution Prepaid 1500', type: OfferType.PREPAID, priceDA: 1500, dataGB: 55, voiceMinutes: -1, smsCount: -1, validityDays: 30, network: '4G/5G', features: ['Unlimited Mobilis calls & SMS', 'Unlimited Facebook', '2750 MU pool', '5G compatible'], sourceUrl: 'https://mobilis.dz/revolution_prepaid' },
-    { name: 'Mobilis Revolution Prepaid 1800', type: OfferType.PREPAID, priceDA: 1800, dataGB: 80, voiceMinutes: -1, smsCount: -1, validityDays: 30, network: '4G/5G', features: ['Unlimited Mobilis calls & SMS', 'Unlimited Facebook', '4000 MU pool', '5G compatible'], sourceUrl: 'https://mobilis.dz/revolution_prepaid' },
-    { name: 'Mobilis Revolution Prepaid 2000', type: OfferType.PREPAID, priceDA: 2000, dataGB: 100, voiceMinutes: -1, smsCount: -1, validityDays: 30, network: '4G/5G', features: ['Unlimited calls (all networks)', 'Unlimited Mobilis SMS', 'Unlimited Facebook', '5000 MU pool', '5G compatible'], sourceUrl: 'https://mobilis.dz/revolution_prepaid' },
-    { name: 'Mobilis Revolution Prepaid 2500', type: OfferType.PREPAID, priceDA: 2500, dataGB: 130, voiceMinutes: -1, smsCount: -1, validityDays: 30, network: '4G/5G', features: ['Unlimited calls (all networks)', 'Unlimited Mobilis SMS', 'Unlimited Facebook', '6500 MU pool', '5G compatible'], sourceUrl: 'https://mobilis.dz/revolution_prepaid' },
-    // ── Revolution Control ────────────────────────────────────────────────────
-    // Manually verified 2026-05-28 against mobilis.dz/revolution_control.
-    { name: 'Mobilis Revolution Control 1200', type: OfferType.POSTPAID, priceDA: 1200, dataGB: 45, voiceMinutes: -1, smsCount: -1, validityDays: 30, network: '4G/5G', features: ['Unlimited Mobilis calls & SMS', 'Unlimited Facebook', '2250 MU pool', 'Control plan', '5G compatible'], sourceUrl: 'https://mobilis.dz/revolution_control' },
-    { name: 'Mobilis Revolution Control 1500', type: OfferType.POSTPAID, priceDA: 1500, dataGB: 70, voiceMinutes: -1, smsCount: -1, validityDays: 30, network: '4G/5G', features: ['Unlimited Mobilis calls & SMS', 'Unlimited Facebook', '3500 MU pool', 'Control plan', '5G compatible'], sourceUrl: 'https://mobilis.dz/revolution_control' },
-    { name: 'Mobilis Revolution Control 1800', type: OfferType.POSTPAID, priceDA: 1800, dataGB: 100, voiceMinutes: -1, smsCount: -1, validityDays: 30, network: '4G/5G', features: ['Unlimited Mobilis calls & SMS', 'Unlimited Facebook', '5000 MU pool', 'Control plan', '5G compatible'], sourceUrl: 'https://mobilis.dz/revolution_control' },
-    { name: 'Mobilis Revolution Control 2000', type: OfferType.POSTPAID, priceDA: 2000, dataGB: 118, voiceMinutes: -1, smsCount: -1, validityDays: 30, network: '4G/5G', features: ['Unlimited Mobilis calls & SMS', 'Unlimited Facebook', '5900 MU pool', 'Control plan', '5G compatible'], sourceUrl: 'https://mobilis.dz/revolution_control' },
-    { name: 'Mobilis Revolution Control 2500', type: OfferType.POSTPAID, priceDA: 2500, dataGB: 150, voiceMinutes: -1, smsCount: -1, validityDays: 30, network: '4G/5G', features: ['Unlimited calls (all networks)', 'Unlimited Mobilis SMS', 'Unlimited Facebook', '7500 MU pool', 'Control plan', '5G compatible'], sourceUrl: 'https://mobilis.dz/revolution_control' },
-    { name: 'Mobilis Revolution Control 3000', type: OfferType.POSTPAID, priceDA: 3000, dataGB: 188, voiceMinutes: -1, smsCount: -1, validityDays: 30, network: '4G/5G', features: ['Unlimited calls (all networks)', 'Unlimited Mobilis SMS', 'Unlimited Facebook', '9400 MU pool', 'Control plan', '5G compatible'], sourceUrl: 'https://mobilis.dz/revolution_control' },
-    // ── Revolution Postpaid ───────────────────────────────────────────────────
-    // Only the 1500 DA tier could be read on 2026-05-28 (the rest sit behind a
-    // carousel that did not render); the unverified tiers were removed rather
-    // than kept as unconfirmed data.
-    { name: 'Mobilis Revolution Postpaid 1500', type: OfferType.POSTPAID, priceDA: 1500, dataGB: 60, voiceMinutes: -1, smsCount: -1, validityDays: 30, network: '4G/5G', features: ['Unlimited Mobilis calls & SMS', 'Unlimited Facebook', '3000 MU pool', 'Monthly plan', '5G compatible'], sourceUrl: 'https://mobilis.dz/revolution_postpaid' },
     // ── MobiNet Plus (fallback) ───────────────────────────────────────────────
     { name: 'MobiNet Plus Monthly', type: OfferType.DATA_ONLY, priceDA: 1500, dataGB: 60, voiceMinutes: 0, smsCount: 0, validityDays: 30, network: '4G', features: ['Unlimited YouTube after quota', 'Modem SIM compatible', 'Share up to 32 users', 'Boost 30 GB add-on (500 DA)'], sourceUrl: 'https://mobilis.dz/mobinet_plus' },
     { name: 'MobiNet Plus 3 Months', type: OfferType.DATA_ONLY, priceDA: 3500, dataGB: 200, voiceMinutes: 0, smsCount: 0, validityDays: 90, network: '4G', features: ['Unlimited YouTube after quota', 'Modem SIM compatible', 'Share up to 32 users'], sourceUrl: 'https://mobilis.dz/mobinet_plus' },
