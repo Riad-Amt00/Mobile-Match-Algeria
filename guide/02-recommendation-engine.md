@@ -61,14 +61,36 @@ None of these computes a score; the scoring is entirely the cited methods above.
 
 ---
 
-## 5. A quick example
+## 5. A worked example
 
-Budget **2000 DA**, need **10 GB**, ranked **price #1, data #2** (weights 0.75 / 0.25).
-Three plans: **A** 1000 DA/8 GB, **B** 1100 DA/15 GB, **C** 600 DA/4 GB.
+The user sets **budget 2000 DA**, **need 10 GB**, and ranks **price #1, data #2**
+(so the ROC weights are **0.75 for price, 0.25 for data**). Three plans pass the budget filter:
 
-TOPSIS gives closeness **C ≈ 0.60, B ≈ 0.40, A ≈ 0.26 → ranking C, B, A.**
-C wins (its low price is closest to the ideal under the 0.75 price weight); B beats A on
-data because they're close on price. Rank data first instead and B would rise.
+| Plan | Price | Data |
+|------|-------|------|
+| A | 1000 DA | 8 GB |
+| B | 1100 DA | 15 GB |
+| C | 600 DA  | 4 GB |
+
+**Step 1 — build the two reference plans** (per criterion, across these three):
+
+- **Ideal** = best of each column → cheapest **600 DA** + most data **15 GB**.
+- **Worst** = worst of each column → priciest **1100 DA** + least data **4 GB**.
+
+**Step 2 — for each plan, measure its distance to the ideal and to the worst, then**
+`C = (distance to worst) / (distance to ideal + distance to worst)`. Price counts about
+3× as much as data here, because of the 0.75 weight:
+
+| Plan | How it sits | Closeness C | Rank |
+|------|-------------|-------------|------|
+| C (600 DA / 4 GB)  | *is* the cheapest → closest to the ideal | **0.60** | 1st |
+| B (1100 DA / 15 GB)| priciest, but the most data            | **0.40** | 2nd |
+| A (1000 DA / 8 GB) | mid price, mid data                    | **0.26** | 3rd |
+
+**Result: C → B → A.** C wins because price is weighted most and C is the cheapest. B beats
+A because, at a similar price, B has far more data. If the user ranked **data first**, the
+0.75 weight would shift to data and **B** would jump to the top — that's how the ranking
+follows the user's priority.
 
 ---
 
