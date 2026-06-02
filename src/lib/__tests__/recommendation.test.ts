@@ -68,13 +68,13 @@ describe('thesis test cases (Table 4.2)', () => {
     expect(top.dataGB === -1 || top.dataGB >= 40).toBe(true)
   })
 
-  it('TC3 — budget 1400DA, data 20Go, priorities [price, data]: price strictly tiers, data orders within the tier', () => {
+  it('TC3 — budget 1400DA, data 20Go, priorities [price, data]: price (ROC weight 0.75) dominates the TOPSIS ranking', () => {
     const results = recommendOffers(OFFERS, { budget: 1400, dataGB: 20, voiceMinutes: 0, smsCount: 0 }, 8, ['price', 'data'])
     // Survivors ≤1400DA: o8 (300/1Go), o5 (500/2Go), o4 (800/5Go), o1 (1000/15Go).
-    // Price merit puts o8 and o5 in the top tier (0.75); within it, data ranks o5
-    // (2Go) above o8 (1Go). o1 holds the most data of all but sits in a LOWER price
-    // tier, so it must stay below o5 — the 2nd priority can never cross a tier.
-    expect(results[0].offer.id).toBe('o5')
+    // ROC weights price 0.75 vs data 0.25, so TOPSIS closeness is driven mainly by
+    // price: the cheapest in-budget plan (o8) ranks first. Data still nudges the
+    // order, so o5 (cheaper) stays ahead of o1 (pricier, more data).
+    expect(results[0].offer.id).toBe('o8')
     const o5i = results.findIndex(r => r.offer.id === 'o5')
     const o1i = results.findIndex(r => r.offer.id === 'o1')
     expect(o5i).toBeLessThan(o1i)
@@ -128,15 +128,18 @@ describe('ranked priority elicitation', () => {
     expect(yesP[0].matchReasons.some(m => m.key === 'match.priority.price')).toBe(true)
   })
 
-  it('tiered ranking: the 1st priority strictly tiers the results', () => {
-    // With ['price','data'], results must be ordered by price-merit tier first —
-    // the 2nd priority (data) can only reorder offers WITHIN a tier, never across.
-    // Price merit = 1 - priceDA/budget (cheaper -> higher merit -> higher tier).
-    const r = recommendOffers(OFFERS, { budget: 5000, dataGB: 100, voiceMinutes: 0, smsCount: 0 }, 8, ['price', 'data'])
-    for (let i = 1; i < r.length; i++) {
-      const tierPrev = Math.round((1 - r[i - 1].offer.priceDA / 5000) * 4)
-      const tierCur  = Math.round((1 - r[i].offer.priceDA / 5000) * 4)
-      expect(tierPrev).toBeGreaterThanOrEqual(tierCur)
+  it('priority weighting: ranking price first favours the cheap plan more than ranking data first', () => {
+    // TOPSIS is compensatory, so price does not STRICTLY tier the result. But the
+    // ROC weights make the order respond to the priority: the cheapest plan (o8)
+    // ranks at least as high when price is #1 as when data is #1, and results are
+    // always ordered by closeness (score) descending.
+    const needs = { budget: 5000, dataGB: 100, voiceMinutes: 0, smsCount: 0 }
+    const priceFirst = recommendOffers(OFFERS, needs, 8, ['price', 'data'])
+    const dataFirst  = recommendOffers(OFFERS, needs, 8, ['data', 'price'])
+    const rankOf = (res: any[], id: string) => res.findIndex(r => r.offer.id === id)
+    expect(rankOf(priceFirst, 'o8')).toBeLessThanOrEqual(rankOf(dataFirst, 'o8'))
+    for (let i = 1; i < priceFirst.length; i++) {
+      expect(priceFirst[i - 1].score).toBeGreaterThanOrEqual(priceFirst[i].score)
     }
   })
 

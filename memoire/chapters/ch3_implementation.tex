@@ -34,7 +34,7 @@ Table~\ref{tab:dev-env} describes the hardware and software environment used thr
     \hline
     Authentication       & NextAuth.js v5 \\
     \hline
-    Unit testing         & Vitest 4.x (118 unit tests across the recommendation, scraping, search, and utility modules) \\
+    Unit testing         & Vitest 4.x (121 unit tests across the recommendation, scraping, search, and utility modules) \\
     \hline
     IDE                  & Visual Studio Code 1.95 \\
     \hline
@@ -104,7 +104,7 @@ All API routes are implemented as Next.js App Router route handlers under \texti
     \hline
     \textit{/api/saved-offers}        & GET, POST          & List saved offer IDs; toggle save/unsave \\
     \hline
-    \textit{/api/recommendations}     & POST               & Run the tiered ranking engine and return the top 3 matched plans (rate limited at 60 requests per minute per IP) \\
+    \textit{/api/recommendations}     & POST               & Run the TOPSIS ranking engine and return the top 3 matched plans (rate limited at 60 requests per minute per IP) \\
     \hline
     \textit{/api/notifications}       & GET, PATCH, DELETE & List, mark all read, or delete a notification \\
     \hline
@@ -135,29 +135,26 @@ User authentication is implemented with NextAuth.js using the Credentials provid
 
 \subsection{Two Layer Decision Model}
 
-The recommendation engine is implemented in \textit{src/lib/recommendation.ts}. It separates the recommendation problem into two distinct layers: a categorical filtering layer that excludes offers incompatible with the user's hard constraints, and a tiered ranking layer that orders the remaining offers according to the user's primary and secondary continuous priorities. The second layer is an applied form of the \textbf{lexicographic semiorder}, a non compensatory multi criteria decision rule that combines the lexicographic ordering of \textcite{Fishburn1974, Roberts1979} with the indifference threshold (semiorder) of \textcite{Luce1956} and \textcite{Tversky1969}, and which remains in current use in multi attribute decision making \parencite{SafarzadehBarzoki2018, TaherdoostMadanchian2023}: the contribution of this work is the adaptation of that established technique to a cold start consumer plan context, the choice of criteria and the tuning of the indifference threshold, not the algorithm itself. The final defensible design (Table~\ref{tab:rec-algo}) was reached after several rejected attempts (Section~3.4.3), each of which exposed a specific failure mode of the previous one.
+The recommendation engine is implemented in \textit{src/lib/recommendation.ts}. It separates the problem into two layers: a categorical \emph{filtering} layer that excludes offers incompatible with the user's hard constraints, and a \emph{ranking} layer that orders the survivors with \textbf{TOPSIS} (Technique for Order of Preference by Similarity to Ideal Solution), a standard multi criteria decision method that ranks alternatives by their Euclidean distance to an ideal and an anti ideal solution \parencite{HwangYoon1981, TaherdoostMadanchian2023}. The criterion weights that TOPSIS requires are obtained from the user's \emph{ranking} of the criteria through the rank order centroid (ROC) method \parencite{BarronBarrett1996}, so no weight is chosen by hand. Both are content based and need no interaction history, which suits the cold start setting. Every step of Table~\ref{tab:rec-algo} is a published formula; the only project specific decisions are which criteria the user may rank and that the budget is a strict ceiling.
 
 \begin{table}[H]
-  \caption{Recommendation ranking algorithm (lexicographic semiorder)}
+  \caption{Recommendation ranking algorithm (TOPSIS with rank order centroid weights)}
   \label{tab:rec-algo}
   \centering\small
   \begin{tabular}{|p{0.8cm}|p{12.5cm}|}
     \hline
     \textbf{Step} & \textbf{Action} \\
     \hline
-    1a  & \textit{Budget ceiling}: discard offers where \texttt{priceDA $>$ needs.budget}. \\ \hline
-    1b  & \textit{Operator}: discard offers whose operator does not match the user's preference (if any). \\ \hline
-    1c  & \textit{Plan type, network, calls, SMS}: discard offers that do not satisfy the user's categorical preferences. \\ \hline
-    2a  & Compute the price merit $m_1 = \mathrm{clamp01}(1 - \mathrm{priceDA} / \mathrm{needs.budget})$, cheaper is better, since the budget is a ceiling rather than a target. \\ \hline
-    2b  & Compute the data merit $m_2 = \mathrm{clamp01}(\mathrm{dataGB} / \mathrm{needs.dataGB})$, coverage of declared need. \\ \hline
-    3a  & Quantise the primary merit into five ordered indifference classes (the semiorder threshold): $\mathrm{tier} = \mathrm{round}(m_{P_1} \times 4) / 4 \in \{0,\,0.25,\,0.5,\,0.75,\,1\}$. \\ \hline
-    3b  & Secondary key ($P_2$ = secondary priority): the merit $m_{P_2}$, used only to order offers within a tier. \\ \hline
-    4   & Order lexicographically: by tier first, then by $m_{P_2}$, then by the base fitness score as a deterministic tiebreak. With only one priority, rank directly by the continuous merit $m_1$ (no quantisation). \\ \hline
-    5   & Return the top-$N$ results with \texttt{matchReasons[~]}. \\ \hline
+    1  & \textit{Filter}: discard offers failing a hard constraint, budget ceiling (\texttt{priceDA $>$ needs.budget}), preferred operator, plan type, network, or an unlimited calls / SMS toggle. \\ \hline
+    2  & \textit{Weights}: turn the user's ranking of the criteria into weights by rank order centroid, $w_k = \tfrac{1}{n}\sum_{i=k}^{n}\tfrac{1}{i}$ (default criteria: price, data; two criteria give $0.75$ and $0.25$). \\ \hline
+    3  & \textit{Normalise and weight}: $r_{ij} = x_{ij}/\sqrt{\sum_i x_{ij}^2}$, then $v_{ij} = w_j\, r_{ij}$. \\ \hline
+    4  & \textit{Ideal / anti ideal}: $A^{+}_j$ and $A^{-}_j$ are the best and worst weighted value in column $j$ (minimum for the cost criterion price, maximum for benefit criteria such as data). \\ \hline
+    5  & \textit{Distances and closeness}: $S_i^{\pm} = \sqrt{\sum_j (v_{ij}-A^{\pm}_j)^2}$, then $C_i = S_i^{-}/(S_i^{+}+S_i^{-}) \in [0,1]$. \\ \hline
+    6  & Rank by $C_i$ (descending), return the top $N$ with \texttt{matchReasons[~]}; $C_i$ is reported as the match score. \\ \hline
   \end{tabular}
 \end{table}
 
-\subsection{Hard Filters and Tiered Ranking}
+\subsection{Hard Filters and TOPSIS Ranking}
 
 The hard filter layer treats every categorical preference as a binary go / no go condition rather than a scoring contribution: any offer that fails a constraint is discarded outright. Table~\ref{tab:hard-filters} lists the four constraint categories applied at this layer. The continuous trade offs (price, data) are deliberately excluded from this layer because they belong to the ranking stage.
 
@@ -175,40 +172,40 @@ The hard filter layer treats every categorical preference as a binary go / no go
   \end{tabular}
 \end{table}
 
-The ranking layer then asks the user to rank two criteria from the set \{price, data\} rather than to assign numeric weights, a known difficulty in multi criteria decision contexts where users have well defined preferences but cannot accurately quantify the corresponding weights \parencite{Roberts1979}. Each rankable criterion is scored as a need relative ratio rather than a pool normalised one, so a catalogue outlier (a 10~DA plan with no data) cannot distort the ranking for users with a typical budget. The two key parameters of the algorithm and their justifications are summarised in Table~\ref{tab:rec-params}. The $0$ to $100$ base fitness score, used only to break exact ties and to gauge match strength for the daily notifications, is a simple additive weighting of the per attribute fits, a standard (compensatory) aggregation in multi criteria decision making \parencite{TaherdoostMadanchian2023} whose weights are tuned to the domain.
+The ranking layer asks the user only to \emph{rank} the criteria (price, data) rather than to assign numeric weights, a known difficulty since users have well defined preferences but cannot accurately quantify the corresponding weights \parencite{BarronBarrett1996}; rank order centroid supplies the weights from that ranking. The match score reported to the user is the TOPSIS closeness coefficient $C_i \in [0,1]$, scaled to a percentage, so no separate scoring formula is introduced. Only two modelling choices remain the project's own, summarised in Table~\ref{tab:rec-params}.
 
 \begin{table}[H]
-  \caption{Justification of the key parameters of the tiered ranking layer}
+  \caption{Project specific modelling choices in the ranking layer}
   \label{tab:rec-params}
   \centering\small
-  \begin{tabular}{|p{3.0cm}|p{10.3cm}|}
+  \begin{tabular}{|p{3.4cm}|p{9.9cm}|}
     \hline
-    \textbf{Parameter} & \textbf{Why this value} \\ \hline
-    Five indifference classes (threshold $h = 0.25$) & The semiorder's just noticeable difference, tuned to the catalogue: a smaller catalogue (~100 plans) does not support finer partitioning, and more classes would shrink each toward a single offer and defeat the within class ordering. \\ \hline
-    Lexicographic ordering (no secondary weight) & The ranking compares the tier first and the secondary merit only within a tier (an explicit two key sort), so by construction no secondary gain can cross a tier boundary; no numeric weight is introduced. \\ \hline
+    \textbf{Choice} & \textbf{Rationale} \\ \hline
+    Rankable criteria: price (cost) and data (benefit) & The two attributes consumers trade off most; voice, SMS, and network are available as further ranked criteria for the daily batch job. The budget is handled as a hard ceiling rather than a ranked criterion. \\ \hline
+    Weights derived from the ranking (ROC), not entered by hand & Users can order their priorities but not quantify them; rank order centroid is the most accurate of the simple rank based weighting formulae \parencite{BarronBarrett1996}, so the weights are derived rather than invented. \\ \hline
   \end{tabular}
 \end{table}
 
-\subsection{Iterative Design History}
+\subsection{Method Selection}
 
-The tiered model was reached only after four earlier designs were rejected, each exposing a specific failure mode of the previous one. Table~\ref{tab:rec-history} summarises the five iterations.
+TOPSIS was selected after comparing the candidate multi criteria methods against the project's constraints: a cold start with no interaction history, a user who can \emph{rank} but not \emph{weight} criteria, and the need for a bounded match score. Table~\ref{tab:rec-history} summarises the comparison.
 
 \begin{table}[H]
-  \caption{Iterative design history of the recommendation engine}
+  \caption{Candidate ranking methods and the selection of TOPSIS}
   \label{tab:rec-history}
   \centering\small
-  \begin{tabular}{|p{0.6cm}|p{4.5cm}|p{8.5cm}|}
+  \begin{tabular}{|p{4.4cm}|p{9.0cm}|}
     \hline
-    \textbf{\#} & \textbf{Design} & \textbf{Why rejected} \\ \hline
-    1 & Flat bonus ($+12/+8/+4$) on a 100 pt fitness score & Bonus too small to overcome the base score; recommendations always followed price regardless of user choice. \\ \hline
-    2 & Weighted sum of merits ($0.6, 0.4$) & A great score on one criterion compensated for a poor score on the other, contradicting the user's stated priority. \\ \hline
-    3 & Weighted geometric mean & Tuning the weights merely shifted the symptom between \guillemotleft{}follows only price\guillemotright{} and \guillemotleft{}follows only data\guillemotright{} without ever producing a clean primary then secondary order. \\ \hline
-    4 & Tiered ranking with tier step $h = 0.1$ & Cheapest tier so narrow it contained only micro plans, producing degenerate results. \\ \hline
-    5 & \textbf{Lexicographic semiorder: primary quantised into five indifference classes ($h = 0.25$), secondary breaks within class ties (retained)} & Reliably produces \guillemotleft{}follow the first priority, then get as close as possible to the second\guillemotright{}, matching the user's mental model. \\ \hline
+    \textbf{Method} & \textbf{Verdict for this project} \\ \hline
+    Collaborative filtering / deep learning recommenders & Rejected: require an interaction history that is absent at launch (cold start) \parencite{AdomaviciusTuzhilin2005, ZhangColdStart2025}. \\ \hline
+    Simple additive weighting (weighted sum) & Considered: simple, but the score is unbounded and sensitive to how the raw scales are combined, and it still needs weights. \\ \hline
+    Lexicographic / strictly non compensatory ordering & Considered \parencite{Fishburn1974, Roberts1979}: follows the top priority absolutely, but a negligible price gap then erases any data advantage, too rigid for choosing a consumer plan. \\ \hline
+    Analytic hierarchy process (AHP) & Rejected: requires many pairwise comparisons and a consistency check that ordinary users cannot reliably provide. \\ \hline
+    \textbf{TOPSIS + rank order centroid (retained)} & Chosen \parencite{HwangYoon1981, BarronBarrett1996, TaherdoostMadanchian2023}: content based (cold start safe), criteria trade off smoothly while the ROC weights still encode the user's ranking, every step is a published formula, and the closeness coefficient is a bounded match score. \\ \hline
   \end{tabular}
 \end{table}
 
-To illustrate the rejection of design~3 concretely, consider a user with budget 1\,400~DA, data need 20~GB, priorities \texttt{[price, data]}, and two candidate offers $O_A$ (200~DA / 3~GB) and $O_B$ (1\,400~DA / 25~GB). The geometric mean composite $m_1^{0.6} \cdot m_2^{0.4}$ returns $0.14$ for $O_A$ and $1.00$ for $O_B$, ranking $O_B$ first, directly contradicting the user's stated primary preference for price. The lexicographic semiorder places $O_A$ in tier $0.00$ and $O_B$ in tier $1.00$; the primary priority strictly determines the tier, so $O_A$ leads. The two models produce opposite top results from the same inputs, which is the failure mode the iterative process was eliminating.
+As a worked example, take a user with budget 2\,000~DA who ranks price first then data, and three in budget plans: $A$ (1\,000~DA, 8~GB), $B$ (1\,100~DA, 15~GB), and $C$ (600~DA, 4~GB). Rank order centroid gives weights $0.75$ (price) and $0.25$ (data). After vector normalisation and weighting, TOPSIS computes each plan's Euclidean distance to the ideal (cheapest, most data) and to the anti ideal, yielding closeness coefficients $C_C \approx 0.60$, $C_B \approx 0.40$, $C_A \approx 0.26$. The ranking is therefore $C, B, A$: the low price of $C$ dominates under the $0.75$ price weight, while $B$ outranks $A$ on data. Ranking data first instead would raise the weight on data and move the higher data plan $B$ up, which is exactly how the ROC weights steer the trade off.
 
 The engine is called from two distinct contexts: the \textit{/api/recommendations} route handler executes the algorithm synchronously in response to an explicit user request (rate limited at sixty requests per minute per IP), and the scraper orchestrator runs it in batch after each successful scrape cycle to dispatch personalised \texttt{recommendation} notifications when a user's top match has changed. The engine covers the case where the user has filled out a profile and wants the system to choose for them; the complementary case, the user has a query in mind and wants the catalogue filtered by it, is handled by the structured search interface described next.
 
@@ -327,7 +324,7 @@ The application comprises nine primary screens covering the full user journey fr
     Home               & \textit{/}           & Public  & Language selector (EN / FR / AR), four feature tiles, three operator logos; authenticated users bypass this screen and land directly on \textit{/offers}. \\ \hline
     Offers catalogue   & \textit{/offers}     & Public  & Grid of offer cards, operator filter tabs, plan type pills, collapsible advanced filter panel, structured search bar with \guillemotleft{}Read as\guillemotright{} chips, sticky bottom bar when plans are selected for comparison. \\ \hline
     Comparison         & \textit{/compare}    & Public  & Side by side specification table tinted in operator colours, plus per metric bar charts (price, data, and annual savings when launched from recommendations). \\ \hline
-    Recommendations    & \textit{/recommend}  & Account & Usage profile form (budget, data, calls / SMS toggles, type / network / operator filters, two priority slots); on submit, three ranked cards with badges (🥇🥈🥉) and human readable match reasons. \\ \hline
+    Recommendations    & \textit{/recommend}  & Account & Usage profile form (budget, data, calls / SMS toggles, type / network / operator filters, two priority slots); on submit, three ranked cards with rank badges (1st, 2nd, 3rd) and human readable match reasons. \\ \hline
     Login / Register   & \textit{/login}, \textit{/register} & Public & Email + password (registration adds a name); client side validation; inline error messages without page reload. \\ \hline
     Admin dashboard    & \textit{/admin}      & Admin   & Four statistics cards, operator health panel, per family plan breakdown (live / fallback / fixed), scrape history log, admin notifications tab. \\ \hline
     Saved plans        & \textit{/saved}      & Account & Grid of bookmarked plans with unsave action and a direct route to the comparison view that auto selects the saved plans. \\ \hline

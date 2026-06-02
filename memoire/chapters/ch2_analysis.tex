@@ -192,7 +192,7 @@ Table~\ref{tab:usecases} describes each primary use case, the actor who triggers
     \hline
     UC5 & View Help / Tutorial        & All users         & Open a guided tutorial page describing the five core features with step by step instructions and annotated screenshots. \\
     \hline
-    UC6 & Get Recommendations         & Registered User   & Submit a usage profile and receive a ranked list of the three best matching plans produced by the tiered ranking recommendation engine, with the match reasons displayed alongside each result. \\
+    UC6 & Get Recommendations         & Registered User   & Submit a usage profile and receive a ranked list of the three best matching plans produced by the TOPSIS based recommendation engine, with the match reasons displayed alongside each result. \\
     \hline
     UC7 & Save \& Manage Plans        & Registered User   & Bookmark any plan from the offers page, access all saved plans from a dedicated page, compare them, or remove individual bookmarks. \\
     \hline
@@ -521,7 +521,7 @@ Two principles guided every choice in the technology stack: keep the front end a
     Compile time type safety across 8 entities and 11 API routes; editor level refactoring catches schema drift errors before run time; types travel through Prisma, API handlers, and React components without manual export. \\
     \hline
     Unit testing & Vitest & Jest, Mocha + Chai &
-    Native ESM and TypeScript support without an additional Babel pipeline; configuration shared with the project's Vite build; the 118 test suite completes in approximately two seconds. \\
+    Native ESM and TypeScript support without an additional Babel pipeline; configuration shared with the project's Vite build; the 121 test suite completes in approximately two seconds. \\
     \hline
     Styling & CSS custom properties & Tailwind CSS, CSS Modules &
     Operator coloured theming via inheritance from a single \texttt{--accent} variable per card; the comparison columns are tinted to match. Tailwind would require dynamic class composition or arbitrary value classes that defeat its design system purpose; CSS Modules introduce build time class name mangling that does not coexist gracefully with Next.js server components. \\

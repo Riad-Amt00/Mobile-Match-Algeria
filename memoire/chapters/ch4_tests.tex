@@ -4,7 +4,7 @@
 
 \chapter{Evaluation}
 
-The implementation described in Chapter~3 must now be evaluated against the project objectives, not merely described. This chapter answers four questions in sequence. \textbf{Did the project meet its objectives?} Section~4.1 maps each of the five FICHE deliverables to its concrete artefact and the evidence of completion. \textbf{Does the recommendation engine behave as specified?} Section~4.2 validates it analytically against four scenario tests drawn from the project's unit test suite, including the iterative refinement that produced the final scoring model. \textbf{Does the system hold up under load?} Section~4.3 reports the production build benchmarks measured on the offers, search, and recommendation endpoints. \textbf{Does the system respect user isolation?} Section~4.4 documents the multi account functional testing performed.
+The implementation described in Chapter~3 must now be evaluated against the project objectives, not merely described. This chapter answers four questions in sequence. \textbf{Did the project meet its objectives?} Section~4.1 maps each of the five FICHE deliverables to its concrete artefact and the evidence of completion. \textbf{Does the recommendation engine behave as specified?} Section~4.2 validates it analytically against four scenario tests drawn from the project's unit test suite. \textbf{Does the system hold up under load?} Section~4.3 reports the production build benchmarks measured on the offers, search, and recommendation endpoints. \textbf{Does the system respect user isolation?} Section~4.4 documents the multi account functional testing performed.
 
 \section{Comparison with Objectives}
 
@@ -22,7 +22,7 @@ Table~\ref{tab:objectives} maps each of the five original project objectives to 
     \hline
     O2 & Build an automated data collection module from operator websites & Three per operator scrapers (Djezzy, Ooredoo, Mobilis) with retry/backoff, scheduled execution, snapshot based regression tests, per family deactivation, and ScrapeLog audit storage \\
     \hline
-    O3 & Implement a personalised recommendation engine & Two layer engine: hard filters (operator / type / network / calls / SMS / budget ceiling) followed by tiered ranking on the user's primary and secondary priorities (price / data); validated by four scenario tests in Section~4.2 \\
+    O3 & Implement a personalised recommendation engine & Two layer engine: hard filters (operator / type / network / calls / SMS / budget ceiling) followed by TOPSIS ranking with rank-order-centroid weights from the user's priority ranking (price / data); validated by four scenario tests in Section~4.2 \\
     \hline
     O4 & Integrate data visualisation tools (tables, charts, savings calculator) & Side by side specification table; per metric bar charts on the comparison page for price and data volume, plus an annual savings bar chart (against the user's monthly budget) when the comparison was launched from the recommendations page; integrated savings indicator on each recommendation card showing monthly, annual, and percentage savings against the user's monthly budget \\
     \hline
@@ -56,8 +56,8 @@ The recommendation engine is a deterministic function: given a fixed input profi
     \checkmark \\
     \hline
     Budget 1\,400\,DA, data 20\,Go, priorities = [price, data] &
-    Primary = price $\Rightarrow$ cheapest tier leads; within that tier, the offer covering the most data is ranked first. &
-    Mobilis Start 2\,Go / 500\,DA \newline \textit{Top price-tier; the 1\,000\,DA / 15\,Go plan ranks lower} &
+    Price ranked first (ROC weight 0.75) dominates the TOPSIS closeness, so the cheapest in-budget plan leads; data orders the rest. &
+    Djezzy Basic 1\,Go / 300\,DA \newline \textit{Cheapest plan; the 1\,000\,DA / 15\,Go plan ranks lower} &
     \checkmark \\
     \hline
     Budget 50\,DA (below every catalogue price) &
@@ -68,11 +68,11 @@ The recommendation engine is a deterministic function: given a fixed input profi
   \end{tabular}
 \end{table}
 
-The four scenarios verify, respectively: the budget hard ceiling, the data target coverage property, the tiered priority order (first priority strictly dominates the result, second priority refines within the tier), and the engine's behaviour when the user's constraints are unsatisfiable. The full test suite contains one hundred and eighteen unit tests across the recommendation engine, the scraping parsers, the structured search parser, and the formatting utilities; all tests pass at the time of writing.
+The four scenarios verify, respectively: the budget hard ceiling, the data target coverage property, the priority weighting (the criterion ranked first is weighted most by rank order centroid and dominates the TOPSIS ranking, the second criterion ordering the rest), and the engine's behaviour when the user's constraints are unsatisfiable. The full test suite contains one hundred and twenty one unit tests across the recommendation engine, the scraping parsers, the structured search parser, and the formatting utilities; all tests pass at the time of writing.
 
-\subsection{Iterative Refinement of the Scoring Model}
+\subsection{Method Selection}
 
-The validation tests above are passed by the tiered ranking model described in Chapter~3, but four earlier scoring models were rejected during development on the basis of the same scenarios. The most informative failure mode was that of the weighted mean models: although they could pass the budget and data scenarios individually, neither weighted arithmetic mean nor weighted geometric mean ever produced the clean \guillemotleft{}primary then secondary\guillemotright{} order required by the third scenario, because a strong score on the secondary criterion was systematically allowed to compensate for a poor score on the primary. The tiered ranking model resolves this by enforcing a strict partition of the offer space along the primary priority, with the secondary priority restricted to ordering within each partition.
+The validation tests above are passed by the TOPSIS ranking described in Chapter~3. TOPSIS was selected over the alternatives considered against the same scenarios. A plain weighted mean (arithmetic or geometric) was set aside because it yields an unbounded score and lets a strong secondary criterion compensate for a weak primary one, blurring the user's stated priority; a strictly non compensatory lexicographic rule was set aside because it lets a negligible price difference erase a large data advantage, too rigid for a consumer plan choice. TOPSIS keeps the criteria trading off smoothly while the rank order centroid weights still encode the user's ranking, and it reports a bounded closeness score. The full method comparison is in Chapter~3, Section~3.4.
 
 \section{Performance Benchmarks}
 

@@ -1,31 +1,20 @@
 /**
- * Recommendation Engine — Scores offers against a user profile.
+ * Recommendation Engine — content-based multi-criteria ranking (cold-start safe).
  *
- * Hard filters (categorical, go/no-go):
- *   - Budget is a HARD CEILING — no offer above the user's monthly budget is returned.
- *   - Operator, plan type, network, and unlimited calls / SMS are filters too.
+ * The engine ranks offers with TOPSIS (Technique for Order of Preference by
+ * Similarity to Ideal Solution), a standard multi-criteria decision method that
+ * orders alternatives by their Euclidean distance to an ideal and an anti-ideal
+ * solution (Hwang & Yoon, 1981; recent guide: Taherdoost & Madanchian, 2023). It
+ * is content/attribute-based, so it needs no interaction history and works at
+ * cold-start. The criterion weights are derived from the user's ranking of the
+ * criteria with Rank-Order Centroid (ROC) surrogate weights (Barron & Barrett,
+ * 1996), so no weight is hand-tuned. Hard, categorical constraints (budget
+ * ceiling, operator, plan type, network, unlimited toggles) are applied as a
+ * screening step before ranking; the budget is a strict ceiling.
  *
- * Ranked priority elicitation: the user ranks up to 2 criteria (price, data).
- * Each offer gets a per-criterion merit in [0, 1]:
- *   - Price merit: CHEAPER IS BETTER. An offer at 0 DA scores 1; at the budget
- *     ceiling, the merit is 0. (This is consistent with the savings indicator
- *     shown on each card, where the same budget is treated as a ceiling.)
- *   - Data merit: how well the offer's data covers the user's stated need
- *     (saturating utility — extra data beyond the need does not raise the merit).
- *
- * Merit is target-relative, never pool-relative, so a catalogue outlier cannot
- * distort the scale. Offers are then ranked by a LEXICOGRAPHIC SEMIORDER: the
- * primary priority's merit is quantised into 5 ordered indifference classes
- * ("tiers"), the just-noticeable-difference threshold of a semiorder (Luce 1956;
- * Tversky 1969). Offers in the same tier are treated as indifferent on the
- * primary criterion, so the SECONDARY priority orders them; offers in different
- * tiers are ordered by the primary alone. This is a strict, non-compensatory
- * lexicographic decision rule (Fishburn 1974), still in current use as a
- * multi-attribute method (Safarzadeh & Rasti-Barzoki 2018; Taherdoost &
- * Madanchian 2023): no secondary gain can move an offer across a primary tier.
- * With a single priority there is
- * no tie to break, so offers are ranked by its continuous merit directly. The
- * additive base fitness score is used only as a final deterministic tiebreaker.
+ * Pipeline:  hard filters  ->  ROC weights (from the criterion ranking)
+ *            ->  TOPSIS over the surviving offers  ->  top-N by closeness.
+ * The closeness coefficient C in [0,1] is reported as the match score (C*100).
  */
 
 export interface UserNeeds {
@@ -51,107 +40,16 @@ interface Recommendation {
   mismatches: ReasonToken[]
 }
 
-export function recommendOffers(
-  offers: any[],
-  needs: UserNeeds,
-  topN = 3,
-  priorities: string[] = []
-): Recommendation[] {
-  // Hard constraints — offers failing any of these are excluded entirely, never
-  // scored: budget is a ceiling; operator / plan-type / network are categorical
-  // filters; unlimited calls / SMS (when requested, needs = -1) are binary filters.
-  const scored: Recommendation[] = offers
-    .filter(o => o.priceDA <= needs.budget)
-    .filter(o => !needs.operator || needs.operator === 'any' || o.operator?.slug === needs.operator)
-    .filter(o => !needs.type || needs.type === 'any' || o.type === needs.type)
-    .filter(o => !needs.network || needs.network === 'any' || String(o.network).includes(needs.network))
-    .filter(o => needs.voiceMinutes !== -1 || o.voiceMinutes === -1)
-    .filter(o => needs.smsCount !== -1 || o.smsCount === -1)
-    .map(o => scoreOffer(o, needs))
-
-  // ── Ranked priority elicitation — tiered ranking ───────────────────────────
-  // The user ranks up to 2 criteria. Offers are grouped into TIERS by the top
-  // priority's merit; within a tier the 2nd priority decides the order. The 2nd can
-  // never lift an offer past a higher tier — "follow the top priority, then get as
-  // close as possible to the 2nd."
-  const ranked = priorities.filter(Boolean).slice(0, 2)
-  if (ranked.length > 0 && scored.length > 0) {
-    // Per-criterion merit, 0 → 1, scored against the user's stated NEED — never
-    // normalised across the pool. An offer that fully covers the need scores 1;
-    // anything beyond the need is capped at 1. This keeps a catalogue outlier (e.g.
-    // a freak 1000 GB plan) from compressing every realistic offer toward 0.
-    // Unlimited (-1) always scores 1.
-    const merit = (pri: string, o: any): number => {
-      if (pri === 'price')
-        // CHEAPER IS BETTER. The budget is the user's monthly ceiling, not a target —
-        // an offer at 0 DA scores 1, an offer at the ceiling scores 0. This matches
-        // how the budget is interpreted everywhere else in the app (the savings
-        // indicator on each card uses the same ceiling semantics).
-        return clamp01(1 - o.priceDA / Math.max(needs.budget, 1))
-      if (pri === 'data') {
-        if (o.dataGB === -1) return 1
-        return needs.dataGB > 0 ? clamp01(o.dataGB / needs.dataGB) : 0.5
-      }
-      // calls / sms / network are NOT selectable as ranking criteria in the UI
-      // (only price and data are). These branches are kept on purpose: the daily
-      // recommendation job in scraper/index.ts passes each profile's saved
-      // `priorities` verbatim, so a legacy profile still holding 'calls' / 'sms' /
-      // 'network' is ranked sensibly instead of collapsing to a 0 merit.
-      if (pri === 'calls') {
-        if (o.voiceMinutes === -1) return 1
-        if (needs.voiceMinutes === -1) return 0          // user wants unlimited, offer isn't
-        return needs.voiceMinutes > 0 ? clamp01(o.voiceMinutes / needs.voiceMinutes) : 0.5
-      }
-      if (pri === 'sms') {
-        if (o.smsCount === -1) return 1
-        if (needs.smsCount === -1) return 0              // user wants unlimited, offer isn't
-        return needs.smsCount > 0 ? clamp01(o.smsCount / needs.smsCount) : 0.5
-      }
-      if (pri === 'network')
-        return networkMerit(o.network)
-      return 0
-    }
-
-    // Lexicographic semiorder. PRIMARY key: with two priorities, the primary merit
-    // is quantised into 5 ordered indifference classes — tier = round(m1 × 4)/4 ∈
-    // {0, .25, .5, .75, 1} — so a real range of e.g. "cheap" offers shares a tier
-    // (the semiorder's just-noticeable difference, after Luce 1956 / Tversky 1969);
-    // with one priority the primary key is the continuous merit (no tie to break).
-    // SECONDARY key: the 2nd priority's merit, which orders offers WITHIN a tier
-    // only. FINAL key: the additive base fitness score, a deterministic tiebreak.
-    // Because the sort compares the primary key first, no secondary gain can ever
-    // move an offer across a primary tier — the rule is strictly non-compensatory.
-    const keyed = scored.map(r => {
-      const m1 = merit(ranked[0], r.offer)
-      const m2 = ranked[1] ? merit(ranked[1], r.offer) : 0
-      if (m1 >= 0.66) r.matchReasons.push({ key: `match.priority.${ranked[0]}` })
-      if (ranked[1] && m2 >= 0.66) r.matchReasons.push({ key: `match.priority.${ranked[1]}` })
-      const primary = ranked[1] ? Math.round(m1 * 4) / 4 : m1
-      return { r, primary, secondary: m2, base: r.score }
-    })
-    keyed.sort((a, b) =>
-      b.primary - a.primary || b.secondary - a.secondary || b.base - a.base)
-    scored.length = 0
-    for (const k of keyed) scored.push(k.r)
-  } else {
-    scored.sort((a, b) => b.score - a.score)
-  }
-
-  // No post-hoc reordering. Lexicographic strict priority means the ordering
-  // produced by the tiered ranking is the final ordering — anything else would
-  // contradict the Fishburn (1974) framing we cite in Chapter 1 §1.3.2.
-  return scored.slice(0, topN)
-}
+// Criteria that can be ranked. Each has a direction: a benefit criterion is
+// better when larger, a cost criterion is better when smaller.
+type Criterion = 'price' | 'data' | 'calls' | 'sms' | 'network'
+const COST_CRITERIA = new Set<Criterion>(['price'])
 
 function clamp01(x: number): number {
   return x < 0 ? 0 : x > 1 ? 1 : x
 }
 
-/**
- * Merit of an offer's network for the "network" priority. Picking Network as a
- * priority means "I want the best network technology" — newer tech ranks higher,
- * regardless of any 4G/5G filter the user may or may not have set.
- */
+/** Newer technology ranks higher when "network" is chosen as a criterion. */
 function networkMerit(network: string): number {
   const n = String(network || '').toLowerCase()
   if (n.includes('5g')) return 1
@@ -160,143 +58,173 @@ function networkMerit(network: string): number {
   return 0.15
 }
 
-function scoreOffer(offer: any, needs: UserNeeds): Recommendation {
-  let score = 0
+/**
+ * Rank-Order Centroid (ROC) surrogate weights (Barron & Barrett, 1996).
+ * Turns a ranking of n criteria (most important first) into numeric weights
+ * w_k = (1/n) * sum_{i=k}^{n} (1/i), which sum to 1. For two criteria this gives
+ * 0.75 and 0.25; for one criterion, 1. No weight is chosen by hand.
+ */
+export function rocWeights(n: number): number[] {
+  if (n <= 0) return []
+  const w: number[] = []
+  for (let k = 1; k <= n; k++) {
+    let s = 0
+    for (let i = k; i <= n; i++) s += 1 / i
+    w.push(s / n)
+  }
+  return w
+}
+
+/**
+ * The raw value of a criterion for an offer, with unlimited (-1) mapped to the
+ * best value present in the pool so an unlimited allowance counts as ideal.
+ */
+function criterionValue(c: Criterion, offer: any, poolMax: Record<string, number>): number {
+  // An unlimited allowance (-1) is encoded as 1.5x the largest finite value in
+  // the pool, so on a benefit criterion it ranks strictly above any finite plan
+  // (it becomes the ideal), rather than merely tying the finite maximum.
+  switch (c) {
+    case 'price': return offer.priceDA
+    case 'data':  return offer.dataGB === -1 ? poolMax.data * 1.5 : Math.max(0, offer.dataGB)
+    case 'calls': return offer.voiceMinutes === -1 ? poolMax.calls * 1.5 : Math.max(0, offer.voiceMinutes)
+    case 'sms':   return offer.smsCount === -1 ? poolMax.sms * 1.5 : Math.max(0, offer.smsCount)
+    case 'network': return networkMerit(offer.network)
+  }
+}
+
+/**
+ * TOPSIS (Hwang & Yoon, 1981). Returns the closeness coefficient C in [0,1] for
+ * each offer, in input order. Steps: vector-normalise each criterion column,
+ * apply the weights, find the ideal (A+) and anti-ideal (A-) solutions, then
+ * C_i = S_i^- / (S_i^+ + S_i^-) where S are Euclidean distances to A+ / A-.
+ */
+export function topsis(offers: any[], criteria: Criterion[], weights: number[]): number[] {
+  const m = offers.length
+  if (m === 0) return []
+  if (m === 1) return [1] // a single feasible offer is trivially the closest
+
+  const poolMax: Record<string, number> = {
+    data:  Math.max(1, ...offers.map(o => (o.dataGB === -1 ? 0 : o.dataGB))),
+    calls: Math.max(1, ...offers.map(o => (o.voiceMinutes === -1 ? 0 : o.voiceMinutes))),
+    sms:   Math.max(1, ...offers.map(o => (o.smsCount === -1 ? 0 : o.smsCount))),
+  }
+
+  // Raw decision matrix [m offers x n criteria].
+  const X = offers.map(o => criteria.map(c => criterionValue(c, o, poolMax)))
+
+  // Vector normalisation per column, then weight.
+  const V = X.map(row => row.slice())
+  criteria.forEach((_, j) => {
+    const norm = Math.sqrt(X.reduce((s, row) => s + row[j] * row[j], 0)) || 1
+    for (let i = 0; i < m; i++) V[i][j] = (X[i][j] / norm) * weights[j]
+  })
+
+  // Ideal (A+) and anti-ideal (A-): for a cost criterion the best is the minimum.
+  const Aplus: number[] = []
+  const Aminus: number[] = []
+  criteria.forEach((c, j) => {
+    const col = V.map(row => row[j])
+    const hi = Math.max(...col), lo = Math.min(...col)
+    if (COST_CRITERIA.has(c)) { Aplus[j] = lo; Aminus[j] = hi }
+    else { Aplus[j] = hi; Aminus[j] = lo }
+  })
+
+  // Euclidean distances and closeness coefficient.
+  return V.map(row => {
+    let dPlus = 0, dMinus = 0
+    row.forEach((v, j) => { dPlus += (v - Aplus[j]) ** 2; dMinus += (v - Aminus[j]) ** 2 })
+    dPlus = Math.sqrt(dPlus); dMinus = Math.sqrt(dMinus)
+    const denom = dPlus + dMinus
+    return denom === 0 ? 1 : dMinus / denom
+  })
+}
+
+export function recommendOffers(
+  offers: any[],
+  needs: UserNeeds,
+  topN = 3,
+  priorities: string[] = []
+): Recommendation[] {
+  // ── Hard constraints (categorical, go / no-go). Budget is a strict ceiling. ──
+  const feasible = offers
+    .filter(o => o.priceDA <= needs.budget)
+    .filter(o => !needs.operator || needs.operator === 'any' || o.operator?.slug === needs.operator)
+    .filter(o => !needs.type || needs.type === 'any' || o.type === needs.type)
+    .filter(o => !needs.network || needs.network === 'any' || String(o.network).includes(needs.network))
+    .filter(o => needs.voiceMinutes !== -1 || o.voiceMinutes === -1)
+    .filter(o => needs.smsCount !== -1 || o.smsCount === -1)
+
+  if (feasible.length === 0) return []
+
+  // Criteria to rank on come from the user's priority ranking; default to
+  // price then data when none are given. ROC turns the ranking into weights.
+  const valid: Criterion[] = ['price', 'data', 'calls', 'sms', 'network']
+  let criteria = priorities.filter(p => valid.includes(p as Criterion)).slice(0, 4) as Criterion[]
+  const ranked = criteria.length > 0
+  if (!ranked) criteria = ['price', 'data']
+  // With a stated ranking, ROC turns it into weights; with no ranking, the
+  // criteria are weighted equally (the standard neutral default).
+  const weights = ranked ? rocWeights(criteria.length) : criteria.map(() => 1 / criteria.length)
+
+  const closeness = topsis(feasible, criteria, weights)
+
+  const recs: Recommendation[] = feasible.map((offer, i) => {
+    const { matchReasons, mismatches } = buildReasons(offer, needs, criteria)
+    return {
+      offer,
+      score: Math.round(closeness[i] * 100),
+      savings: Math.max(0, needs.budget - offer.priceDA),
+      matchReasons,
+      mismatches,
+    }
+  })
+
+  // Rank by closeness (use the raw value to avoid rounding ties).
+  recs.sort((a, b) => b.score - a.score)
+  return recs.slice(0, topN)
+}
+
+/**
+ * Per-criterion merit in [0,1], need-relative, used only to generate the
+ * human-readable match reasons (not for ranking — TOPSIS does the ranking).
+ */
+function reasonMerit(c: Criterion, offer: any, needs: UserNeeds): number {
+  switch (c) {
+    case 'price': return clamp01(1 - offer.priceDA / Math.max(needs.budget, 1))
+    case 'data':  return offer.dataGB === -1 ? 1 : needs.dataGB > 0 ? clamp01(offer.dataGB / needs.dataGB) : 0.5
+    case 'calls': return offer.voiceMinutes === -1 ? 1 : needs.voiceMinutes > 0 ? clamp01(offer.voiceMinutes / needs.voiceMinutes) : 0.5
+    case 'sms':   return offer.smsCount === -1 ? 1 : needs.smsCount > 0 ? clamp01(offer.smsCount / needs.smsCount) : 0.5
+    case 'network': return networkMerit(offer.network)
+  }
+}
+
+function buildReasons(offer: any, needs: UserNeeds, criteria: Criterion[]) {
   const matchReasons: ReasonToken[] = []
   const mismatches: ReasonToken[] = []
 
-  // ── Budget fit (25 pts) ────────────────────────────────────────
-  const pricePct = offer.priceDA / needs.budget
-  if (pricePct <= 0.5) {
-    score += 25
-    matchReasons.push({ key: 'match.budget.wellUnder', params: { pct: Math.round((1 - pricePct) * 100) } })
-  } else if (pricePct <= 0.8) {
-    score += 22
-    matchReasons.push({ key: 'match.budget.within', params: { pct: Math.round((1 - pricePct) * 100) } })
-  } else if (pricePct <= 1.0) {
-    score += 18
-    matchReasons.push({ key: 'match.budget.fits' })
-  } else if (pricePct <= 1.15) {
-    score += 10
-    mismatches.push({ key: 'match.budget.slightlyOver', params: { pct: Math.round((pricePct - 1) * 100) } })
-  } else {
-    score += 0
-    mismatches.push({ key: 'match.budget.over', params: { pct: Math.round((pricePct - 1) * 100) } })
-  }
+  // Budget fit (descriptive)
+  const pricePct = offer.priceDA / Math.max(needs.budget, 1)
+  if (pricePct <= 0.5) matchReasons.push({ key: 'match.budget.wellUnder', params: { pct: Math.round((1 - pricePct) * 100) } })
+  else if (pricePct <= 0.8) matchReasons.push({ key: 'match.budget.within', params: { pct: Math.round((1 - pricePct) * 100) } })
+  else if (pricePct <= 1.0) matchReasons.push({ key: 'match.budget.fits' })
 
-  // ── Data fit (25 pts) ──────────────────────────────────────────
-  if (offer.dataGB === -1) {
-    score += 25
-    matchReasons.push({ key: 'match.data.unlimited' })
-  } else if (needs.dataGB <= 0) {
-    score += 20
-  } else {
+  // Data fit (descriptive)
+  if (offer.dataGB === -1) matchReasons.push({ key: 'match.data.unlimited' })
+  else if (needs.dataGB > 0) {
     const dataPct = offer.dataGB / needs.dataGB
-    if (dataPct >= 1.5) {
-      score += 25
-      matchReasons.push({ key: 'match.data.excess', params: { pct: Math.round(dataPct * 100 - 100) } })
-    } else if (dataPct >= 1.0) {
-      score += 22
-      matchReasons.push({ key: 'match.data.covers' })
-    } else if (dataPct >= 0.7) {
-      score += 15
-      mismatches.push({ key: 'match.data.short', params: { has: offer.dataGB, need: needs.dataGB } })
-    } else {
-      score += 8
-      mismatches.push({ key: 'match.data.insufficient', params: { has: offer.dataGB, need: needs.dataGB } })
-    }
+    if (dataPct >= 1.5) matchReasons.push({ key: 'match.data.excess', params: { pct: Math.round(dataPct * 100 - 100) } })
+    else if (dataPct >= 1.0) matchReasons.push({ key: 'match.data.covers' })
+    else if (dataPct >= 0.7) mismatches.push({ key: 'match.data.short', params: { has: offer.dataGB, need: needs.dataGB } })
+    else mismatches.push({ key: 'match.data.insufficient', params: { has: offer.dataGB, need: needs.dataGB } })
   }
 
-  // ── Voice fit (15 pts) ─────────────────────────────────────────
-  if (offer.voiceMinutes === -1) {
-    score += 15
-    matchReasons.push({ key: 'match.voice.unlimited' })
-  } else if (needs.voiceMinutes === -1) {
-    score += 3
-    mismatches.push({ key: 'match.voice.notUnlimited', params: { has: offer.voiceMinutes } })
-  } else if (needs.voiceMinutes <= 0) {
-    score += 12
-  } else {
-    const voicePct = offer.voiceMinutes / needs.voiceMinutes
-    if (voicePct >= 1.0) {
-      score += 15
-      if (voicePct >= 2) matchReasons.push({ key: 'match.voice.excess' })
-    } else if (voicePct >= 0.7) {
-      score += 10
-      mismatches.push({ key: 'match.voice.short', params: { has: offer.voiceMinutes, need: needs.voiceMinutes } })
-    } else {
-      score += 5
-      mismatches.push({ key: 'match.voice.low', params: { has: offer.voiceMinutes, need: needs.voiceMinutes } })
-    }
+  if (offer.voiceMinutes === -1) matchReasons.push({ key: 'match.voice.unlimited' })
+  if (offer.smsCount === -1) matchReasons.push({ key: 'match.sms.unlimited' })
+
+  // A "priority" reason for each ranked criterion the offer scores well on.
+  for (const c of criteria) {
+    if (reasonMerit(c, offer, needs) >= 0.66) matchReasons.push({ key: `match.priority.${c}` })
   }
 
-  // ── SMS fit (5 pts — de-prioritised: OTT apps dominate in Algeria) ──────
-  if (offer.smsCount === -1) {
-    score += 5
-    matchReasons.push({ key: 'match.sms.unlimited' })
-  } else if (needs.smsCount === -1) {
-    score += 1
-    mismatches.push({ key: 'match.sms.notUnlimited', params: { has: offer.smsCount } })
-  } else if (needs.smsCount <= 0) {
-    score += 4
-  } else {
-    const smsPct = offer.smsCount / needs.smsCount
-    if (smsPct >= 1.0) {
-      score += 5
-    } else if (smsPct >= 0.5) {
-      score += 3
-    } else {
-      score += 1
-      mismatches.push({ key: 'match.sms.low', params: { has: offer.smsCount, need: needs.smsCount } })
-    }
-  }
-
-  // ── Value bonus (15 pts) ───────────────────────────────────────
-  if (offer.dataGB > 0 && offer.priceDA > 0) {
-    const dataPerDA = (offer.dataGB / offer.priceDA) * 1000
-    if (dataPerDA >= 50) { score += 15; matchReasons.push({ key: 'match.value.great' }) }
-    else if (dataPerDA >= 30) score += 12
-    else if (dataPerDA >= 15) score += 8
-    else score += 3
-  } else if (offer.dataGB === -1) {
-    score += 13
-  }
-
-  // ── Feature bonus (5 pts) ─────────────────────────────────────
-  try {
-    const features = typeof offer.features === 'string' ? JSON.parse(offer.features) : offer.features || []
-    const featureText = features.join(' ').toLowerCase()
-    if (featureText.includes('social') || featureText.includes('facebook') || featureText.includes('réseaux sociaux')) score += 1
-    if (featureText.includes('streaming') || featureText.includes('youtube') || featureText.includes('anaflix') || featureText.includes('shahid')) score += 1
-    if (featureText.includes('night') || featureText.includes('nuit') || featureText.includes('bonus nuit')) score += 1
-    if (featureText.includes('unlimited calls') || featureText.includes('illimités toutes') || featureText.includes('illimités tous')) score += 1
-    if (featureText.includes('roaming') || featureText.includes('rollover')) score += 1
-  } catch {}
-
-  // ── Validity bonus (5 pts) ────────────────────────────────────
-  if (offer.validityDays >= 30) score += 5
-  else if (offer.validityDays >= 7) score += 3
-  else score += 1
-
-  // ── Type/Network filter match (5 pts) ─────────────────────────
-  if (needs.type && needs.type !== 'any') {
-    if (offer.type === needs.type) score += 3
-    else score -= 5
-  } else {
-    score += 2
-  }
-
-  if (needs.network && needs.network !== 'any') {
-    if (offer.network.includes(needs.network)) score += 2
-    else mismatches.push({ key: 'match.network.unavailable', params: { net: needs.network, alt: offer.network } })
-  } else {
-    score += 1
-  }
-
-  // ── Calculate savings ─────────────────────────────────────────
-  const savings = Math.max(0, needs.budget - offer.priceDA)
-
-  score = Math.max(0, Math.min(100, score))
-
-  return { offer, score, savings, matchReasons, mismatches }
+  return { matchReasons, mismatches }
 }
