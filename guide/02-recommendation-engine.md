@@ -50,9 +50,14 @@ Nothing here is invented — each step is a published method:
 | **Ranking by closeness to the ideal** | the whole formula in §3 | **TOPSIS — Hwang & Yoon (1981)**; recent guide: **Taherdoost & Madanchian (2023)** |
 
 Every step — filtering, weighting, and **the ranking itself** — is a published method.
-**The only thing that is *ours* is a configuration choice, not a formula:** *which*
-attributes are used as filters versus ranked criteria (price, data), and that the
-**budget is a hard ceiling**.
+**What is *ours* are configuration choices, not formulas:**
+- *which* attributes are hard filters (budget, operator, type, network) versus ranked
+  criteria (price, data), and that the **budget is a hard ceiling**;
+- two small **data-encoding conventions**: treating an "unlimited" allowance as the best
+  value on its criterion (so it beats any finite amount), and falling back to **equal
+  weights** when the user gives no ranking.
+
+None of these computes a score; the scoring is entirely the cited methods above.
 
 ---
 
