@@ -120,4 +120,54 @@ follows the user's priority.
 
 ---
 
+## Appendix — the full calculation (how C = 0.60)
+
+For the example in §5 (budget 2000; weights price 0.75, data 0.25; A 1000 DA/8 GB,
+B 1100 DA/15 GB, C 600 DA/4 GB). The five formulas:
+
+```
+1. normalise:  r = value / sqrt( sum of squares in the column )
+2. weight:     v = w * r
+3. ideal  A+ = best per column  (price: smallest ; data: largest)
+   worst  A- = worst per column (price: largest  ; data: smallest)
+4. distances: S+ = sqrt( (v_price - A+_price)^2 + (v_data - A+_data)^2 )   (to ideal)
+              S- = sqrt( (v_price - A-_price)^2 + (v_data - A-_data)^2 )   (to worst)
+5. closeness: C  = S- / (S+ + S-)
+```
+
+**Step 1 — column lengths:**
+
+- price: sqrt(1000^2 + 1100^2 + 600^2) = sqrt(2,570,000) ≈ **1603**
+- data:  sqrt(8^2 + 15^2 + 4^2) = sqrt(305) ≈ **17.46**
+
+**Steps 1–2 — normalise then × weight → the v values:**
+
+| Plan | v_price = 0.75 × price/1603 | v_data = 0.25 × data/17.46 |
+|------|-----------------------------|-----------------------------|
+| A | 0.468 | 0.114 |
+| B | 0.515 | 0.215 |
+| C | 0.281 | 0.057 |
+
+**Step 3 — the two reference points:**
+
+- Ideal `A+` = (price **0.281** [C, cheapest], data **0.215** [B, most data])
+- Worst `A-` = (price **0.515** [B, priciest], data **0.057** [C, least data])
+
+**Steps 4–5 — for C** (its v = 0.281 price, 0.057 data):
+
+```
+S+ = sqrt( (0.281-0.281)^2 + (0.057-0.215)^2 ) = sqrt(0 + 0.158^2) = 0.158
+S- = sqrt( (0.281-0.515)^2 + (0.057-0.057)^2 ) = sqrt(0.234^2 + 0) = 0.234
+C  = S- / (S+ + S-) = 0.234 / (0.158 + 0.234) = 0.234 / 0.392 = 0.60
+```
+
+Same for the others: **B** → S+ = 0.234, S- = 0.158 → **0.40**; **A** → S+ ≈ 0.212,
+S- ≈ 0.074 → **0.26**.
+
+**Why C wins:** C is the cheapest, so on price its value sits *exactly on the ideal*
+(distance 0), and price carries 0.75 of the weight — so C ends up closest to the ideal
+and farthest from the worst, giving the highest closeness, **0.60**.
+
+---
+
 *Next guide: the search engine (token parser + FTS5). Tell me when you want it.*
