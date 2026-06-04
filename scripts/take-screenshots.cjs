@@ -114,10 +114,10 @@ async function main() {
       await page.goto(`${BASE_URL}/login`, { waitUntil: 'networkidle' });
       await forceLight(page);
       await page.waitForTimeout(800);
-      await page.fill('#login-email', ADMIN_EMAIL);
-      await page.fill('#login-password', ADMIN_PASS);
+      await page.fill('input[type="email"]', ADMIN_EMAIL);
+      await page.fill('input[type="password"]', ADMIN_PASS);
       await page.waitForTimeout(300);
-      await page.click('#login-submit');
+      await page.click('button[type="submit"]');
       await page.waitForURL(url => !url.includes('/login') && !url.includes('/error'), { timeout: 10000 })
         .catch(() => {});
       await page.waitForTimeout(1000);
