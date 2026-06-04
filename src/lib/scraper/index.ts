@@ -58,11 +58,12 @@ export async function runAllScrapers(): Promise<ScrapeResult[]> {
     console.error('Failed to generate recommendation notifications:', err)
   }
 
-  // Notify admins of results (new offers and/or failures)
+  // Notify admins of the run outcome: a heartbeat on every successful run (even with
+  // no new offers, so admins always know the scrape ran), plus any failures.
   try {
-    const totalAdded = results.reduce((a, r) => a + r.offersAdded, 0)
+    const succeeded = results.filter(r => r.status === 'SUCCESS')
     const failed = results.filter(r => r.status === 'FAILED')
-    if (totalAdded > 0) await notifyAdmins(results, totalAdded)
+    if (succeeded.length > 0) await notifyAdmins(results)
     if (failed.length > 0) await notifyAdminsFailure(failed)
   } catch (err) {
     console.error('Failed to send admin notifications:', err)
@@ -87,19 +88,28 @@ async function notifyAdminsFailure(failed: ScrapeResult[]) {
   await db.notification.createMany({ data: notifications })
 }
 
-async function notifyAdmins(results: ScrapeResult[], totalAdded: number) {
+async function notifyAdmins(results: ScrapeResult[]) {
   const admins = await db.user.findMany({ where: { role: 'ADMIN' } })
   if (admins.length === 0) return
 
-  const summary = results
-    .filter(r => r.offersAdded > 0)
-    .map(r => `${r.operator}: +${r.offersAdded} new`)
-    .join(', ')
+  const totalAdded = results.reduce((a, r) => a + r.offersAdded, 0)
+  const totalUpdated = results.reduce((a, r) => a + r.offersUpdated, 0)
+
+  // Per-operator line, e.g. "Djezzy 33 · Ooredoo 37 (+2) · Mobilis 13"
+  const perOp = results
+    .map(r => r.status === 'SUCCESS'
+      ? `${r.operator} ${r.offersFound}${r.offersAdded ? ` (+${r.offersAdded})` : ''}`
+      : `${r.operator} failed`)
+    .join(' · ')
+
+  const title = totalAdded > 0
+    ? `Scrape complete — ${totalAdded} new offer${totalAdded !== 1 ? 's' : ''}`
+    : 'Scrape complete — no new offers'
 
   const notifications = admins.map(admin => ({
     userId: admin.id,
-    title: `Scrape complete — ${totalAdded} new offer${totalAdded !== 1 ? 's' : ''} added`,
-    message: summary || 'New offers were added to the database.',
+    title,
+    message: `${perOp}${totalUpdated ? ` · ${totalUpdated} updated` : ''}`,
     type: 'scrape_complete' as const,
   }))
 
