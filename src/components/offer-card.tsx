@@ -47,6 +47,22 @@ export function OfferCard({
   const credit = offerCredit(offer)
   const color = offer.operator.primaryColor
 
+  // A short preview of the plan's perks (e.g. "Free Youtube", "Data rollover"), so a
+  // search hit on the features is visible on the card. We skip entries that are too long,
+  // contain scraping artefacts (bullets, asterisks), are Arabic-only (the UI chip is LTR),
+  // or simply restate the credit already shown as its own chip.
+  let perks: string[] = []
+  try {
+    const parsed = JSON.parse(offer.features)
+    if (Array.isArray(parsed)) {
+      perks = parsed
+        .filter((f): f is string => typeof f === 'string')
+        .map(f => f.trim())
+        .filter(f => f.length >= 3 && f.length <= 40 && !/[•*]/.test(f) && !/[؀-ۿ]/.test(f) && !/cr[ée]dit/i.test(f))
+        .slice(0, 3)
+    }
+  } catch { /* features is not valid JSON; show none */ }
+
   const specs = [
     { icon: <Wifi size={14} />,          label: t('offer.data'),     value: formatData(offer.dataGB, t) },
     { icon: <Phone size={14} />,         label: t('offer.calls'),    value: formatCalls(offer, t) },
@@ -180,6 +196,19 @@ export function OfferCard({
             </span>
           )}
         </div>
+
+        {/* ── Perks preview ── */}
+        {perks.length > 0 && (
+          <div style={{ marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+            {perks.map((p, i) => (
+              <span key={i} style={{
+                fontSize: 10.5, fontWeight: 600, padding: '3px 9px', borderRadius: 20,
+                background: 'var(--bg-elevated)', color: 'var(--text-secondary)',
+                border: '1px solid var(--border-subtle)',
+              }}>{p}</span>
+            ))}
+          </div>
+        )}
 
         {/* ── Actions ── */}
         <div style={{ display: 'flex', gap: 8, marginTop: 'auto' }}>
