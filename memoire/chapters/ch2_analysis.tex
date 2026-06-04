@@ -260,82 +260,100 @@ The pipeline begins when a cron trigger or administrator action initiates a scra
 
 \subsection{Class Diagram}
 
-The data model comprises eight application defined classes: Operator, Offer, PriceHistory, User, UserProfile, SavedOffer, Notification, and ScrapeLog. Authentication infrastructure models managed by NextAuth.js (Account, Session, VerificationToken) and the system level rate limit table are excluded from the application diagram. Figure~\ref{fig:class-diagram-main} shows each class with its principal attributes; the associations between classes carry standard UML multiplicities (1, N).
+The data model comprises eight application defined classes: Operator, Offer, PriceHistory, User, UserProfile, SavedOffer, Notification, and ScrapeLog. Authentication infrastructure models managed by NextAuth.js (Account, Session, VerificationToken) and the system level rate limit table are excluded from the application diagram. Figure~\ref{fig:class-diagram-main} shows each class in the standard UML form, with three compartments: the class name, its principal attributes, and the main operations defined on it. Each operation corresponds to a real function in the codebase rather than an invented one. The associations between classes carry standard UML multiplicities (1, N).
 
 \begin{figure}[H]
 \centering
 \resizebox{\textwidth}{!}{%
 \begin{tikzpicture}[
   cls/.style={rectangle, draw=black!80, fill=white, align=left, font=\scriptsize, inner sep=0pt},
-  hdr/.style={fill=blue!15, font=\scriptsize\bfseries, align=center, minimum height=0.50cm, minimum width=3.8cm},
-  arow/.style={fill=white, minimum height=0.36cm, minimum width=3.8cm, align=left, inner sep=3pt, font=\scriptsize},
+  hdr/.style={fill=blue!15, font=\scriptsize\bfseries, align=center, minimum height=0.48cm, minimum width=3.8cm},
+  arow/.style={fill=white, minimum height=0.34cm, minimum width=3.8cm, align=left, inner sep=3pt, font=\scriptsize},
+  msep/.style={fill=white, minimum height=0.05cm, minimum width=3.8cm, inner sep=0pt},
+  mrow/.style={fill=white, minimum height=0.34cm, minimum width=3.8cm, align=left, inner sep=3pt, font=\scriptsize\itshape},
   assoc/.style={thick, ->, black!65}
 ]
   %% ── Row 1: Operator · Offer · User · Notification ─────────────────────────
   \matrix[cls, ampersand replacement=\&] (op) at (0,0) {
     \node[hdr]{Operator}; \\
-    \node[arow]{id: String (PK)}; \\
+    \node[arow]{id : String (PK)}; \\
     \node[arow]{name, slug, primaryColor}; \\
     \node[arow]{website}; \\
+    \node[msep]{\rule{3.6cm}{0.3pt}}; \\
+    \node[mrow]{+ getActiveOffers()}; \\
+    \node[mrow]{+ healthStatus()}; \\
   };
   \matrix[cls, ampersand replacement=\&] (offer) at (4.1,0) {
     \node[hdr]{Offer}; \\
-    \node[arow]{id: String (PK)}; \\
-    \node[arow]{name, slug, type, network}; \\
-    \node[arow]{priceDA, dataGB, voiceMin}; \\
-    \node[arow]{smsCount, validityDays}; \\
-    \node[arow]{features, isActive}; \\
-    \node[arow]{sourceUrl, scrapedAt}; \\
+    \node[arow]{id : String (PK)}; \\
+    \node[arow]{name, type, network}; \\
+    \node[arow]{priceDA, dataGB, validityDays}; \\
+    \node[arow]{voiceMin, smsCount, isActive}; \\
+    \node[msep]{\rule{3.6cm}{0.3pt}}; \\
+    \node[mrow]{+ matchesFilters(needs)}; \\
+    \node[mrow]{+ isUnlimited(field)}; \\
   };
   \matrix[cls, ampersand replacement=\&] (user) at (8.2,0) {
     \node[hdr]{User}; \\
-    \node[arow]{id: String (PK)}; \\
+    \node[arow]{id : String (PK)}; \\
     \node[arow]{name, email (unique)}; \\
-    \node[arow]{emailVerified: DateTime}; \\
     \node[arow]{passwordHash, role}; \\
-    \node[arow]{createdAt, updatedAt}; \\
+    \node[msep]{\rule{3.6cm}{0.3pt}}; \\
+    \node[mrow]{+ verifyPassword(pw)}; \\
+    \node[mrow]{+ isAdmin()}; \\
   };
   \matrix[cls, ampersand replacement=\&] (notif) at (12.3,0) {
     \node[hdr]{Notification}; \\
-    \node[arow]{id: String (PK)}; \\
-    \node[arow]{userId (FK)}; \\
+    \node[arow]{id : String (PK)}; \\
+    \node[arow]{userId (FK), offerId (FK)}; \\
     \node[arow]{title, message, type}; \\
-    \node[arow]{isRead: Boolean}; \\
-    \node[arow]{offerId (FK), createdAt}; \\
+    \node[arow]{isRead : Boolean}; \\
+    \node[msep]{\rule{3.6cm}{0.3pt}}; \\
+    \node[mrow]{+ markRead()}; \\
+    \node[mrow]{+ markAllRead()}; \\
   };
 
   %% ── Row 2: ScrapeLog · PriceHistory · SavedOffer · UserProfile ────────────
-  \matrix[cls, ampersand replacement=\&] (scrape) at (0,-4.6) {
+  \matrix[cls, ampersand replacement=\&] (scrape) at (0,-5.4) {
     \node[hdr]{ScrapeLog}; \\
-    \node[arow]{id: String (PK)}; \\
+    \node[arow]{id : String (PK)}; \\
     \node[arow]{operatorId (FK)}; \\
     \node[arow]{status, duration}; \\
-    \node[arow]{offersFound/Added/Updated}; \\
-    \node[arow]{offersDeactivated, details}; \\
-    \node[arow]{errorMessage, startedAt}; \\
+    \node[arow]{found/added/updated}; \\
+    \node[msep]{\rule{3.6cm}{0.3pt}}; \\
+    \node[mrow]{+ start()}; \\
+    \node[mrow]{+ complete(result)}; \\
+    \node[mrow]{+ fail(error)}; \\
   };
-  \matrix[cls, ampersand replacement=\&] (history) at (4.1,-4.6) {
+  \matrix[cls, ampersand replacement=\&] (history) at (4.1,-5.4) {
     \node[hdr]{PriceHistory}; \\
-    \node[arow]{id: String (PK)}; \\
+    \node[arow]{id : String (PK)}; \\
     \node[arow]{offerId (FK)}; \\
-    \node[arow]{priceDA: Float}; \\
-    \node[arow]{recordedAt: DateTime}; \\
+    \node[arow]{priceDA : Float}; \\
+    \node[arow]{recordedAt : DateTime}; \\
+    \node[msep]{\rule{3.6cm}{0.3pt}}; \\
+    \node[mrow]{+ record(price)}; \\
   };
-  \matrix[cls, ampersand replacement=\&] (saved) at (8.2,-4.6) {
+  \matrix[cls, ampersand replacement=\&] (saved) at (8.2,-5.4) {
     \node[hdr]{SavedOffer}; \\
-    \node[arow]{id: String (PK)}; \\
+    \node[arow]{id : String (PK)}; \\
     \node[arow]{userId (FK)}; \\
     \node[arow]{offerId (FK)}; \\
-    \node[arow]{savedAt: DateTime}; \\
+    \node[arow]{savedAt : DateTime}; \\
+    \node[msep]{\rule{3.6cm}{0.3pt}}; \\
+    \node[mrow]{+ toggle(user, offer)}; \\
   };
-  \matrix[cls, ampersand replacement=\&] (profile) at (12.3,-4.6) {
+  \matrix[cls, ampersand replacement=\&] (profile) at (12.3,-5.4) {
     \node[hdr]{UserProfile}; \\
-    \node[arow]{id: String (PK)}; \\
+    \node[arow]{id : String (PK)}; \\
     \node[arow]{userId (FK, unique)}; \\
     \node[arow]{monthlyBudget, dataUsageGB}; \\
     \node[arow]{voiceMinutes, smsCount}; \\
-    \node[arow]{preferredType, preferredNet}; \\
-    \node[arow]{preferredOperator, priorities}; \\
+    \node[arow]{preferredType/Net/Operator}; \\
+    \node[arow]{priorities : String}; \\
+    \node[msep]{\rule{3.6cm}{0.3pt}}; \\
+    \node[mrow]{+ toNeeds()}; \\
+    \node[mrow]{+ rankedPriorities()}; \\
   };
 
   %% ── Associations with cardinalities ──────────────────────────────────────
@@ -368,7 +386,7 @@ The data model comprises eight application defined classes: Operator, Offer, Pri
     node[above, font=\scriptsize, pos=0.90]{N}
     (notif.west);
 \end{tikzpicture}}
-\caption{Class diagram of the data model: the eight application classes with their attributes and UML associations}
+\caption{Class diagram of the data model: the eight application classes with their attributes, operations, and UML associations}
 \label{fig:class-diagram-main}
 \end{figure}
 
