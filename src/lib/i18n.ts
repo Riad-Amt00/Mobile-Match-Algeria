@@ -266,7 +266,6 @@ export const translations = {
 
     // ─── Footer ────────────────────────────────────────────────────────────
     'footer.browse':     'Browse plans',
-    'footer.disclaimer': 'Non-contractual. Verify with operators.',
     'footer.tagline':    "Algeria's independent mobile plan comparator.",
     'footer.platform':   'Platform',
     'footer.operators':  'Operators',
@@ -624,7 +623,6 @@ export const translations = {
 
     // ─── Footer ────────────────────────────────────────────────────────────
     'footer.browse':     'Voir les offres',
-    'footer.disclaimer': 'Non contractuel. Vérifiez auprès des opérateurs.',
     'footer.tagline':    'Comparateur indépendant de forfaits mobiles en Algérie.',
     'footer.platform':   'Plateforme',
     'footer.operators':  'Opérateurs',
@@ -994,7 +992,6 @@ export const translations = {
 
     // ─── Footer ────────────────────────────────────────────────────────────
     'footer.browse':     'تصفح العروض',
-    'footer.disclaimer': 'غير تعاقدي. تحقق مع المشغلين.',
     'footer.tagline':    'مقارن مستقل لعروض الهاتف في الجزائر.',
     'footer.platform':   'المنصة',
     'footer.operators':  'المشغلون',

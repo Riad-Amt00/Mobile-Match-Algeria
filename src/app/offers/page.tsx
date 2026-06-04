@@ -503,7 +503,6 @@ export default function OffersPage() {
         </div>
         <div style={{ maxWidth: 1280, margin: '1.5rem auto 0', borderTop: '1px solid var(--border-subtle)', paddingTop: '1.25rem', display: 'flex', flexWrap: 'wrap', gap: '0.5rem', justifyContent: 'space-between', alignItems: 'center' }}>
           <p>© 2026 Mobile Match Algeria</p>
-          <p style={{ fontSize: 12, opacity: 0.5 }}>{t('footer.disclaimer')}</p>
         </div>
       </footer>
 
