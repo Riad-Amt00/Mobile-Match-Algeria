@@ -39,16 +39,35 @@ black box.
 
 ---
 
-## 3. The two engines behind one search bar
+## 3. Why FTS5 and BM25 — the part that is easy to miss
 
-- **The token parser (exact, transparent).** A short list of patterns turns recognised
-  words into precise filters. It is deterministic: the same query always parses the same
-  way, and the user sees the result as chips.
-- **Full-text search with BM25 (flexible, ranked).** The leftover words are handed to
-  **SQLite's built-in FTS5** index. Each word is **prefix-matched** (so "stream" finds
-  "streaming"), accents are folded (so "donnees" finds "données"), and results come back
-  ordered by **BM25 relevance**, a standard formula that favours rarer words and matches
-  in the short name over the long features text.
+A query has **two kinds of words**, and each kind needs a different tool.
+
+**Words the engine recognises** (`djezzy`, `5gb`, `300da`, `5g`, `prepaid`, `unlimited`)
+become exact database filters via the token parser. This is the part you already
+understand: operator, data, price, network, type.
+
+**Words the engine does NOT recognise** (`youtube`, `streaming`, `family`, `student`,
+`social`…) are not operators or numbers, but they often sit **inside a plan's name or its
+features** (for example a feature line like "Free YouTube" or "unlimited social media").
+A database filter cannot match those words. That is exactly what FTS5 and BM25 are for:
+
+- **FTS5 is the finder.** FTS5 is SQLite's built-in **full-text search**. At scrape time
+  we build a small **index** of every plan's name and features, like the index at the back
+  of a book: *word → the plans that contain it*. So when a leftover word like "youtube"
+  arrives, FTS5 returns the matching plans **instantly**, instead of scanning every row
+  letter by letter. It also does **prefix matching** ("stream" finds "streaming") and
+  **accent folding** ("donnees" finds "données").
+- **BM25 is the sorter.** When several plans contain the word, which comes first? **BM25**
+  is a standard relevance score (the same family the big search engines use) that FTS5
+  computes for us. It ranks a plan higher when the word is **rarer** and when it appears in
+  the **short name** rather than buried in a long features list, so the best match ends up
+  on top.
+
+In one line: **the parser handles the words it knows as filters; FTS5 finds the plans that
+contain the other words, and BM25 puts the best match first.** Example: typing `youtube`
+matches nothing in the parser, so it goes to FTS5, which finds every plan whose features
+mention YouTube and lists the most relevant first.
 
 The search bar is "fuzzy" on purpose: "5 gb" matches *roughly* 5 GB and "300 da" matches
 *around* 300 DA, because a user rarely knows the exact catalogue value. The **filter
