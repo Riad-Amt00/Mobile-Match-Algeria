@@ -277,7 +277,7 @@ The separation was introduced specifically to fix two defects in an earlier sing
 
 \subsection{End to End Notification Scenario}
 
-To make the behaviour of the two streams concrete, Table~\ref{tab:notif-scenario} walks through a single scrape cycle that triggers every notification type at least once. The scenario starts with an administrator (\emph{Alice}) initiating a manual scrape, and ends with two registered users (\emph{Bob}, who has saved a Djezzy plan; and \emph{Carol}, whose usage profile is on file) receiving the corresponding alerts. The actor in each row is the agent that produces the notification; the recipient is the audience that sees it.
+To make the behaviour of the two streams concrete, Table~\ref{tab:notif-scenario} walks through a single scrape cycle that triggers every notification type at least once. The scenario starts with an administrator (\emph{Yasmine}) initiating a manual scrape, and ends with several registered users, among them \emph{Riad} (who has saved a Djezzy plan), \emph{Mourad} (whose usage profile is on file), and \emph{Sarah} (a further registered user), receiving the corresponding alerts. The actor in each row is the agent that produces the notification; the recipient is the audience that sees it.
 
 \begin{table}[H]
   \caption{End to end notification scenario for one scrape cycle}
@@ -287,17 +287,17 @@ To make the behaviour of the two streams concrete, Table~\ref{tab:notif-scenario
     \hline
     \textbf{\#} & \textbf{Actor / event} & \textbf{Action} & \textbf{Type fired} & \textbf{Recipient(s)} \\
     \hline
-    1 & Alice (admin)            & Clicks \guillemotleft{}Run scrape\guillemotright{} on the admin dashboard.                                          &, &, \\
+    1 & Yasmine (admin)            & Clicks \guillemotleft{}Run scrape\guillemotright{} on the admin dashboard.                                          &, &, \\
     \hline
-    2 & Scraper orchestrator     & Fetches the three operator catalogues; inserts two previously unknown Djezzy plans; detects a 200~DA price drop on a Mobilis plan that Bob had saved. &, &, \\
+    2 & Scraper orchestrator     & Fetches the three operator catalogues; inserts two previously unknown Djezzy plans; detects a 200~DA price drop on a Mobilis plan that Riad had saved. &, &, \\
     \hline
-    3 & Scrape completion        & Run finishes with status \texttt{SUCCESS}.                                                                     & \texttt{scrape\_complete} & Alice and every other administrator. Routes to \textit{/admin?tab=history}. \\
+    3 & Scrape completion        & Run finishes with status \texttt{SUCCESS}.                                                                     & \texttt{scrape\_complete} & Yasmine and every other administrator. Routes to \textit{/admin?tab=history}. \\
     \hline
-    4 & Insertion of new plan    & For each of the two new Djezzy plans, a row is inserted in \texttt{Offer}.                                     & \texttt{new\_offer}     & Bob, Carol, and every other registered user. Routes to \textit{/offers/[id]}. \\
+    4 & Insertion of new plan    & For each of the two new Djezzy plans, a row is inserted in \texttt{Offer}.                                     & \texttt{new\_offer}     & Riad, Mourad, Sarah, and every other registered user. Routes to \textit{/offers/[id]}. \\
     \hline
-    5 & Price decrease detected  & The saved Mobilis plan's \texttt{priceDA} is rewritten from 1\,500 to 1\,300~DA in the same run.               & \texttt{price\_drop}    & Bob only (because Bob is the only user who had saved that offer). Routes to \textit{/offers/[id]}. \\
+    5 & Price decrease detected  & The saved Mobilis plan's \texttt{priceDA} is rewritten from 1\,500 to 1\,300~DA in the same run.               & \texttt{price\_drop}    & Riad only (because Riad is the only user who had saved that offer). Routes to \textit{/offers/[id]}. \\
     \hline
-    6 & Re ranking pass          & The recommendation engine re runs against every profile; Carol's previous top matched plan is overtaken by a newer one. & \texttt{recommendation} & Carol only. Routes to \textit{/recommend}. \\
+    6 & Re ranking pass          & The recommendation engine re runs against every profile; Mourad's previous top matched plan is overtaken by a newer one. & \texttt{recommendation} & Mourad only. Routes to \textit{/recommend}. \\
     \hline
     7 & Notification fan out     & Notifications are batch inserted into the \texttt{Notification} table grouped by \texttt{userId}.              &, &, \\
     \hline
@@ -366,6 +366,6 @@ Table~\ref{tab:security} summarises the security mechanisms applied across the a
 
 {\sloppy The application is built for production with \texttt{next build}, which performs static analysis, tree shaking, and route level code splitting. The resulting artefact is a Node.js server launched with \texttt{next start}. Three environment variables must be set: \texttt{DATABASE\_URL} (path to the SQLite file), \texttt{NEXTAUTH\_SECRET} (JWT signing key), and \texttt{NEXTAUTH\_URL} (base URL). The SQLite file is the only persistent artefact that must be preserved across deployments. The current evaluation deployment runs in production mode on a single machine; public deployment to a managed cloud host is identified as a perspective in the general conclusion.\par}
 
-\section*{Chapter Summary}
+\section{Chapter Summary}
 
 This chapter has described the full implementation of \textit{Mobile Match Algeria}: the development environment, the automated scraping pipeline with its per family deactivation guard and its validation infrastructure, the REST API and its cross operator comparison routing, the two layer recommendation engine combining hard filters and tiered ranking, the structured search engine with explainable chip output, the comparative visualisation and the integrated savings indicator, the split stream notification system, the nine key user interface screens, the security architecture, and the deployment configuration. Chapter~4 evaluates these implementations against the project objectives, validates the recommendation engine on representative test cases, reports the load testing results, and documents the identified limitations.

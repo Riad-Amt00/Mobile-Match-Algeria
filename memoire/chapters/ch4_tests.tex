@@ -4,7 +4,7 @@
 
 \chapter{Evaluation}
 
-The implementation described in Chapter~3 must now be evaluated against the project objectives, not merely described. This chapter answers four questions in sequence. \textbf{Did the project meet its objectives?} Section~4.1 maps each of the five FICHE deliverables to its concrete artefact and the evidence of completion. \textbf{Does the recommendation engine behave as specified?} Section~4.2 validates it analytically against four scenario tests drawn from the project's unit test suite. \textbf{Does the system hold up under load?} Section~4.3 reports the production build benchmarks measured on the offers, search, and recommendation endpoints. \textbf{Does the system respect user isolation?} Section~4.4 documents the multi account functional testing performed.
+The implementation described in Chapter~3 must now be evaluated against the project objectives, not merely described. This chapter answers three questions in sequence. \textbf{Did the project meet its objectives?} Section~4.1 maps each of the five FICHE deliverables to its concrete artefact and the evidence of completion. \textbf{Does the recommendation engine behave as specified?} Section~4.2 validates it analytically against four scenario tests drawn from the project's unit test suite. \textbf{Does the system respect user isolation?} Section~4.3 documents the multi account functional testing performed across isolated user sessions.
 
 \section{Comparison with Objectives}
 
@@ -74,42 +74,18 @@ The four scenarios verify, respectively: the budget hard ceiling, the data targe
 
 The validation tests above are passed by the TOPSIS ranking described in Chapter~3. TOPSIS was selected over the alternatives considered against the same scenarios. A plain weighted mean (arithmetic or geometric) was set aside because it yields an unbounded score and lets a strong secondary criterion compensate for a weak primary one, blurring the user's stated priority; a strictly non compensatory lexicographic rule was set aside because it lets a negligible price difference erase a large data advantage, too rigid for a consumer plan choice. TOPSIS keeps the criteria trading off smoothly while the rank order centroid weights still encode the user's ranking, and it reports a bounded closeness score. The full method comparison is in Chapter~3, Section~3.4.
 
-\section{Performance Benchmarks}
-
-To characterise the platform's capacity, the application was built in production mode (\texttt{npm run build} followed by \texttt{npm start}) and exercised with synthetic load using a concurrent worker harness written in plain Node.js. Three endpoints were tested under increasing concurrency (one, ten, fifty, and one hundred concurrent workers) over a ten second window each. The rate limit cap on \textit{/api/recommendations} was bypassed during benchmarking by varying the \texttt{X-Forwarded-For} header per request; in production this cap remains a real safety brake against abuse. Table~\ref{tab:bench} reports the results.
-
-\begin{table}[H]
-  \caption{Load test results, production build, single machine deployment}
-  \label{tab:bench}
-  \centering\small
-  \begin{tabular}{|p{3.6cm}|c|c|c|c|c|c|}
-    \hline
-    \textbf{Endpoint} & \textbf{Conc.} & \textbf{Req/s} & \textbf{p50} & \textbf{p95} & \textbf{p99} & \textbf{Err.} \\
-    \hline
-    \texttt{GET /api/offers}      & 1   & 154 & 6\,ms  & 10\,ms & 17\,ms & 0 \\
-                                  & 10  & 198 & 48\,ms & 67\,ms & 84\,ms & 0 \\
-                                  & 50  & 215 & 223\,ms & 288\,ms & 332\,ms & 0 \\
-                                  & 100 & 252 & 383\,ms & 466\,ms & 583\,ms & 0 \\
-    \hline
-    \texttt{GET /api/offers?search=\ldots} & 1   & 264 & 4\,ms  & 5\,ms  & 8\,ms  & 0 \\
-                                  & 10  & 318 & 30\,ms & 39\,ms & 44\,ms & 0 \\
-                                  & 50  & 321 & 154\,ms & 180\,ms & 190\,ms & 0 \\
-    \hline
-    \texttt{POST /api/recommendations} & 1   & 58  & 16\,ms & 24\,ms & 32\,ms & 0 \\
-                                  & 10  & 64  & 154\,ms & 169\,ms & 178\,ms & 0 \\
-                                  & 25  & 64  & 381\,ms & 416\,ms & 521\,ms & 0 \\
-    \hline
-  \end{tabular}
-\end{table}
-
-The platform sustains zero errors at every concurrency level, on every endpoint. The browse endpoint serves more than two hundred requests per second under fifty way concurrent load; the structured search endpoint is faster than browse, because the search filter prunes rows in Prisma so that fewer are serialised back. The recommendation endpoint plateaus at approximately sixty requests per second, which corresponds to the engine's CPU bound work: hard filtering, merit computation, tier assignment, sorting, and slicing. At the current scale of a few active users, the slowest endpoint alone offers roughly thirty times the realistic peak load, providing comfortable operational headroom. These results characterise the single machine behaviour; performance on a deployed cloud platform would depend on the host's CPU profile and is identified as a benchmarking direction in Perspectives.
-
 \section{Functional Testing in a Multi Account Configuration}
 
-The system was exercised in a multi account configuration to verify that user isolation is correctly enforced across all stateful features. Four accounts (one administrator, one demo account from the seed, and two test accounts) were created and used concurrently from a single development machine. The verification covered four properties: session isolation (signing in as one account never exposes another account's session), profile separation (one account's \texttt{UserProfile} is never returned for another user), saved plans separation (one account's \texttt{SavedOffer} list is never visible to another), and notification separation (administrator stream notifications never appear in a non admin user's notification list, and conversely). No leakage was observed in any of these dimensions. This functional verification is complementary to, and does not substitute for, the formal usability study with end users that is identified in the Perspectives section.
+Because the platform stores a personal profile, a list of saved plans, and a private notification stream for every registered user, a defect that allowed one account's data to surface in another account's session would be both a privacy breach and a correctness failure. The system was therefore exercised in a deliberate multi account configuration whose only purpose was to confirm that user isolation holds across every stateful feature, not merely on the screen that displays the data but in the API responses that feed it.
 
-The four evaluation axes covered above, objectives achievement, engine validation, load characterisation, and multi account isolation, all return positive results within their scope.
+Four accounts were provisioned and driven concurrently from separate browser sessions on a single development machine: one administrator, one demo account loaded from the seed script, and two ordinary test accounts. Operating them in parallel, rather than one after another, is what makes the test meaningful, because it reproduces the realistic situation in which several authenticated requests are in flight at once and a server side mistake, such as a query missing its user filter or a shared session token, would let one account observe another's data.
 
-\section*{Chapter Summary}
+The verification covered four isolation properties. Session isolation requires that signing in as one account never exposes another account's session or identity. Profile separation requires that one account's profile is never returned in another user's request, so the recommendation engine always reads the correct budget and usage profile. Saved plans separation requires that one account's saved list is never visible to, or modifiable by, another account. Notification separation requires that administrator stream notifications, such as scrape completed or scrape failed, never reach an ordinary user, and that a user's personal notifications, such as a new offer, a price drop, or a recommendation, never reach a different user. Each property was checked both in the rendered interface and in the raw API responses behind it, and no leakage was observed in any of the four dimensions.
 
-This chapter has evaluated \textit{Mobile Match Algeria} against the five project objectives defined in the subject fiche, validated the recommendation engine on four scenario tests covering the budget ceiling, data coverage, tiered priority order, and the empty result edge case, reported the load testing results showing zero errors and over two hundred requests per second on the browse endpoint, and described the multi account functional testing performed. The directions in which the platform can grow beyond this evaluated state are presented in the general conclusion that follows.
+This functional verification confirms that the access control and the per user data scoping behave as designed. It is complementary to, and does not substitute for, the formal usability study with end users that is identified in the Perspectives section.
+
+The three evaluation axes covered above, objectives achievement, engine validation, and multi account isolation, all return positive results within their scope.
+
+\section{Chapter Summary}
+
+This chapter has evaluated \textit{Mobile Match Algeria} against the five project objectives defined in the subject fiche, validated the recommendation engine on four scenario tests covering the budget ceiling, data coverage, tiered priority order, and the empty result edge case, and described the multi account functional testing that confirmed user isolation across sessions, profiles, saved plans, and notifications. The directions in which the platform can grow beyond this evaluated state are presented in the general conclusion that follows.

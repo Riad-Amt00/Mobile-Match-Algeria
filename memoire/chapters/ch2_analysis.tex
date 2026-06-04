@@ -254,7 +254,7 @@ The pipeline begins when a cron trigger or administrator action initiates a scra
 
 \subsection{Class Diagram}
 
-{\sloppy The data model comprises eight application defined classes: \texttt{Operator}, \texttt{Offer}, \texttt{PriceHistory}, \texttt{User}, \texttt{UserProfile}, \texttt{SavedOffer}, \texttt{Notification}, and \texttt{ScrapeLog}. Authentication infrastructure models managed by NextAuth.js (\texttt{Account}, \texttt{Session}, \texttt{VerificationToken}) and the system level rate limit table are excluded from the application diagram. Figure~\ref{fig:class-diagram-main} shows each class with its principal attributes; the associations between classes carry standard UML multiplicities (1, N).\par}
+The data model comprises eight application defined classes: Operator, Offer, PriceHistory, User, UserProfile, SavedOffer, Notification, and ScrapeLog. Authentication infrastructure models managed by NextAuth.js (Account, Session, VerificationToken) and the system level rate limit table are excluded from the application diagram. Figure~\ref{fig:class-diagram-main} shows each class with its principal attributes; the associations between classes carry standard UML multiplicities (1, N).
 
 \begin{figure}[H]
 \centering
@@ -534,6 +534,6 @@ Two principles guided every choice in the technology stack: keep the front end a
 
 Every row above represents a deliberate decision rather than a default, and each is anchored either by measured evidence (load test numbers for SQLite, test suite duration for Vitest) or by a structural argument that ties the tool to a specific requirement of the project (operator anti bot for Playwright, schema as single source of truth for Prisma, security surface for NextAuth.js). The cross reference pattern, consolidated reasoning here, depth deferred to the corresponding chapter, keeps this section dense and scannable without losing analytical content.
 
-\section*{Chapter Summary}
+\section{Chapter Summary}
 
 This chapter has formalised the functional and non functional requirements of the system, identified the three actor types, modelled the key use cases and interaction flows through UML diagrams, defined the data model as a UML class diagram, described the three tier architecture and API route map, and justified the technology stack. The design decisions documented here form the blueprint for the implementation described in Chapter~3.

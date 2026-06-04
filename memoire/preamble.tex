@@ -45,6 +45,15 @@
 \setlength{\parindent}{1cm}
 \setlength{\parskip}{6pt}
 
+% Line discipline (supervisor notes): keep a paragraph's first/last line with the
+% rest rather than stranding one line on another page, do not stretch vertical
+% space to fill a page (which would open gaps between points), and let microtype
+% pull characters into the margin so fewer lines stick out past the right edge.
+\usepackage{microtype}
+\widowpenalty=10000
+\clubpenalty=10000
+\raggedbottom
+
 % TOC depth — IFAG max 3 levels (1.1.1), so depth = 2
 \setcounter{tocdepth}{2}
 \setcounter{secnumdepth}{2}
