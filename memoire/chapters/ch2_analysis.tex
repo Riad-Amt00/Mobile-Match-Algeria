@@ -26,14 +26,17 @@ These secondary indicators substitute for a primary user survey within the proje
 
 Table~\ref{tab:fr} lists the twelve functional requirements elicited, ordered by priority.
 
-\begin{table}[H]
-  \caption{Functional requirements}
-  \label{tab:fr}
-  \centering\small
-  \begin{tabular}{|p{1.2cm}|p{9.5cm}|p{3.2cm}|}
+{\small
+\begin{longtable}{|p{1.2cm}|p{9.5cm}|p{3.2cm}|}
+  \caption{Functional requirements}\label{tab:fr}\\
     \hline
     \textbf{ID} & \textbf{Description} & \textbf{Actor} \\
     \hline
+  \endfirsthead
+    \hline
+    \textbf{ID} & \textbf{Description} & \textbf{Actor} \\
+    \hline
+  \endhead
     FR1 & Display all current mobile plans from Mobilis, Djezzy, and Ooredoo with their key attributes: price, data volume, voice minutes, SMS allowance, validity period, and network generation. & All users \\
     \hline
     FR2 & Filter the plan catalogue by operator, plan type (prepaid, postpaid, data only), maximum price, minimum data volume, and network generation. & All users \\
@@ -58,8 +61,8 @@ Table~\ref{tab:fr} lists the twelve functional requirements elicited, ordered by
     \hline
     FR12 & Register a new account, log in with email and password, and log out. Passwords must be stored using a one way hashing algorithm. & All users \\
     \hline
-  \end{tabular}
-\end{table}
+\end{longtable}
+}
 
 \subsection{Non Functional Requirements}
 
@@ -174,14 +177,17 @@ The main use cases of the system are organised around three actors. Figure~\ref{
 
 Table~\ref{tab:usecases} describes each primary use case, the actor who triggers it, and its behaviour.
 
-\begin{table}[H]
-  \caption{Primary use cases of Mobile Match Algeria}
-  \label{tab:usecases}
-  \centering\small
-  \begin{tabular}{|p{1.1cm}|p{3.8cm}|p{2.8cm}|p{6.0cm}|}
+{\small
+\begin{longtable}{|p{1.1cm}|p{3.8cm}|p{2.8cm}|p{6.0cm}|}
+  \caption{Primary use cases of Mobile Match Algeria}\label{tab:usecases}\\
     \hline
     \textbf{ID} & \textbf{Use Case} & \textbf{Actor(s)} & \textbf{Description} \\
     \hline
+  \endfirsthead
+    \hline
+    \textbf{ID} & \textbf{Use Case} & \textbf{Actor(s)} & \textbf{Description} \\
+    \hline
+  \endhead
     UC1 & Browse \& Filter Offers     & All users         & Access the offers page and apply any combination of filters (operator, plan type, price, data, network); the system retrieves matching plans and renders them as interactive cards. \\
     \hline
     UC2 & Advanced Search             & All users         & Enter a free text query describing the desired plan; the system parses the query into structured tokens (operator, data volume, price range, feature keywords) and filters the catalogue accordingly. The parsed tokens are displayed as chips so the user sees how the query was interpreted. \\
@@ -202,8 +208,8 @@ Table~\ref{tab:usecases} describes each primary use case, the actor who triggers
     \hline
     UC10 & View Scrape Logs \& Statistics & Administrator & Consult the full scrape history log, inspect per operator event lines (offers found, inserted, updated, errors), and monitor platform statistics (registered users, active offers, scrape success rate). \\
     \hline
-  \end{tabular}
-\end{table}
+\end{longtable}
+}
 
 \section{UML Activity Diagram}
 
@@ -397,13 +403,13 @@ The Prisma schema defines the relational structure. Table~\ref{tab:entities} sum
   \end{tabular}
 \end{table}
 
-With the data model now defined, the next question is how the application code is organised around it. The eight entities of Table~\ref{tab:entities} naturally cluster into three groups: the catalogue layer (\texttt{Operator}, \texttt{Offer}, \texttt{PriceHistory}, \texttt{ScrapeLog}), the user layer (\texttt{User}, \texttt{UserProfile}, \texttt{SavedOffer}, \texttt{Notification}), and the relations that bridge them. The next section describes the three tier architecture that exposes these entities to the application's presentation, business logic, and data access layers.
+With the data model now defined, the next question is how the application code is organised around it. The eight entities of Table~\ref{tab:entities} naturally cluster into three groups: the catalogue layer (Operator, Offer, PriceHistory, ScrapeLog), the user layer (User, UserProfile, SavedOffer, Notification), and the relations that bridge them. The next section describes the three tier architecture that exposes these entities to the application's presentation, business logic, and data access layers.
 
 \section{System Architecture}
 
 \subsection{Three Tier Architecture}
 
-The application follows a classic three tier architecture. The \textbf{presentation tier} consists of React components rendered by Next.js, either on the server (for initial page load) or on the client (for interactive elements). The \textbf{logic tier} consists of Next.js API route handlers located in the \textit{src/app/api/} directory, which implement the business logic and data access layer. The \textbf{data tier} consists of a SQLite database accessed exclusively through Prisma.
+The application follows a classic three tier architecture. The \textbf{presentation tier} consists of React components rendered by Next.js, either on the server (for initial page load) or on the client (for interactive elements). The \textbf{logic tier} consists of Next.js API route handlers located in the src/app/api/ directory, which implement the business logic and data access layer. The \textbf{data tier} consists of a SQLite database accessed exclusively through Prisma.
 
 Figure~\ref{fig:arch-overview} illustrates the high level component architecture.
 
@@ -460,32 +466,32 @@ Table~\ref{tab:api-routes-design} lists the main API routes, their HTTP methods,
     \hline
     \textbf{Route} & \textbf{Method(s)} & \textbf{Function} \\
     \hline
-    \textit{/api/offers}              & GET                & List and filter active offers; supports a structured \texttt{search} parameter; also serves by \texttt{ids} for comparison (bypasses \texttt{isActive}) \\
+    /api/offers              & GET                & List and filter active offers; supports a structured search parameter; also serves by ids for comparison (bypasses isActive) \\
     \hline
-    \textit{/api/offers/[id]}         & GET, PATCH, DELETE & Retrieve offer detail with similar offers; admin only toggle of \texttt{isActive} (PATCH) or soft delete (DELETE) \\
+    /api/offers/[id]         & GET, PATCH, DELETE & Retrieve offer detail with similar offers; admin only toggle of isActive (PATCH) or soft delete (DELETE) \\
     \hline
-    \textit{/api/saved-offers}        & GET, POST          & List saved offer IDs; toggle save/unsave for authenticated user \\
+    /api/saved-offers        & GET, POST          & List saved offer IDs; toggle save/unsave for authenticated user \\
     \hline
-    \textit{/api/recommendations}     & POST               & Return top 3 tier ranked plans for the submitted user profile (rate limited: 60 requests per minute per IP) \\
+    /api/recommendations     & POST               & Return top 3 tier ranked plans for the submitted user profile (rate limited: 60 requests per minute per IP) \\
     \hline
-    \textit{/api/notifications}       & GET, PATCH, DELETE & List user notifications; mark one or all as read; delete one \\
+    /api/notifications       & GET, PATCH, DELETE & List user notifications; mark one or all as read; delete one \\
     \hline
-    \textit{/api/profile}             & GET, PUT           & Retrieve or update the authenticated user's profile (priorities, preferred operator, budget, needs) \\
+    /api/profile             & GET, PUT           & Retrieve or update the authenticated user's profile (priorities, preferred operator, budget, needs) \\
     \hline
-    \textit{/api/auth/register}       & POST               & Create a user account (rate limited: 5 requests per 15 minutes per IP) \\
+    /api/auth/register       & POST               & Create a user account (rate limited: 5 requests per 15 minutes per IP) \\
     \hline
-    \texttt{/api/auth/{[}...nextauth{]}} & GET, POST       & NextAuth.js sign in / sign out / session endpoints \\
+    /api/auth/[...nextauth] & GET, POST       & NextAuth.js sign in / sign out / session endpoints \\
     \hline
-    \textit{/api/admin/stats}         & GET                & Platform statistics (users, active offers, scrape sessions, operator health) \\
+    /api/admin/stats         & GET                & Platform statistics (users, active offers, scrape sessions, operator health) \\
     \hline
-    \textit{/api/admin/claim}         & POST               & One time admin role claim using the server side \texttt{ADMIN\_CLAIM\_CODE} environment variable \\
+    /api/admin/claim         & POST               & One time admin role claim using the server side ADMIN\_CLAIM\_CODE environment variable \\
     \hline
-    \textit{/api/stats}               & GET                & Public platform statistics (offer count, operator count) \\
+    /api/stats               & GET                & Public platform statistics (offer count, operator count) \\
     \hline
   \end{tabular}
 \end{table}
 
-The route map of Table~\ref{tab:api-routes-design} defines the contract the front end consumes. Each presentation tier page calls one or more of these routes: the offers grid binds to \textit{/api/offers}, the comparison view to the same endpoint with an \texttt{ids} parameter, the recommendation page to \textit{/api/recommendations}, the profile and saved plans pages to \textit{/api/profile} and \textit{/api/saved-offers} respectively, and the admin dashboard to the \textit{/api/admin/*} family. The concrete interface screens that consume these routes are illustrated by the screenshots embedded in Chapter~3, Section~3.8.
+The route map of Table~\ref{tab:api-routes-design} defines the contract the front end consumes. Each presentation tier page calls one or more of these routes: the offers grid binds to /api/offers, the comparison view to the same endpoint with an ids parameter, the recommendation page to /api/recommendations, the profile and saved plans pages to /api/profile and /api/saved-offers respectively, and the admin dashboard to the /api/admin/* family. The concrete interface screens that consume these routes are illustrated by the screenshots embedded in Chapter~3, Section~3.8.
 
 \section{Justification of the Technology Choices}
 
@@ -503,10 +509,10 @@ Two principles guided every choice in the technology stack: keep the front end a
   \hline
   \endhead
     Full stack framework & Next.js 16 & Nuxt (Vue), SvelteKit, Express + React separated &
-    Single project for both front end (React server components in \textit{page.tsx}) and back end (\textit{route.ts} handlers); App Router file system routing; native server side rendering and incremental static regeneration; TypeScript types flow from Prisma through API handlers into React components without manual export. Nuxt and SvelteKit are comparable on features but offer smaller ecosystems for the specific authentication and ORM libraries required \parencite{NextJSDocs2024}. \\
+    Single project for both front end (React server components in page.tsx) and back end (route.ts handlers); App Router file system routing; native server side rendering and incremental static regeneration; TypeScript types flow from Prisma through API handlers into React components without manual export. Nuxt and SvelteKit are comparable on features but offer smaller ecosystems for the specific authentication and ORM libraries required \parencite{NextJSDocs2024}. \\
     \hline
     ORM & Prisma 7 & TypeORM, Drizzle, raw SQL &
-    The single \textit{schema.prisma} file is the unique source of truth for the data model: types are auto generated, migrations are derived mechanically, and any column change propagates at compile time. Prisma~7's driver adapter system gives a clean migration path to PostgreSQL by swapping the adapter alone. Raw SQL forces duplicate type definitions in two places with no static sync guarantee; TypeORM and Drizzle keep declarations inside application code rather than in a dedicated schema file \parencite{PrismaDocs2024}. \\
+    The single schema.prisma file is the unique source of truth for the data model: types are auto generated, migrations are derived mechanically, and any column change propagates at compile time. Prisma~7's driver adapter system gives a clean migration path to PostgreSQL by swapping the adapter alone. Raw SQL forces duplicate type definitions in two places with no static sync guarantee; TypeORM and Drizzle keep declarations inside application code rather than in a dedicated schema file \parencite{PrismaDocs2024}. \\
     \hline
     Database & SQLite & PostgreSQL, MySQL &
     The most deployed database engine in the world; embedded in every smartphone and modern browser \parencite{Mitchell2018}. Load tests (Ch4 §4.3) sustain 215~req/s on the offers endpoint with zero errors at fifty concurrent connections; the recommendation endpoint hits its CPU bound ceiling of 60~req/s before the database becomes a bottleneck. PostgreSQL or MySQL would add a daemon, credentials, and a non trivial deployment footprint for no measurable benefit at the project's scale. \\
@@ -524,10 +530,10 @@ Two principles guided every choice in the technology stack: keep the front end a
     Native ESM and TypeScript support without an additional Babel pipeline; configuration shared with the project's Vite build; the 121 test suite completes in approximately two seconds. \\
     \hline
     Styling & CSS custom properties & Tailwind CSS, CSS Modules &
-    Operator coloured theming via inheritance from a single \texttt{--accent} variable per card; the comparison columns are tinted to match. Tailwind would require dynamic class composition or arbitrary value classes that defeat its design system purpose; CSS Modules introduce build time class name mangling that does not coexist gracefully with Next.js server components. \\
+    Operator coloured theming via inheritance from a single --accent variable per card; the comparison columns are tinted to match. Tailwind would require dynamic class composition or arbitrary value classes that defeat its design system purpose; CSS Modules introduce build time class name mangling that does not coexist gracefully with Next.js server components. \\
     \hline
     Animations & Framer Motion & React Spring, plain CSS keyframes &
-    Declarative \texttt{motion.*} props integrate with React component lifecycles; physics based defaults match the visual polish of the operator brand pages and require considerably less effort than hand written keyframes for equivalent quality. \\
+    Declarative motion.* props integrate with React component lifecycles; physics based defaults match the visual polish of the operator brand pages and require considerably less effort than hand written keyframes for equivalent quality. \\
     \hline
 \end{longtable}
 }

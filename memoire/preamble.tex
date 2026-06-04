@@ -53,6 +53,8 @@
 \widowpenalty=10000
 \clubpenalty=10000
 \raggedbottom
+% Let LaTeX stretch a line slightly rather than push a word past the right margin.
+\setlength{\emergencystretch}{3em}
 
 % TOC depth — IFAG max 3 levels (1.1.1), so depth = 2
 \setcounter{tocdepth}{2}
@@ -134,6 +136,11 @@
 \usepackage[colorlinks=true,linkcolor=black,citecolor=blue!60!black,urlcolor=blue,
   pdftitle={Mobile Match Algeria - Memoire de Fin d'Etudes},
   pdfauthor={AMRATE Riad}]{hyperref}
+
+% Allow long URLs / identifiers (e.g. arXiv ids) to break across lines so they
+% never run past the right margin; \urlstyle{same} keeps them in the body font.
+\usepackage{xurl}
+\urlstyle{same}
 
 % Bidi — right-to-left support for Arabic abstract (must load after hyperref)
 \usepackage{bidi}
