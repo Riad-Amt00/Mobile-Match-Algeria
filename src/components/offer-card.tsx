@@ -47,10 +47,11 @@ export function OfferCard({
   const credit = offerCredit(offer)
   const color = offer.operator.primaryColor
 
-  // A short preview of the plan's perks (e.g. "Free Youtube", "Data rollover"), so a
-  // search hit on the features is visible on the card. We skip entries that are too long,
-  // contain scraping artefacts (bullets, asterisks), are Arabic-only (the UI chip is LTR),
-  // or simply restate the credit already shown as its own chip.
+  // A short preview of the plan's EXTRA perks (e.g. "Free Youtube", "Data rollover",
+  // "Réseaux sociaux offerts"), so a search hit on the features is visible on the card.
+  // We skip anything already shown elsewhere on the card — the calls / SMS / data spec
+  // boxes and the credit chip — plus entries that are too long, carry scraping artefacts
+  // (bullets, asterisks), or are Arabic-only (the chip is left-to-right).
   let perks: string[] = []
   try {
     const parsed = JSON.parse(offer.features)
@@ -58,7 +59,13 @@ export function OfferCard({
       perks = parsed
         .filter((f): f is string => typeof f === 'string')
         .map(f => f.trim())
-        .filter(f => f.length >= 3 && f.length <= 40 && !/[•*]/.test(f) && !/[؀-ۿ]/.test(f) && !/cr[ée]dit/i.test(f))
+        .filter(f =>
+          f.length >= 3 && f.length <= 40 &&
+          !/[•*]/.test(f) &&
+          !/[؀-ۿ]/.test(f) &&
+          !/cr[ée]dit/i.test(f) &&                                   // already the credit chip
+          !/\b(calls?|sms|voix|voice|appels?|texto|minutes?|min)\b/i.test(f)  // already the CALLS / SMS boxes
+        )
         .slice(0, 3)
     }
   } catch { /* features is not valid JSON; show none */ }
