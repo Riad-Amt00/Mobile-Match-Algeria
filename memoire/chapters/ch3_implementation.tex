@@ -275,41 +275,6 @@ The two stream separation is enforced at the source: every notification dispatch
 
 The separation was introduced specifically to fix two defects in an earlier single stream design. Without role filters on the dispatch functions, an administrator's feed was systematically polluted with consumer facing alerts produced for every newly scraped offer. More damagingly, both administrator \guillemotleft{}scrape complete\guillemotright{} and user \guillemotleft{}new offer\guillemotright{} events used the same type value, so a non administrator user clicking on a \guillemotleft{}new offer\guillemotright{} notification was routed to /admin?tab=history, a page they were not permitted to access. The current two stream design, role filtered dispatch, distinct type values, and type aware routing, eliminates both defects by construction.
 
-\subsection{End to End Notification Scenario}
-
-To make the behaviour of the two streams concrete, Table~\ref{tab:notif-scenario} walks through a single scrape cycle that triggers every notification type at least once. The scenario starts with an administrator (\emph{Yasmine}) initiating a manual scrape, and ends with several registered users, among them \emph{Riad} and \emph{Mourad} (whose usage profiles are on file) and \emph{Sarah} (a further registered user), receiving the corresponding alerts. The actor in each row is the agent that produces the notification; the recipient is the audience that sees it.
-
-\begin{table}[H]
-  \caption{End to end notification scenario for one scrape cycle}
-  \label{tab:notif-scenario}
-  \centering\small
-  \begin{tabular}{|p{0.5cm}|p{2.3cm}|p{3.7cm}|p{3.0cm}|p{3.3cm}|}
-    \hline
-    \textbf{\#} & \textbf{Actor / event} & \textbf{Action} & \textbf{Type fired} & \textbf{Recipient(s)} \\
-    \hline
-    1 & Yasmine (admin)            & Clicks \guillemotleft{}Run scrape\guillemotright{} on the admin dashboard.                                          &, &, \\
-    \hline
-    2 & Scraper orchestrator     & Fetches the three operator catalogues; inserts two previously unknown Djezzy plans; detects a 200~DA price drop on a Mobilis plan. &, &, \\
-    \hline
-    3 & Scrape completion        & Run finishes with status SUCCESS.                                                                     & scrape\_complete & Yasmine and every other administrator. Routes to /admin?tab=history. \\
-    \hline
-    4 & Insertion of new plan    & For each of the two new Djezzy plans, a row is inserted in Offer.                                     & new\_offer     & Riad, Mourad, Sarah, and every other registered user. Routes to /offers/[id]. \\
-    \hline
-    5 & Price decrease detected  & A Mobilis plan's priceDA is rewritten from 1\,500 to 1\,300~DA in the same run.               & price\_drop    & Every registered user whose preferences match the plan (e.g. Riad and Mourad). Routes to /offers/[id]. \\
-    \hline
-    6 & Re ranking pass          & The recommendation engine re runs against every profile; Mourad's previous top matched plan is overtaken by a newer one. & recommendation & Mourad only. Routes to /recommend. \\
-    \hline
-    7 & Notification fan out     & Notifications are batch inserted into the Notification table grouped by userId.              &, &, \\
-    \hline
-    8 & Recipient sees the bell  & Each recipient's navbar bell badge increments by the count of unread rows for their userId.            &, &, \\
-    \hline
-    9 & Recipient clicks one     & The frontend marks the row as read (PATCH /api/notifications) and navigates by type.          &, &, \\
-    \hline
-  \end{tabular}
-\end{table}
-
-The scenario exercises every defensive property of the two stream design at once: row 3 is admin only because the role filter excludes USER role recipients; rows 4--6 are user only because the dispatch functions for those types restrict the recipient query to role = 'USER'; row 5 narrows further by joining against SavedOffer.userId so only users who had actually saved the affected plan receive the alert; and row 6 narrows further still by requiring a saved UserProfile. The click through routing in row 9 reads the type field of the clicked notification and dispatches accordingly, an administrator clicking the scrape\_complete row never lands on a user facing page, and a user clicking the new\_offer row never lands on the admin page.
-
 \section{Frontend, Key Interfaces}
 
 The application comprises nine primary screens covering the full user journey from discovery to account management. Table~\ref{tab:ui-screens} maps each screen to its route, audience, and main interactive elements; the corresponding screenshots are then grouped below.
