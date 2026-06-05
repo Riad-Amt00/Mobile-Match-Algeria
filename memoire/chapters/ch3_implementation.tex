@@ -258,9 +258,9 @@ The notification system is split into two distinct streams handled by the same N
     \hline
     \textbf{Type} & \textbf{Audience} & \textbf{Trigger} & \textbf{Routes to} \\
     \hline
-    new\_offer        & Registered users (USER role) & The scraper inserts a previously unknown plan & The offer detail page \\
+    new\_offer        & Registered users (filtered by their preferences) & The scraper inserts a previously unknown plan & The offer detail page \\
     \hline
-    price\_drop       & Users who have saved that offer & A scrape detects a price decrease on a saved offer & The offer detail page \\
+    price\_drop       & Registered users (filtered by their preferences) & A scrape detects a price decrease on a plan & The offer detail page \\
     \hline
     recommendation    & Registered users with a saved profile & The user's top matched plan has changed after a scrape cycle & /recommend \\
     \hline
@@ -271,13 +271,13 @@ The notification system is split into two distinct streams handled by the same N
   \end{tabular}
 \end{table}
 
-The two stream separation is enforced at the source: every notification dispatch function in the scraper orchestrator (notifyUsers, notifyAdmins, notifyAdminsFailure) filters the recipient set by the User.role field before writing any row. Each notification type also drives the click through routing applied by the navbar bell and the admin panel: user stream notifications navigate to the offer detail page or to /recommend depending on the type, while administrator stream notifications navigate to /admin?tab=history.
+The two stream separation is enforced at the source: every notification dispatch function in the scraper orchestrator (notifyUsersNewOffer, notifyUsersPriceDrop, notifyPersonalizedRecommendations, notifyAdmins, notifyAdminsFailure) filters the recipient set by the User.role field before writing any row. Each notification type also drives the click through routing applied by the navbar bell and the admin panel: user stream notifications navigate to the offer detail page or to /recommend depending on the type, while administrator stream notifications navigate to /admin?tab=history.
 
 The separation was introduced specifically to fix two defects in an earlier single stream design. Without role filters on the dispatch functions, an administrator's feed was systematically polluted with consumer facing alerts produced for every newly scraped offer. More damagingly, both administrator \guillemotleft{}scrape complete\guillemotright{} and user \guillemotleft{}new offer\guillemotright{} events used the same type value, so a non administrator user clicking on a \guillemotleft{}new offer\guillemotright{} notification was routed to /admin?tab=history, a page they were not permitted to access. The current two stream design, role filtered dispatch, distinct type values, and type aware routing, eliminates both defects by construction.
 
 \subsection{End to End Notification Scenario}
 
-To make the behaviour of the two streams concrete, Table~\ref{tab:notif-scenario} walks through a single scrape cycle that triggers every notification type at least once. The scenario starts with an administrator (\emph{Yasmine}) initiating a manual scrape, and ends with several registered users, among them \emph{Riad} (who has saved a Djezzy plan), \emph{Mourad} (whose usage profile is on file), and \emph{Sarah} (a further registered user), receiving the corresponding alerts. The actor in each row is the agent that produces the notification; the recipient is the audience that sees it.
+To make the behaviour of the two streams concrete, Table~\ref{tab:notif-scenario} walks through a single scrape cycle that triggers every notification type at least once. The scenario starts with an administrator (\emph{Yasmine}) initiating a manual scrape, and ends with several registered users, among them \emph{Riad} and \emph{Mourad} (whose usage profiles are on file) and \emph{Sarah} (a further registered user), receiving the corresponding alerts. The actor in each row is the agent that produces the notification; the recipient is the audience that sees it.
 
 \begin{table}[H]
   \caption{End to end notification scenario for one scrape cycle}
@@ -289,13 +289,13 @@ To make the behaviour of the two streams concrete, Table~\ref{tab:notif-scenario
     \hline
     1 & Yasmine (admin)            & Clicks \guillemotleft{}Run scrape\guillemotright{} on the admin dashboard.                                          &, &, \\
     \hline
-    2 & Scraper orchestrator     & Fetches the three operator catalogues; inserts two previously unknown Djezzy plans; detects a 200~DA price drop on a Mobilis plan that Riad had saved. &, &, \\
+    2 & Scraper orchestrator     & Fetches the three operator catalogues; inserts two previously unknown Djezzy plans; detects a 200~DA price drop on a Mobilis plan. &, &, \\
     \hline
     3 & Scrape completion        & Run finishes with status SUCCESS.                                                                     & scrape\_complete & Yasmine and every other administrator. Routes to /admin?tab=history. \\
     \hline
     4 & Insertion of new plan    & For each of the two new Djezzy plans, a row is inserted in Offer.                                     & new\_offer     & Riad, Mourad, Sarah, and every other registered user. Routes to /offers/[id]. \\
     \hline
-    5 & Price decrease detected  & The saved Mobilis plan's priceDA is rewritten from 1\,500 to 1\,300~DA in the same run.               & price\_drop    & Riad only (because Riad is the only user who had saved that offer). Routes to /offers/[id]. \\
+    5 & Price decrease detected  & A Mobilis plan's priceDA is rewritten from 1\,500 to 1\,300~DA in the same run.               & price\_drop    & Every registered user whose preferences match the plan (e.g. Riad and Mourad). Routes to /offers/[id]. \\
     \hline
     6 & Re ranking pass          & The recommendation engine re runs against every profile; Mourad's previous top matched plan is overtaken by a newer one. & recommendation & Mourad only. Routes to /recommend. \\
     \hline
