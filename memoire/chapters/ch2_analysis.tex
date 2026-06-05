@@ -260,7 +260,7 @@ The pipeline begins when a cron trigger or administrator action initiates a scra
 
 \subsection{Class Diagram}
 
-The data model comprises eight application defined classes: Operator, Offer, PriceHistory, User, UserProfile, SavedOffer, Notification, and ScrapeLog. The authentication infrastructure managed by NextAuth.js (Account, Session, VerificationToken) and the system level rate limit table are excluded from the application diagram. Figure~\ref{fig:class-diagram-main} shows each class with its principal attributes, named exactly as declared in the Prisma schema. As a persistence layer data model, these classes hold data rather than behaviour, so they carry attributes and associations but no operations of their own; the corresponding logic lives in the API routes and library functions. The associations between classes carry standard UML multiplicities (1, N).
+The data model comprises eight application defined classes: Operator, Offer, PriceHistory, User, UserProfile, SavedOffer, Notification, and ScrapeLog. The authentication infrastructure managed by NextAuth.js (Account, Session, VerificationToken) and the system level rate limit table are excluded from the application diagram. Figure~\ref{fig:class-diagram-main} shows each class with its principal attributes, named exactly as declared in the Prisma schema. As a persistence layer data model, these classes hold data rather than behaviour, so they carry attributes and associations but no operations of their own; the corresponding logic lives in the API routes and library functions. Each entity is identified by a string primary key \emph{id} (a cuid generated on creation, shown at the top of every class). The associations between classes carry standard UML multiplicities (1, N) and are realised in the relational schema as foreign keys (for example \emph{operatorId} in Offer, or \emph{userId} and \emph{offerId} in SavedOffer); the principal unique business keys are the user's \emph{email} and the operator's \emph{name} and \emph{slug}.
 
 \begin{figure}[H]
 \centering
@@ -274,12 +274,13 @@ The data model comprises eight application defined classes: Operator, Offer, Pri
   %% ── Row 1: Operator · Offer · User · Notification ─────────────────────────
   \matrix[cls, ampersand replacement=\&] (op) at (0,0) {
     \node[hdr]{Operator}; \\
-    \node[arow]{name}; \\
-    \node[arow]{websiteUrl, logoUrl}; \\
-    \node[arow]{primaryColor}; \\
+    \node[arow]{id (PK)}; \\
+    \node[arow]{name, logoUrl}; \\
+    \node[arow]{websiteUrl, primaryColor}; \\
   };
   \matrix[cls, ampersand replacement=\&] (offer) at (4.1,0) {
     \node[hdr]{Offer}; \\
+    \node[arow]{id (PK)}; \\
     \node[arow]{name, type, network}; \\
     \node[arow]{priceDA, dataGB}; \\
     \node[arow]{voiceMinutes, smsCount}; \\
@@ -288,34 +289,40 @@ The data model comprises eight application defined classes: Operator, Offer, Pri
   };
   \matrix[cls, ampersand replacement=\&] (user) at (8.2,0) {
     \node[hdr]{User}; \\
+    \node[arow]{id (PK)}; \\
     \node[arow]{name, email}; \\
     \node[arow]{passwordHash, role}; \\
   };
   \matrix[cls, ampersand replacement=\&] (notif) at (12.3,0) {
     \node[hdr]{Notification}; \\
+    \node[arow]{id (PK)}; \\
     \node[arow]{title, message}; \\
     \node[arow]{type, isRead}; \\
   };
 
   %% ── Row 2: ScrapeLog · PriceHistory · SavedOffer · UserProfile ────────────
-  \matrix[cls, ampersand replacement=\&] (scrape) at (0,-3.9) {
+  \matrix[cls, ampersand replacement=\&] (scrape) at (0,-4.3) {
     \node[hdr]{ScrapeLog}; \\
+    \node[arow]{id (PK)}; \\
     \node[arow]{status, duration}; \\
     \node[arow]{offersFound, offersAdded}; \\
     \node[arow]{offersUpdated}; \\
     \node[arow]{errorMessage}; \\
   };
-  \matrix[cls, ampersand replacement=\&] (history) at (4.1,-3.9) {
+  \matrix[cls, ampersand replacement=\&] (history) at (4.1,-4.3) {
     \node[hdr]{PriceHistory}; \\
+    \node[arow]{id (PK)}; \\
     \node[arow]{priceDA}; \\
     \node[arow]{recordedAt}; \\
   };
-  \matrix[cls, ampersand replacement=\&] (saved) at (8.2,-3.9) {
+  \matrix[cls, ampersand replacement=\&] (saved) at (8.2,-4.3) {
     \node[hdr]{SavedOffer}; \\
+    \node[arow]{id (PK)}; \\
     \node[arow]{savedAt}; \\
   };
-  \matrix[cls, ampersand replacement=\&] (profile) at (12.3,-3.9) {
+  \matrix[cls, ampersand replacement=\&] (profile) at (12.3,-4.3) {
     \node[hdr]{UserProfile}; \\
+    \node[arow]{id (PK)}; \\
     \node[arow]{monthlyBudget, dataUsageGB}; \\
     \node[arow]{voiceMinutes, smsCount}; \\
     \node[arow]{preferredType, preferredNet}; \\
@@ -369,21 +376,21 @@ The Prisma schema defines the relational structure. Table~\ref{tab:entities} sum
     \hline
     \textbf{Entity}  & \textbf{Key attributes} & \textbf{Relationships} \\
     \hline
-    Operator     & name, logoUrl, websiteUrl, primaryColor & 1:N Offer; 1:N ScrapeLog \\
+    Operator     & \underline{id} (PK), name, logoUrl, websiteUrl, primaryColor & 1:N Offer; 1:N ScrapeLog \\
     \hline
-    Offer        & name, type, priceDA, dataGB, voiceMinutes, smsCount, validityDays, network, features, isActive, sourceUrl, scrapedAt & N:1 Operator; 1:N PriceHistory; N:M User (via SavedOffer) \\
+    Offer        & \underline{id} (PK), name, type, priceDA, dataGB, voiceMinutes, smsCount, validityDays, network, features, isActive, sourceUrl, scrapedAt & N:1 Operator (FK operatorId); 1:N PriceHistory; N:M User (via SavedOffer) \\
     \hline
-    PriceHistory & priceDA, recordedAt & N:1 Offer \\
+    PriceHistory & \underline{id} (PK), priceDA, recordedAt & N:1 Offer (FK offerId) \\
     \hline
-    User         & name, email, emailVerified, passwordHash, role & 1:1 UserProfile; 1:N SavedOffer; 1:N Notification \\
+    User         & \underline{id} (PK), name, email, emailVerified, passwordHash, role & 1:1 UserProfile; 1:N SavedOffer; 1:N Notification \\
     \hline
-    UserProfile  & monthlyBudget, dataUsageGB, voiceMinutes, smsCount, preferredType, preferredNet, preferredOperator, priorities & 1:1 User \\
+    UserProfile  & \underline{id} (PK), monthlyBudget, dataUsageGB, voiceMinutes, smsCount, preferredType, preferredNet, preferredOperator, priorities & 1:1 User (FK userId) \\
     \hline
-    SavedOffer   & savedAt & N:1 User; N:1 Offer \\
+    SavedOffer   & \underline{id} (PK), savedAt & N:1 User (FK userId); N:1 Offer (FK offerId) \\
     \hline
-    Notification & title, message, type, isRead, createdAt & N:1 User \\
+    Notification & \underline{id} (PK), title, message, type, isRead, createdAt & N:1 User (FK userId) \\
     \hline
-    ScrapeLog    & status, offersFound, offersAdded, offersUpdated, offersDeactivated, errorMessage, details, duration & N:1 Operator \\
+    ScrapeLog    & \underline{id} (PK), status, offersFound, offersAdded, offersUpdated, offersDeactivated, errorMessage, details, duration & N:1 Operator (FK operatorId) \\
     \hline
   \end{tabular}
 \end{table}
