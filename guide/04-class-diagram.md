@@ -87,8 +87,9 @@ user has one profile, many notifications, and many saved offers."*
   which is why it is **left out of the simplified diagram**.
 - **-1 means unlimited, 0 means none** — a convention for calls, SMS, and data, so the
   app can tell "unlimited" apart from "zero".
-- **Primary key (PK)** — the `id` shown at the top of every box: a unique value (a cuid)
-  that identifies one record. Every entity has one.
+- **Primary key (PK)** — the **underlined `id`** at the top of every box: a unique value (a
+  cuid) that identifies one record. Every entity has one. The diagram marks it by
+  underlining the `id` (the standard UML convention) instead of writing a "(PK)" tag.
 - **Foreign key (FK)** — how one record points to another's `id`. These are exactly the
   **arrows**: e.g. the Operator → Offer arrow is the `operatorId` foreign key stored on each
   Offer; SavedOffer holds `userId` and `offerId`. So the keys are not missing — the PK is the
@@ -116,8 +117,9 @@ user has one profile, many notifications, and many saved offers."*
   `searchOffersFts`, `scrapeDjezzy`). Drawing those as class methods would be inaccurate, so
   the diagram correctly shows attributes and relationships only — matching the Prisma schema
   exactly.
-- **Where are the primary and foreign keys?** The **primary key** is the `id` at the top of
-  every box. The **foreign keys** are the arrows: each association (Operator→Offer,
+- **What does the underlined `id` mean / where are the keys?** The **underlined `id`** at the
+  top of every box is the **primary key** — the unique identifier each record has (that's why
+  every table has one). The **foreign keys** are the arrows: each association (Operator→Offer,
   Offer→PriceHistory, User→SavedOffer→Offer, …) is stored as a foreign-key column
   (`operatorId`, `offerId`, `userId`). Table 2.5 lists each FK next to its relationship.
 - **Where is the full detail (every field, every type)?** In the entities table (Table 2.5)
