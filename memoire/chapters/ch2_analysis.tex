@@ -260,7 +260,7 @@ The pipeline begins when a cron trigger or administrator action initiates a scra
 
 \subsection{Class Diagram}
 
-The data model comprises eight application defined classes: Operator, Offer, PriceHistory, User, UserProfile, SavedOffer, Notification, and ScrapeLog. Authentication infrastructure models managed by NextAuth.js (Account, Session, VerificationToken) and the system level rate limit table are excluded from the application diagram. Figure~\ref{fig:class-diagram-main} shows each class in the standard UML form, with three compartments: the class name, its principal attributes, and the main operations associated with it. These operations are the behaviours each entity is responsible for; in this Next.js and Prisma stack that logic resides in the API routes and library functions rather than as methods on the data model itself, but every operation shown reflects a real behaviour of the system rather than a fabricated one. The associations between classes carry standard UML multiplicities (1, N).
+The data model comprises eight application defined classes: Operator, Offer, PriceHistory, User, UserProfile, SavedOffer, Notification, and ScrapeLog. The authentication infrastructure managed by NextAuth.js (Account, Session, VerificationToken), the system level rate limit table, and the CompareHistory table (reserved for a planned comparison history feature and not yet in use) are excluded from the application diagram. Figure~\ref{fig:class-diagram-main} shows each class with its principal attributes, named exactly as declared in the Prisma schema. As a persistence layer data model, these classes hold data rather than behaviour, so they carry attributes and associations but no operations of their own; the corresponding logic lives in the API routes and library functions. The associations between classes carry standard UML multiplicities (1, N).
 
 \begin{figure}[H]
 \centering
@@ -269,71 +269,58 @@ The data model comprises eight application defined classes: Operator, Offer, Pri
   cls/.style={rectangle, draw=black!80, fill=white, align=left, font=\scriptsize, inner sep=0pt},
   hdr/.style={fill=blue!15, font=\scriptsize\bfseries, align=center, minimum height=0.48cm, minimum width=3.8cm},
   arow/.style={fill=white, minimum height=0.34cm, minimum width=3.8cm, align=left, inner sep=3pt, font=\scriptsize},
-  msep/.style={fill=white, minimum height=0.05cm, minimum width=3.8cm, inner sep=0pt},
-  mrow/.style={fill=white, minimum height=0.34cm, minimum width=3.8cm, align=left, inner sep=3pt, font=\scriptsize\itshape},
   assoc/.style={thick, ->, black!65}
 ]
   %% ── Row 1: Operator · Offer · User · Notification ─────────────────────────
   \matrix[cls, ampersand replacement=\&] (op) at (0,0) {
     \node[hdr]{Operator}; \\
     \node[arow]{name}; \\
-    \node[arow]{website}; \\
-    \node[msep]{\rule{3.6cm}{0.3pt}}; \\
-    \node[mrow]{+ getActiveOffers()}; \\
+    \node[arow]{websiteUrl, logoUrl}; \\
+    \node[arow]{primaryColor}; \\
   };
   \matrix[cls, ampersand replacement=\&] (offer) at (4.1,0) {
     \node[hdr]{Offer}; \\
-    \node[arow]{name}; \\
-    \node[arow]{price, data, validity}; \\
-    \node[arow]{type, network}; \\
-    \node[msep]{\rule{3.6cm}{0.3pt}}; \\
-    \node[mrow]{+ matchesFilters()}; \\
-    \node[mrow]{+ isUnlimited()}; \\
+    \node[arow]{name, type, network}; \\
+    \node[arow]{priceDA, dataGB}; \\
+    \node[arow]{voiceMinutes, smsCount}; \\
+    \node[arow]{validityDays}; \\
+    \node[arow]{features, isActive}; \\
   };
   \matrix[cls, ampersand replacement=\&] (user) at (8.2,0) {
     \node[hdr]{User}; \\
     \node[arow]{name, email}; \\
-    \node[arow]{password, role}; \\
-    \node[msep]{\rule{3.6cm}{0.3pt}}; \\
-    \node[mrow]{+ verifyPassword()}; \\
-    \node[mrow]{+ isAdmin()}; \\
+    \node[arow]{passwordHash, role}; \\
   };
   \matrix[cls, ampersand replacement=\&] (notif) at (12.3,0) {
     \node[hdr]{Notification}; \\
     \node[arow]{title, message}; \\
     \node[arow]{type, isRead}; \\
-    \node[msep]{\rule{3.6cm}{0.3pt}}; \\
-    \node[mrow]{+ markRead()}; \\
   };
 
   %% ── Row 2: ScrapeLog · PriceHistory · SavedOffer · UserProfile ────────────
-  \matrix[cls, ampersand replacement=\&] (scrape) at (0,-4.4) {
+  \matrix[cls, ampersand replacement=\&] (scrape) at (0,-3.9) {
     \node[hdr]{ScrapeLog}; \\
-    \node[arow]{status}; \\
-    \node[arow]{offersFound, errors}; \\
-    \node[msep]{\rule{3.6cm}{0.3pt}}; \\
-    \node[mrow]{+ complete()}; \\
-    \node[mrow]{+ fail()}; \\
+    \node[arow]{status, duration}; \\
+    \node[arow]{offersFound, offersAdded}; \\
+    \node[arow]{offersUpdated}; \\
+    \node[arow]{errorMessage}; \\
   };
-  \matrix[cls, ampersand replacement=\&] (history) at (4.1,-4.4) {
+  \matrix[cls, ampersand replacement=\&] (history) at (4.1,-3.9) {
     \node[hdr]{PriceHistory}; \\
-    \node[arow]{price}; \\
+    \node[arow]{priceDA}; \\
     \node[arow]{recordedAt}; \\
-    \node[msep]{\rule{3.6cm}{0.3pt}}; \\
-    \node[mrow]{+ record()}; \\
   };
-  \matrix[cls, ampersand replacement=\&] (saved) at (8.2,-4.4) {
+  \matrix[cls, ampersand replacement=\&] (saved) at (8.2,-3.9) {
     \node[hdr]{SavedOffer}; \\
     \node[arow]{savedAt}; \\
-    \node[msep]{\rule{3.6cm}{0.3pt}}; \\
-    \node[mrow]{+ toggle()}; \\
   };
-  \matrix[cls, ampersand replacement=\&] (profile) at (12.3,-4.4) {
+  \matrix[cls, ampersand replacement=\&] (profile) at (12.3,-3.9) {
     \node[hdr]{UserProfile}; \\
-    \node[arow]{budget, dataNeeded}; \\
+    \node[arow]{monthlyBudget, dataUsageGB}; \\
+    \node[arow]{voiceMinutes, smsCount}; \\
+    \node[arow]{preferredType, preferredNet}; \\
+    \node[arow]{preferredOperator}; \\
     \node[arow]{priorities}; \\
-    \node[msep]{\rule{3.6cm}{0.3pt}}; \\
-    \node[mrow]{+ toNeeds()}; \\
   };
 
   %% ── Associations with cardinalities ──────────────────────────────────────
@@ -366,7 +353,7 @@ The data model comprises eight application defined classes: Operator, Offer, Pri
     node[above, font=\scriptsize, pos=0.90]{N}
     (notif.west);
 \end{tikzpicture}}
-\caption{Class diagram of the data model: the eight application classes with their attributes, operations, and UML associations}
+\caption{Class diagram of the data model: the eight application classes with their attributes and UML associations}
 \label{fig:class-diagram-main}
 \end{figure}
 

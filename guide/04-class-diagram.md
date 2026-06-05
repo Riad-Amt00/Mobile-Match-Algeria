@@ -14,41 +14,40 @@ arrows mean, and a small glossary at the end (including what "slug" means).
 ## 1. What the diagram is
 
 The class diagram is just **the list of things the app stores**, drawn as boxes. Each box
-is one kind of record (one table in the database). A box has **three parts**, top to
-bottom:
+is one kind of record (one table in the database). A box has **two parts**, top to bottom:
 
 1. **Name** — the kind of thing (Operator, Offer, User…).
-2. **Attributes** — the pieces of data it keeps (an Offer keeps a name, price, data…).
-3. **Methods (operations)** — the things the entity is responsible for *doing* (an Offer
-   can be checked against the user's needs). Every one reflects a real behaviour of the
-   app, not a fabricated one; in this Next.js + Prisma project that logic lives in the API
-   routes and library functions rather than as a method literally named on the model.
+2. **Attributes** — the pieces of data it keeps, named exactly as in the database
+   (an Offer keeps `name`, `priceDA`, `dataGB`, `validityDays`, …).
 
-The **arrows** between boxes show how the records are linked.
+There is deliberately **no "methods" part**. This is a *data* model — the database tables —
+so the boxes hold data, not behaviour. The behaviour (filtering offers, ranking, login
+checks, sending notifications…) lives in separate functions in the code (`src/lib`), not on
+these records, so putting methods on the boxes would be inaccurate. The **arrows** between
+boxes show how the records are linked.
 
 ---
 
 ## 2. The eight boxes, one line each
 
-- **Operator** — a mobile operator (Djezzy, Ooredoo, Mobilis). Stores its name and
-  website; can list its active offers.
-- **Offer** — one mobile plan. Stores name, price, data, validity, type (prepaid /
-  postpaid), and network (4G / 5G); can check whether it matches a user's needs and
-  whether a value (calls, SMS) is unlimited.
-- **PriceHistory** — one line per price change of an offer (so we can show the price
-  over time). Stores the price and the date it was recorded.
-- **User** — a registered account. Stores name, email, password, and role (user or
-  admin); can verify its password at login and tell whether it is an admin.
-- **UserProfile** — the user's stated needs, used by the recommendation engine. Stores
-  the monthly budget, the data needed, and the priority ranking; can hand those to the
-  engine.
-- **SavedOffer** — a bookmark: it records that a given user saved a given offer. Stores
-  the date; can be toggled on or off.
-- **Notification** — one alert shown to a user (new offer, price drop, recommendation,
-  or an admin alert). Stores the title, message, type, and whether it was read; can be
-  marked read.
-- **ScrapeLog** — one record per scrape run, for the admin dashboard. Stores the status,
-  how many offers were found, and any error; is marked complete or failed at the end.
+- **Operator** — a mobile operator (Djezzy, Ooredoo, Mobilis). Stores its `name`,
+  `websiteUrl`, `logoUrl`, and brand `primaryColor`.
+- **Offer** — one mobile plan. Stores `name`, `type` (prepaid / postpaid / data only),
+  `priceDA`, `dataGB`, `voiceMinutes`, `smsCount`, `validityDays`, `network`, `features`,
+  and `isActive`.
+- **PriceHistory** — one row per price change of an offer (so the price over time can be
+  shown). Stores `priceDA` and `recordedAt`.
+- **User** — a registered account. Stores `name`, `email`, `passwordHash`, and `role`
+  (user or admin).
+- **UserProfile** — the user's stated needs for the recommendation engine. Stores
+  `monthlyBudget`, `dataUsageGB`, `voiceMinutes`, `smsCount`, the preferences, and the
+  `priorities` ranking.
+- **SavedOffer** — a bookmark linking one user to one offer they saved. Stores `savedAt`.
+- **Notification** — one alert for a user (new offer, price drop, recommendation, or an
+  admin alert). Stores `title`, `message`, `type`, and `isRead`.
+- **ScrapeLog** — one record per scrape run, for the admin dashboard. Stores `status`,
+  the offers `found` / `added` / `updated` / `deactivated` counts, any `errorMessage`, and
+  the `duration`.
 
 ---
 
@@ -74,8 +73,10 @@ user has one profile, many notifications, and many saved offers."*
 ## 4. Small glossary (the words that look technical)
 
 - **Attribute** — a piece of data a record stores (an Offer's *price*).
-- **Method (operation)** — something the record can *do*, written as a function in the
-  code (*matchesFilters()* checks if an offer fits the user's needs).
+- **Behaviour** — what the app *does* with these records (filter, rank, save, notify). It
+  is **not** drawn on this diagram: a data model only describes stored data. The behaviour
+  lives in separate functions in `src/lib` (e.g. `recommendOffers`, `validateOffer`,
+  `searchOffersFts`).
 - **Association** — the arrow; a link between two records.
 - **1 and N** — how many on each side. **1 — N** = "one to many"; **1 — 1** = "one to
   one".
@@ -103,14 +104,13 @@ user has one profile, many notifications, and many saved offers."*
 - **Why is SavedOffer its own box and not just a list on the user?** Because the same
   offer can be saved by many users and a user can save many offers; a small linking record
   is the clean way to store that.
-- **The boxes have methods now — are they invented?** No, but be precise when you answer:
-  they are UML *operations* (the behaviour each entity is responsible for), not necessarily
-  functions named exactly that in the code. The behaviour is real — the User's password is
-  checked with bcrypt at login, the UserProfile is turned into the recommendation engine's
-  input, a scrape run is marked complete or failed — but in this Next.js + Prisma codebase
-  that logic lives in API routes and library functions, since a Prisma model has no methods
-  of its own. So: real behaviours, drawn as UML operations; nothing fabricated. If asked
-  "show me `getActiveOffers()`", point to the offers API querying active offers.
+- **Why are there no methods on the boxes?** Because it is a *data* model — these are the
+  database tables, which store data, not behaviour. In this Next.js + Prisma stack the
+  models are plain records with no methods of their own; the behaviour is implemented as
+  separate functions in `src/lib` (for example `recommendOffers`, `validateOffer`,
+  `searchOffersFts`, `scrapeDjezzy`). Drawing those as class methods would be inaccurate, so
+  the diagram correctly shows attributes and relationships only — matching the Prisma schema
+  exactly.
 - **Where is the full detail (every field, every type)?** In the entities table next to
   the diagram in Chapter 2; the diagram is the simple overview.
 
