@@ -260,7 +260,7 @@ The pipeline begins when a cron trigger or administrator action initiates a scra
 
 \subsection{Class Diagram}
 
-The data model comprises eight application defined classes: Operator, Offer, PriceHistory, User, UserProfile, SavedOffer, Notification, and ScrapeLog. The authentication infrastructure managed by NextAuth.js (Account, Session, VerificationToken), the system level rate limit table, and the CompareHistory table (reserved for a planned comparison history feature and not yet in use) are excluded from the application diagram. Figure~\ref{fig:class-diagram-main} shows each class with its principal attributes, named exactly as declared in the Prisma schema. As a persistence layer data model, these classes hold data rather than behaviour, so they carry attributes and associations but no operations of their own; the corresponding logic lives in the API routes and library functions. The associations between classes carry standard UML multiplicities (1, N).
+The data model comprises eight application defined classes: Operator, Offer, PriceHistory, User, UserProfile, SavedOffer, Notification, and ScrapeLog. The authentication infrastructure managed by NextAuth.js (Account, Session, VerificationToken) and the system level rate limit table are excluded from the application diagram. Figure~\ref{fig:class-diagram-main} shows each class with its principal attributes, named exactly as declared in the Prisma schema. As a persistence layer data model, these classes hold data rather than behaviour, so they carry attributes and associations but no operations of their own; the corresponding logic lives in the API routes and library functions. The associations between classes carry standard UML multiplicities (1, N).
 
 \begin{figure}[H]
 \centering

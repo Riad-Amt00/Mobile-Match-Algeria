@@ -116,7 +116,6 @@ model Offer {
 
   operator       Operator      @relation(fields: [operatorId], references: [id])
   savedBy        SavedOffer[]
-  compares       CompareHistory[]
   priceHistory   PriceHistory[]
 
   @@unique([operatorId, slug])
@@ -147,15 +146,6 @@ model SavedOffer {
   offer     Offer    @relation(fields: [offerId], references: [id], onDelete: Cascade)
 
   @@unique([userId, offerId])
-}
-
-// ─── COMPARE HISTORY ─────────────────────────────────────────────────────────
-model CompareHistory {
-  id        String   @id @default(cuid())
-  offerId   String
-  sessionId String?
-  createdAt DateTime @default(now())
-  offer     Offer    @relation(fields: [offerId], references: [id], onDelete: Cascade)
 }
 
 // ─── SCRAPE LOGS ─────────────────────────────────────────────────────────────

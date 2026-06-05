@@ -15,7 +15,6 @@ const counts = {
   Offer: await db.offer.count(),
   PriceHistory: await db.priceHistory.count(),
   SavedOffer: await db.savedOffer.count(),
-  CompareHistory: await db.compareHistory.count(),
   Notification: await db.notification.count(),
   ScrapeLog: await db.scrapeLog.count(),
   RateLimit: await db.rateLimit.count(),
