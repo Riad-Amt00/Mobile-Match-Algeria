@@ -369,21 +369,21 @@ The Prisma schema defines the relational structure. Table~\ref{tab:entities} sum
     \hline
     \textbf{Entity}  & \textbf{Key attributes} & \textbf{Relationships} \\
     \hline
-    Operator     & id, name, slug, logoUrl, primaryColor, websiteUrl & 1:N Offer; 1:N ScrapeLog \\
+    Operator     & name, logoUrl, websiteUrl, primaryColor & 1:N Offer; 1:N ScrapeLog \\
     \hline
-    Offer        & id, name, slug, type, priceDA, dataGB, voiceMinutes, smsCount, validityDays, network, features, isActive, sourceUrl, scrapedAt & N:1 Operator; 1:N PriceHistory; N:M User (via SavedOffer) \\
+    Offer        & name, type, priceDA, dataGB, voiceMinutes, smsCount, validityDays, network, features, isActive, sourceUrl, scrapedAt & N:1 Operator; 1:N PriceHistory; N:M User (via SavedOffer) \\
     \hline
-    PriceHistory & id, offerId, priceDA, recordedAt & N:1 Offer \\
+    PriceHistory & priceDA, recordedAt & N:1 Offer \\
     \hline
-    User         & id, name, email, emailVerified, passwordHash, role & 1:1 UserProfile; 1:N SavedOffer; 1:N Notification \\
+    User         & name, email, emailVerified, passwordHash, role & 1:1 UserProfile; 1:N SavedOffer; 1:N Notification \\
     \hline
-    UserProfile  & id, userId, monthlyBudget, dataUsageGB, voiceMinutes, smsCount, preferredType, preferredNet, preferredOperator, priorities & 1:1 User \\
+    UserProfile  & monthlyBudget, dataUsageGB, voiceMinutes, smsCount, preferredType, preferredNet, preferredOperator, priorities & 1:1 User \\
     \hline
-    SavedOffer   & id, userId, offerId, savedAt & N:1 User; N:1 Offer \\
+    SavedOffer   & savedAt & N:1 User; N:1 Offer \\
     \hline
-    Notification & id, userId, title, message, type, isRead, offerId, createdAt & N:1 User \\
+    Notification & title, message, type, isRead, createdAt & N:1 User \\
     \hline
-    ScrapeLog    & id, operatorId, status, offersFound, offersAdded, offersUpdated, offersDeactivated, errorMessage, details, duration, startedAt, completedAt & N:1 Operator \\
+    ScrapeLog    & status, offersFound, offersAdded, offersUpdated, offersDeactivated, errorMessage, details, duration & N:1 Operator \\
     \hline
   \end{tabular}
 \end{table}
