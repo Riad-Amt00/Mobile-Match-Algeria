@@ -19,8 +19,10 @@ bottom:
 
 1. **Name** — the kind of thing (Operator, Offer, User…).
 2. **Attributes** — the pieces of data it keeps (an Offer keeps a name, price, data…).
-3. **Methods** — the things it can *do* in the code (an Offer can check whether it
-   matches the user's needs). Every method is a real function in the project, not invented.
+3. **Methods (operations)** — the things the entity is responsible for *doing* (an Offer
+   can be checked against the user's needs). Every one reflects a real behaviour of the
+   app, not a fabricated one; in this Next.js + Prisma project that logic lives in the API
+   routes and library functions rather than as a method literally named on the model.
 
 The **arrows** between boxes show how the records are linked.
 
@@ -101,9 +103,14 @@ user has one profile, many notifications, and many saved offers."*
 - **Why is SavedOffer its own box and not just a list on the user?** Because the same
   offer can be saved by many users and a user can save many offers; a small linking record
   is the clean way to store that.
-- **The boxes have methods now — are they invented?** No. Each method maps to a real
-  function in the code (for example *verifyPassword()* is the bcrypt check at login,
-  *toNeeds()* turns the profile into the input the recommendation engine reads).
+- **The boxes have methods now — are they invented?** No, but be precise when you answer:
+  they are UML *operations* (the behaviour each entity is responsible for), not necessarily
+  functions named exactly that in the code. The behaviour is real — the User's password is
+  checked with bcrypt at login, the UserProfile is turned into the recommendation engine's
+  input, a scrape run is marked complete or failed — but in this Next.js + Prisma codebase
+  that logic lives in API routes and library functions, since a Prisma model has no methods
+  of its own. So: real behaviours, drawn as UML operations; nothing fabricated. If asked
+  "show me `getActiveOffers()`", point to the offers API querying active offers.
 - **Where is the full detail (every field, every type)?** In the entities table next to
   the diagram in Chapter 2; the diagram is the simple overview.
 
