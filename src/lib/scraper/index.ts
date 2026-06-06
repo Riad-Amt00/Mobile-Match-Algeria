@@ -10,7 +10,6 @@ import { scrapeMobilis } from './mobilis'
 import { validateOffer } from './validate'
 import { OfferType, ScrapeStatus } from '@prisma/client'
 import { slugify } from '@/lib/utils'
-import { recommendOffers, UserNeeds } from '../recommendation'
 import { rebuildOfferFtsIndex } from '../search-fts'
 
 export interface ScrapeResult {
@@ -49,13 +48,6 @@ export async function runAllScrapers(): Promise<ScrapeResult[]> {
     await rebuildOfferFtsIndex()
   } catch (err) {
     console.error('Failed to rebuild FTS5 index:', err)
-  }
-
-  // Generate daily personalised recommendations
-  try {
-    await notifyPersonalizedRecommendations()
-  } catch (err) {
-    console.error('Failed to generate recommendation notifications:', err)
   }
 
   // Notify admins of the run outcome: a heartbeat on every successful run (even with
@@ -114,53 +106,6 @@ async function notifyAdmins(results: ScrapeResult[]) {
   }))
 
   await db.notification.createMany({ data: notifications })
-}
-
-async function notifyPersonalizedRecommendations() {
-  // Recommendation alerts are a user-facing feature — admins are excluded so their
-  // notification feed stays purely operational (scrape complete / scrape failed).
-  const usersWithProfiles = await db.user.findMany({
-    where: { role: 'USER', profile: { isNot: null } },
-    include: { profile: true },
-  })
-  if (usersWithProfiles.length === 0) return
-
-  const allOffers = await db.offer.findMany({
-    where: { isActive: true },
-    include: { operator: true },
-  })
-
-  const notificationsToCreate = []
-
-  for (const user of usersWithProfiles) {
-    const p = user.profile!
-    const needs: UserNeeds = {
-      budget: p.monthlyBudget || 2000,
-      dataGB: p.dataUsageGB || 10,
-      voiceMinutes: p.voiceMinutes || 0,
-      smsCount: p.smsCount || 0,
-      type: (p.preferredType as any) || 'any',
-      network: (p.preferredNet as any) || 'any',
-      operator: (p.preferredOperator as any) || 'any',
-    }
-
-    const pris = p.priorities ? p.priorities.split(',').filter(Boolean) : []
-    const matches = recommendOffers(allOffers, needs, 1, pris)
-    if (matches.length > 0 && matches[0].score >= 75) {
-      const best = matches[0]
-      notificationsToCreate.push({
-        userId: user.id,
-        title: `Match found! (${best.score}%)`,
-        message: `${best.offer.operator.name} ${best.offer.name} is a strong match for your profile!`,
-        type: 'recommendation',
-        offerId: best.offer.id,
-      })
-    }
-  }
-
-  if (notificationsToCreate.length > 0) {
-    await db.notification.createMany({ data: notificationsToCreate })
-  }
 }
 
 async function runSingleScraper(

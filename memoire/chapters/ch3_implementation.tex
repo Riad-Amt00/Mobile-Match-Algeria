@@ -207,7 +207,7 @@ TOPSIS was selected after comparing the candidate multi criteria methods against
 
 As a worked example, take a user with budget 2\,000~DA who ranks price first then data, and three in budget plans: $A$ (1\,000~DA, 8~GB), $B$ (1\,100~DA, 15~GB), and $C$ (600~DA, 4~GB). Rank order centroid gives weights $0.75$ (price) and $0.25$ (data). After vector normalisation and weighting, TOPSIS computes each plan's Euclidean distance to the ideal (cheapest, most data) and to the anti ideal, yielding closeness coefficients $C_C \approx 0.60$, $C_B \approx 0.40$, $C_A \approx 0.26$. The ranking is therefore $C, B, A$: the low price of $C$ dominates under the $0.75$ price weight, while $B$ outranks $A$ on data. Ranking data first instead would raise the weight on data and move the higher data plan $B$ up, which is exactly how the ROC weights steer the trade off.
 
-The engine is called from two distinct contexts: the /api/recommendations route handler executes the algorithm synchronously in response to an explicit user request (rate limited at sixty requests per minute per IP), and the scraper orchestrator runs it in batch after each successful scrape cycle to dispatch a personalised recommendation notification to any user whose top match scores at least 75\,\%. The engine covers the case where the user has filled out a profile and wants the system to choose for them; the complementary case, the user has a query in mind and wants the catalogue filtered by it, is handled by the structured search interface described next.
+The engine is called from the /api/recommendations route handler, which executes the algorithm synchronously in response to an explicit user request (rate limited at sixty requests per minute per IP). The engine covers the case where the user has filled out a profile and wants the system to choose for them; the complementary case, the user has a query in mind and wants the catalogue filtered by it, is handled by the structured search interface described next.
 
 \section{Structured Search Engine}
 
@@ -262,8 +262,6 @@ The notification system is split into two distinct streams handled by the same N
     \hline
     price\_drop       & Registered users (filtered by their preferences) & A scrape detects a price decrease on a plan & The offer detail page \\
     \hline
-    recommendation    & Registered users with a saved profile & After a scrape, the user's top matched plan scores at least 75\,\% & /recommend \\
-    \hline
     scrape\_complete  & Administrators only & A manual or scheduled scrape run finishes successfully & /admin?tab=history \\
     \hline
     scrape\_failed    & Administrators only & An operator was unreachable or returned invalid data & /admin?tab=history \\
@@ -271,7 +269,7 @@ The notification system is split into two distinct streams handled by the same N
   \end{tabular}
 \end{table}
 
-The two stream separation is enforced at the source: every notification dispatch function in the scraper orchestrator (notifyUsersNewOffer, notifyUsersPriceDrop, notifyPersonalizedRecommendations, notifyAdmins, notifyAdminsFailure) filters the recipient set by the User.role field before writing any row. Each notification type also drives the click through routing applied by the navbar bell and the admin panel: user stream notifications navigate to the offer detail page or to /recommend depending on the type, while administrator stream notifications navigate to /admin?tab=history.
+The two stream separation is enforced at the source: every notification dispatch function in the scraper orchestrator (notifyUsersNewOffer, notifyUsersPriceDrop, notifyAdmins, notifyAdminsFailure) filters the recipient set by the User.role field before writing any row. Each notification type also drives the click through routing applied by the navbar bell and the admin panel: user stream notifications navigate to the offer detail page, while administrator stream notifications navigate to /admin?tab=history.
 
 The separation was introduced specifically to fix two defects in an earlier single stream design. Without role filters on the dispatch functions, an administrator's feed was systematically polluted with consumer facing alerts produced for every newly scraped offer. More damagingly, both administrator \guillemotleft{}scrape complete\guillemotright{} and user \guillemotleft{}new offer\guillemotright{} events used the same type value, so a non administrator user clicking on a \guillemotleft{}new offer\guillemotright{} notification was routed to /admin?tab=history, a page they were not permitted to access. The current two stream design, role filtered dispatch, distinct type values, and type aware routing, eliminates both defects by construction.
 
