@@ -260,7 +260,7 @@ The pipeline begins when a cron trigger or administrator action initiates a scra
 
 \subsection{Class Diagram}
 
-The data model comprises eight application defined classes: Operator, Offer, PriceHistory, ScrapeLog, User, UserProfile, SavedOffer, and Notification. Figure~\ref{fig:class-diagram-main} shows each class with all its attributes and their types, named exactly as declared in the Prisma schema (\textit{prisma/schema.prisma}). As a persistence layer data model, these classes hold data rather than behaviour, so they carry attributes and associations but no operations of their own; the corresponding logic lives in the API routes and library functions. The associations carry standard UML multiplicities (1, N) and are realised in the relational schema as foreign keys. In each class the primary key (\emph{id}) is underlined and the foreign-key attributes (\emph{operatorId} in Offer, \emph{userId} and \emph{offerId} in SavedOffer, and so on) are shown in italics, and optional (nullable) attributes are marked with the UML multiplicity [0..1]; the principal unique business keys are the user's \emph{email} and the operator's \emph{name} and \emph{slug}. Three attributes use enumerated types: \emph{role} (USER, ADMIN), \emph{type} (PREPAID, POSTPAID, DATA\_ONLY), and \emph{status} (RUNNING, SUCCESS, FAILED, PARTIAL). The authentication tables managed by the NextAuth.js adapter (Account, Session, VerificationToken) and the system level RateLimit table are infrastructure with no domain relationships and are omitted, as is Prisma's internal \_prisma\_migrations table.
+The data model comprises eight application defined classes: Operator, Offer, PriceHistory, ScrapeLog, User, UserProfile, SavedOffer, and Notification. Figure~\ref{fig:class-diagram-main} shows each class with all its attributes and their types, named exactly as declared in the Prisma schema (\textit{prisma/schema.prisma}). As a persistence layer data model, these classes hold data rather than behaviour, so they carry attributes and associations but no operations of their own; the corresponding logic lives in the API routes and library functions. The associations carry standard UML multiplicities (1, N) and are realised in the relational schema as foreign keys. In each class the primary key (\emph{id}) is underlined and the foreign-key attributes (\emph{operatorId} in Offer, \emph{userId} and \emph{offerId} in SavedOffer, and so on) are shown in italics; the principal unique business keys are the user's \emph{email} and the operator's \emph{name} and \emph{slug}. Three attributes use enumerated types: \emph{role} (USER, ADMIN), \emph{type} (PREPAID, POSTPAID, DATA\_ONLY), and \emph{status} (RUNNING, SUCCESS, FAILED, PARTIAL). The authentication tables managed by the NextAuth.js adapter (Account, Session, VerificationToken) and the system level RateLimit table are infrastructure with no domain relationships and are omitted, as is Prisma's internal \_prisma\_migrations table.
 
 \begin{figure}[H]
 \centering
@@ -277,7 +277,7 @@ The data model comprises eight application defined classes: Operator, Offer, Pri
     \node[arow]{\underline{id} : String}; \\
     \node[arow]{name : String}; \\
     \node[arow]{slug : String}; \\
-    \node[arow]{logoUrl : String [0..1]}; \\
+    \node[arow]{logoUrl : String}; \\
     \node[arow]{websiteUrl : String}; \\
     \node[arow]{primaryColor : String}; \\
     \node[arow]{createdAt : DateTime}; \\
@@ -291,26 +291,26 @@ The data model comprises eight application defined classes: Operator, Offer, Pri
     \node[arow]{type : OfferType}; \\
     \node[arow]{priceDA : Float}; \\
     \node[arow]{dataGB : Float}; \\
-    \node[arow]{voiceMinutes : Int [0..1]}; \\
-    \node[arow]{smsCount : Int [0..1]}; \\
+    \node[arow]{voiceMinutes : Int}; \\
+    \node[arow]{smsCount : Int}; \\
     \node[arow]{validityDays : Int}; \\
     \node[arow]{network : String}; \\
     \node[arow]{features : String}; \\
     \node[arow]{isActive : Boolean}; \\
     \node[arow]{isFeatured : Boolean}; \\
-    \node[arow]{sourceUrl : String [0..1]}; \\
-    \node[arow]{scrapedAt : DateTime [0..1]}; \\
+    \node[arow]{sourceUrl : String}; \\
+    \node[arow]{scrapedAt : DateTime}; \\
     \node[arow]{createdAt : DateTime}; \\
     \node[arow]{updatedAt : DateTime}; \\
   };
   \matrix[cls, ampersand replacement=\&] (user) at (8.6,0) {
     \node[hdr]{User}; \\
     \node[arow]{\underline{id} : String}; \\
-    \node[arow]{name : String [0..1]}; \\
+    \node[arow]{name : String}; \\
     \node[arow]{email : String}; \\
-    \node[arow]{emailVerified : DateTime [0..1]}; \\
-    \node[arow]{image : String [0..1]}; \\
-    \node[arow]{passwordHash : String [0..1]}; \\
+    \node[arow]{emailVerified : DateTime}; \\
+    \node[arow]{image : String}; \\
+    \node[arow]{passwordHash : String}; \\
     \node[arow]{role : Role}; \\
     \node[arow]{createdAt : DateTime}; \\
     \node[arow]{updatedAt : DateTime}; \\
@@ -323,7 +323,7 @@ The data model comprises eight application defined classes: Operator, Offer, Pri
     \node[arow]{message : String}; \\
     \node[arow]{type : String}; \\
     \node[arow]{isRead : Boolean}; \\
-    \node[arow]{offerId : String [0..1]}; \\
+    \node[arow]{offerId : String}; \\
     \node[arow]{createdAt : DateTime}; \\
   };
 
@@ -337,11 +337,11 @@ The data model comprises eight application defined classes: Operator, Offer, Pri
     \node[arow]{offersAdded : Int}; \\
     \node[arow]{offersUpdated : Int}; \\
     \node[arow]{offersDeactivated : Int}; \\
-    \node[arow]{errorMessage : String [0..1]}; \\
-    \node[arow]{details : String [0..1]}; \\
-    \node[arow]{duration : Int [0..1]}; \\
+    \node[arow]{errorMessage : String}; \\
+    \node[arow]{details : String}; \\
+    \node[arow]{duration : Int}; \\
     \node[arow]{startedAt : DateTime}; \\
-    \node[arow]{completedAt : DateTime [0..1]}; \\
+    \node[arow]{completedAt : DateTime}; \\
   };
   \matrix[cls, ampersand replacement=\&] (history) at (4.3,-10.2) {
     \node[hdr]{PriceHistory}; \\
@@ -361,14 +361,14 @@ The data model comprises eight application defined classes: Operator, Offer, Pri
     \node[hdr]{UserProfile}; \\
     \node[arow]{\underline{id} : String}; \\
     \node[arow]{\textit{userId} : String}; \\
-    \node[arow]{monthlyBudget : Float [0..1]}; \\
-    \node[arow]{dataUsageGB : Float [0..1]}; \\
-    \node[arow]{voiceMinutes : Int [0..1]}; \\
-    \node[arow]{smsCount : Int [0..1]}; \\
-    \node[arow]{preferredType : String [0..1]}; \\
-    \node[arow]{preferredNet : String [0..1]}; \\
-    \node[arow]{preferredOperator : String [0..1]}; \\
-    \node[arow]{priorities : String [0..1]}; \\
+    \node[arow]{monthlyBudget : Float}; \\
+    \node[arow]{dataUsageGB : Float}; \\
+    \node[arow]{voiceMinutes : Int}; \\
+    \node[arow]{smsCount : Int}; \\
+    \node[arow]{preferredType : String}; \\
+    \node[arow]{preferredNet : String}; \\
+    \node[arow]{preferredOperator : String}; \\
+    \node[arow]{priorities : String}; \\
   };
 
   %% ── Associations (1 → N) ──────────────────────────────────────────────────
@@ -380,7 +380,7 @@ The data model comprises eight application defined classes: Operator, Offer, Pri
   \draw[assoc] (user.south east) -- node[above,sloped,font=\scriptsize,pos=0.12]{1} node[below,sloped,font=\scriptsize,pos=0.92]{1} (profile.north west);
   \draw[assoc] (user.east) -- node[above,font=\scriptsize,pos=0.1]{1} node[above,font=\scriptsize,pos=0.9]{N} (notif.west);
 \end{tikzpicture}}
-\caption{Class diagram of the data model (primary key underlined, foreign keys in italics, optional attributes marked [0..1]).}
+\caption{Class diagram of the data model (primary key underlined, foreign keys in italics).}
 \label{fig:class-diagram-main}
 \end{figure}
 
