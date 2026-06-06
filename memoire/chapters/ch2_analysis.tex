@@ -260,107 +260,32 @@ The pipeline begins when a cron trigger or administrator action initiates a scra
 
 \subsection{Class Diagram}
 
-The data model comprises twelve application defined classes, shown in Figure~\ref{fig:class-diagram-main} exactly as declared in the Prisma schema file (\textit{prisma/schema.prisma}) and rendered by Prisma's own schema visualiser. Each class lists every attribute with its type; the primary key is underlined and tagged \texttt{(PK)}, foreign keys are tagged \texttt{(FK)}, nullable attributes carry a trailing question mark, and unique columns are tagged \texttt{(U)}. As a persistence layer data model, these classes hold data rather than behaviour, so they carry attributes and associations but no operations of their own; the corresponding logic lives in the API routes and library functions. Each association carries standard UML multiplicities (1, N) and is realised in the relational schema as a foreign key (for example \emph{operatorId} in Offer, or \emph{userId} and \emph{offerId} in SavedOffer); the principal unique business keys are the user's \emph{email} and the operator's \emph{name} and \emph{slug}. Three classes (Account, Session, VerificationToken) are the standard authentication tables required by the NextAuth.js Prisma adapter, and RateLimit backs the abuse rate limiter; they are included here for completeness, although the project's credential based, JWT session model leaves the Session and VerificationToken tables empty in practice. The three enumerated types (Role, OfferType, ScrapeStatus) used by the \emph{role}, \emph{type}, and \emph{status} attributes are listed in the dedicated box. Only \_prisma\_migrations, the bookkeeping table maintained automatically by the Prisma migration tool, is omitted, being tooling metadata rather than part of the application design.
+The data model comprises eight application defined classes: Operator, Offer, PriceHistory, ScrapeLog, User, UserProfile, SavedOffer, and Notification. Figure~\ref{fig:class-diagram-main} shows each class with all its attributes and their types, named exactly as declared in the Prisma schema (\textit{prisma/schema.prisma}); nullable attributes carry a trailing question mark, exactly as in the schema. As a persistence layer data model, these classes hold data rather than behaviour, so they carry attributes and associations but no operations of their own; the corresponding logic lives in the API routes and library functions. The associations carry standard UML multiplicities (1, N) and are realised in the relational schema as foreign keys (\emph{operatorId} in Offer, \emph{userId} and \emph{offerId} in SavedOffer, and so on); each class is identified by an \emph{id} primary key, and the principal unique business keys are the user's \emph{email} and the operator's \emph{name} and \emph{slug}. Three attributes use enumerated types: \emph{role} (USER, ADMIN), \emph{type} (PREPAID, POSTPAID, DATA\_ONLY), and \emph{status} (RUNNING, SUCCESS, FAILED, PARTIAL). The authentication tables managed by the NextAuth.js adapter (Account, Session, VerificationToken) and the system level RateLimit table are infrastructure with no domain relationships and are omitted, as is Prisma's internal \_prisma\_migrations table.
 
-\begin{landscape}
-\begin{figure}[p]
+\begin{figure}[H]
 \centering
-\resizebox{!}{15.2cm}{%
+\resizebox{\textwidth}{!}{%
 \begin{tikzpicture}[
-  cls/.style={rectangle, draw=black!80, fill=white, align=left, font=\scriptsize, inner sep=0pt, anchor=north},
-  hdr/.style={fill=blue!15, font=\scriptsize\bfseries, align=center, minimum height=0.5cm, minimum width=3.9cm},
-  arow/.style={fill=white, minimum height=0.34cm, minimum width=3.9cm, align=left, inner sep=3pt, font=\scriptsize},
-  enr/.style={fill=green!8, minimum height=0.34cm, minimum width=3.9cm, align=left, inner sep=3pt, font=\scriptsize},
-  assoc/.style={thick, ->, black!65}
+  cls/.style={rectangle, draw=black!55, fill=white, align=left, font=\scriptsize, inner sep=0pt, anchor=north},
+  hdr/.style={fill=blue!12, font=\scriptsize\bfseries, align=center, minimum height=0.5cm, minimum width=3.8cm},
+  arow/.style={fill=white, minimum height=0.34cm, minimum width=3.8cm, align=left, inner sep=3pt, font=\scriptsize},
+  assoc/.style={semithick, ->, black!55}
 ]
-  %% ── Row 1 ────────────────────────────────────────────────────────────────
-  \matrix[cls, ampersand replacement=\&] (account) at (0,0) {
-    \node[hdr]{Account}; \\
-    \node[arow]{\underline{id} : String~(PK)}; \\
-    \node[arow]{userId : String~(FK)}; \\
-    \node[arow]{type : String}; \\
-    \node[arow]{provider : String}; \\
-    \node[arow]{providerAccountId : String}; \\
-    \node[arow]{refresh\_token : String?}; \\
-    \node[arow]{access\_token : String?}; \\
-    \node[arow]{expires\_at : Int?}; \\
-    \node[arow]{token\_type : String?}; \\
-    \node[arow]{scope : String?}; \\
-    \node[arow]{id\_token : String?}; \\
-    \node[arow]{session\_state : String?}; \\
-  };
-  \matrix[cls, ampersand replacement=\&] (notif) at (4.5,0) {
-    \node[hdr]{Notification}; \\
-    \node[arow]{\underline{id} : String~(PK)}; \\
-    \node[arow]{userId : String~(FK)}; \\
-    \node[arow]{title : String}; \\
-    \node[arow]{message : String}; \\
-    \node[arow]{type : String}; \\
-    \node[arow]{isRead : Boolean}; \\
-    \node[arow]{offerId : String?}; \\
+  %% ── Row 1: Operator · Offer · User · Notification ─────────────────────────
+  \matrix[cls, ampersand replacement=\&] (operator) at (0,0) {
+    \node[hdr]{Operator}; \\
+    \node[arow]{id : String}; \\
+    \node[arow]{name : String}; \\
+    \node[arow]{slug : String}; \\
+    \node[arow]{logoUrl : String?}; \\
+    \node[arow]{websiteUrl : String}; \\
+    \node[arow]{primaryColor : String}; \\
     \node[arow]{createdAt : DateTime}; \\
   };
-  \matrix[cls, ampersand replacement=\&] (rate) at (9.0,0) {
-    \node[hdr]{RateLimit}; \\
-    \node[arow]{\underline{key} : String~(PK)}; \\
-    \node[arow]{count : Int}; \\
-    \node[arow]{resetAt : DateTime}; \\
-  };
-  \matrix[cls, ampersand replacement=\&] (enums) at (13.5,0) {
-    \node[hdr]{\guillemotleft enumeration\guillemotright}; \\
-    \node[enr]{Role: USER, ADMIN}; \\
-    \node[enr]{OfferType: PREPAID,}; \\
-    \node[enr]{~~POSTPAID, DATA\_ONLY}; \\
-    \node[enr]{ScrapeStatus: RUNNING,}; \\
-    \node[enr]{~~SUCCESS, FAILED, PARTIAL}; \\
-  };
-  \matrix[cls, ampersand replacement=\&] (scrape) at (18.0,0) {
-    \node[hdr]{ScrapeLog}; \\
-    \node[arow]{\underline{id} : String~(PK)}; \\
-    \node[arow]{operatorId : String~(FK)}; \\
-    \node[arow]{status : ScrapeStatus}; \\
-    \node[arow]{offersFound : Int}; \\
-    \node[arow]{offersAdded : Int}; \\
-    \node[arow]{offersUpdated : Int}; \\
-    \node[arow]{offersDeactivated : Int}; \\
-    \node[arow]{errorMessage : String?}; \\
-    \node[arow]{details : String?}; \\
-    \node[arow]{duration : Int?}; \\
-    \node[arow]{startedAt : DateTime}; \\
-    \node[arow]{completedAt : DateTime?}; \\
-  };
-
-  %% ── Row 2 ────────────────────────────────────────────────────────────────
-  \matrix[cls, ampersand replacement=\&] (session) at (0,-5.4) {
-    \node[hdr]{Session}; \\
-    \node[arow]{\underline{id} : String~(PK)}; \\
-    \node[arow]{sessionToken : String~(U)}; \\
-    \node[arow]{userId : String~(FK)}; \\
-    \node[arow]{expires : DateTime}; \\
-  };
-  \matrix[cls, ampersand replacement=\&] (user) at (4.5,-5.4) {
-    \node[hdr]{User}; \\
-    \node[arow]{\underline{id} : String~(PK)}; \\
-    \node[arow]{name : String?}; \\
-    \node[arow]{email : String~(U)}; \\
-    \node[arow]{emailVerified : DateTime?}; \\
-    \node[arow]{image : String?}; \\
-    \node[arow]{passwordHash : String?}; \\
-    \node[arow]{role : Role}; \\
-    \node[arow]{createdAt : DateTime}; \\
-    \node[arow]{updatedAt : DateTime}; \\
-  };
-  \matrix[cls, ampersand replacement=\&] (saved) at (9.0,-5.4) {
-    \node[hdr]{SavedOffer}; \\
-    \node[arow]{\underline{id} : String~(PK)}; \\
-    \node[arow]{userId : String~(FK)}; \\
-    \node[arow]{offerId : String~(FK)}; \\
-    \node[arow]{savedAt : DateTime}; \\
-  };
-  \matrix[cls, ampersand replacement=\&] (offer) at (13.5,-5.4) {
+  \matrix[cls, ampersand replacement=\&] (offer) at (4.1,0) {
     \node[hdr]{Offer}; \\
-    \node[arow]{\underline{id} : String~(PK)}; \\
-    \node[arow]{operatorId : String~(FK)}; \\
+    \node[arow]{id : String}; \\
+    \node[arow]{operatorId : String}; \\
     \node[arow]{name : String}; \\
     \node[arow]{slug : String}; \\
     \node[arow]{type : OfferType}; \\
@@ -378,28 +303,64 @@ The data model comprises twelve application defined classes, shown in Figure~\re
     \node[arow]{createdAt : DateTime}; \\
     \node[arow]{updatedAt : DateTime}; \\
   };
-  \matrix[cls, ampersand replacement=\&] (operator) at (18.0,-5.4) {
-    \node[hdr]{Operator}; \\
-    \node[arow]{\underline{id} : String~(PK)}; \\
-    \node[arow]{name : String~(U)}; \\
-    \node[arow]{slug : String~(U)}; \\
-    \node[arow]{logoUrl : String?}; \\
-    \node[arow]{websiteUrl : String}; \\
-    \node[arow]{primaryColor : String}; \\
+  \matrix[cls, ampersand replacement=\&] (user) at (8.2,0) {
+    \node[hdr]{User}; \\
+    \node[arow]{id : String}; \\
+    \node[arow]{name : String?}; \\
+    \node[arow]{email : String}; \\
+    \node[arow]{emailVerified : DateTime?}; \\
+    \node[arow]{image : String?}; \\
+    \node[arow]{passwordHash : String?}; \\
+    \node[arow]{role : Role}; \\
+    \node[arow]{createdAt : DateTime}; \\
+    \node[arow]{updatedAt : DateTime}; \\
+  };
+  \matrix[cls, ampersand replacement=\&] (notif) at (12.3,0) {
+    \node[hdr]{Notification}; \\
+    \node[arow]{id : String}; \\
+    \node[arow]{userId : String}; \\
+    \node[arow]{title : String}; \\
+    \node[arow]{message : String}; \\
+    \node[arow]{type : String}; \\
+    \node[arow]{isRead : Boolean}; \\
+    \node[arow]{offerId : String?}; \\
     \node[arow]{createdAt : DateTime}; \\
   };
 
-  %% ── Row 3 ────────────────────────────────────────────────────────────────
-  \matrix[cls, ampersand replacement=\&] (verif) at (0,-12.8) {
-    \node[hdr]{VerificationToken}; \\
-    \node[arow]{\underline{identifier} : String}; \\
-    \node[arow]{\underline{token} : String~(U)}; \\
-    \node[arow]{expires : DateTime}; \\
+  %% ── Row 2: ScrapeLog · PriceHistory · SavedOffer · UserProfile ────────────
+  \matrix[cls, ampersand replacement=\&] (scrape) at (0,-7.6) {
+    \node[hdr]{ScrapeLog}; \\
+    \node[arow]{id : String}; \\
+    \node[arow]{operatorId : String}; \\
+    \node[arow]{status : ScrapeStatus}; \\
+    \node[arow]{offersFound : Int}; \\
+    \node[arow]{offersAdded : Int}; \\
+    \node[arow]{offersUpdated : Int}; \\
+    \node[arow]{offersDeactivated : Int}; \\
+    \node[arow]{errorMessage : String?}; \\
+    \node[arow]{details : String?}; \\
+    \node[arow]{duration : Int?}; \\
+    \node[arow]{startedAt : DateTime}; \\
+    \node[arow]{completedAt : DateTime?}; \\
   };
-  \matrix[cls, ampersand replacement=\&] (profile) at (4.5,-12.8) {
+  \matrix[cls, ampersand replacement=\&] (history) at (4.1,-7.6) {
+    \node[hdr]{PriceHistory}; \\
+    \node[arow]{id : String}; \\
+    \node[arow]{offerId : String}; \\
+    \node[arow]{priceDA : Float}; \\
+    \node[arow]{recordedAt : DateTime}; \\
+  };
+  \matrix[cls, ampersand replacement=\&] (saved) at (8.2,-7.6) {
+    \node[hdr]{SavedOffer}; \\
+    \node[arow]{id : String}; \\
+    \node[arow]{userId : String}; \\
+    \node[arow]{offerId : String}; \\
+    \node[arow]{savedAt : DateTime}; \\
+  };
+  \matrix[cls, ampersand replacement=\&] (profile) at (12.3,-7.6) {
     \node[hdr]{UserProfile}; \\
-    \node[arow]{\underline{id} : String~(PK)}; \\
-    \node[arow]{userId : String~(FK, U)}; \\
+    \node[arow]{id : String}; \\
+    \node[arow]{userId : String}; \\
     \node[arow]{monthlyBudget : Float?}; \\
     \node[arow]{dataUsageGB : Float?}; \\
     \node[arow]{voiceMinutes : Int?}; \\
@@ -409,74 +370,52 @@ The data model comprises twelve application defined classes, shown in Figure~\re
     \node[arow]{preferredOperator : String?}; \\
     \node[arow]{priorities : String?}; \\
   };
-  \matrix[cls, ampersand replacement=\&] (history) at (13.5,-12.8) {
-    \node[hdr]{PriceHistory}; \\
-    \node[arow]{\underline{id} : String~(PK)}; \\
-    \node[arow]{offerId : String~(FK)}; \\
-    \node[arow]{priceDA : Float}; \\
-    \node[arow]{recordedAt : DateTime}; \\
-  };
 
-  %% ── Associations (1 → N, arrowhead on the N / child side) ─────────────────
-  \draw[assoc] (user.north west) -- node[above,sloped,font=\scriptsize,pos=0.12]{1} node[below,sloped,font=\scriptsize,pos=0.95]{N} (account.south);
-  \draw[assoc] (user.west) -- node[above,font=\scriptsize,pos=0.12]{1} node[above,font=\scriptsize,pos=0.9]{N} (session.east);
-  \draw[assoc] (user.north) -- node[right,font=\scriptsize,pos=0.2]{1} node[right,font=\scriptsize,pos=0.85]{N} (notif.south);
-  \draw[assoc] (user.south) -- node[right,font=\scriptsize,pos=0.1]{1} node[right,font=\scriptsize,pos=0.9]{1} (profile.north);
-  \draw[assoc] (user.east) -- node[above,font=\scriptsize,pos=0.12]{1} node[above,font=\scriptsize,pos=0.88]{N} (saved.west);
-  \draw[assoc] (offer.west) -- node[above,font=\scriptsize,pos=0.12]{1} node[above,font=\scriptsize,pos=0.88]{N} (saved.east);
-  \draw[assoc] (operator.west) -- node[above,font=\scriptsize,pos=0.12]{1} node[above,font=\scriptsize,pos=0.88]{N} (offer.east);
-  \draw[assoc] (offer.south) -- node[right,font=\scriptsize,pos=0.1]{1} node[right,font=\scriptsize,pos=0.9]{N} (history.north);
-  \draw[assoc] (operator.north) -- node[right,font=\scriptsize,pos=0.2]{1} node[right,font=\scriptsize,pos=0.85]{N} (scrape.south);
+  %% ── Associations (1 → N) ──────────────────────────────────────────────────
+  \draw[assoc] (operator.east) -- node[above,font=\scriptsize,pos=0.1]{1} node[above,font=\scriptsize,pos=0.9]{N} (offer.west);
+  \draw[assoc] (operator.south) -- node[left,font=\scriptsize,pos=0.08]{1} node[left,font=\scriptsize,pos=0.93]{N} (scrape.north);
+  \draw[assoc] (offer.south) -- node[left,font=\scriptsize,pos=0.08]{1} node[left,font=\scriptsize,pos=0.93]{N} (history.north);
+  \draw[assoc] (offer.south east) -- node[above,sloped,font=\scriptsize,pos=0.12]{1} node[above,sloped,font=\scriptsize,pos=0.9]{N} (saved.north west);
+  \draw[assoc] (user.south) -- node[left,font=\scriptsize,pos=0.08]{1} node[left,font=\scriptsize,pos=0.93]{N} (saved.north);
+  \draw[assoc] (user.south east) -- node[above,sloped,font=\scriptsize,pos=0.12]{1} node[below,sloped,font=\scriptsize,pos=0.92]{1} (profile.north west);
+  \draw[assoc] (user.east) -- node[above,font=\scriptsize,pos=0.1]{1} node[above,font=\scriptsize,pos=0.9]{N} (notif.west);
 \end{tikzpicture}}
-\caption{Complete class diagram of the data model: the twelve application classes with every attribute and its type. Primary keys are underlined and tagged (PK), foreign keys (FK), nullable attributes carry a trailing ``?'', and unique columns are tagged (U); associations carry UML multiplicities (1, N) and are realised as foreign keys. Only Prisma's internal \texttt{\_prisma\_migrations} table is omitted.}
+\caption{Class diagram of the data model.}
 \label{fig:class-diagram-main}
 \end{figure}
-\end{landscape}
 
 \subsection{Prisma Schema Description}
 
-The Prisma schema defines the relational structure. Table~\ref{tab:entities} lists all twelve entities, their attributes (primary key underlined, unique columns tagged U), and their relationships (foreign keys named in the relationships column).
+The Prisma schema defines the relational structure. Table~\ref{tab:entities} lists the eight entities, their attributes, and their relationships; the \emph{id} attribute of each entity is its primary key, and the foreign keys are named in the relationships column.
 
-{\small
-\begin{longtable}{|p{2.3cm}|p{8.2cm}|p{3.7cm}|}
-  \caption{The twelve entities, their attributes (primary key underlined), and their relationships}\label{tab:entities}\\
-  \hline
-  \textbf{Entity}  & \textbf{Attributes} & \textbf{Relationships} \\
-  \hline
-  \endfirsthead
-  \multicolumn{3}{c}{\tablename~\thetable{} -- continued} \\
-  \hline
-  \textbf{Entity}  & \textbf{Attributes} & \textbf{Relationships} \\
-  \hline
-  \endhead
-  User         & \underline{id}, name, email (U), emailVerified, image, passwordHash, role, createdAt, updatedAt & 1:N Account; 1:N Session; 1:1 UserProfile; 1:N SavedOffer; 1:N Notification \\
-  \hline
-  Account      & \underline{id}, userId, type, provider, providerAccountId, refresh\_token, access\_token, expires\_at, token\_type, scope, id\_token, session\_state & N:1 User (FK userId) \\
-  \hline
-  Session      & \underline{id}, sessionToken (U), userId, expires & N:1 User (FK userId) \\
-  \hline
-  VerificationToken & \underline{identifier}, \underline{token} (U), expires & --- (standalone) \\
-  \hline
-  UserProfile  & \underline{id}, userId (U), monthlyBudget, dataUsageGB, voiceMinutes, smsCount, preferredType, preferredNet, preferredOperator, priorities & 1:1 User (FK userId) \\
-  \hline
-  Operator     & \underline{id}, name (U), slug (U), logoUrl, websiteUrl, primaryColor, createdAt & 1:N Offer; 1:N ScrapeLog \\
-  \hline
-  Offer        & \underline{id}, operatorId, name, slug, type, priceDA, dataGB, voiceMinutes, smsCount, validityDays, network, features, isActive, isFeatured, sourceUrl, scrapedAt, createdAt, updatedAt & N:1 Operator (FK operatorId); 1:N PriceHistory; N:M User (via SavedOffer) \\
-  \hline
-  PriceHistory & \underline{id}, offerId, priceDA, recordedAt & N:1 Offer (FK offerId) \\
-  \hline
-  SavedOffer   & \underline{id}, userId, offerId, savedAt & N:1 User (FK userId); N:1 Offer (FK offerId) \\
-  \hline
-  ScrapeLog    & \underline{id}, operatorId, status, offersFound, offersAdded, offersUpdated, offersDeactivated, errorMessage, details, duration, startedAt, completedAt & N:1 Operator (FK operatorId) \\
-  \hline
-  RateLimit    & \underline{key}, count, resetAt & --- (standalone) \\
-  \hline
-  Notification & \underline{id}, userId, title, message, type, isRead, offerId, createdAt & N:1 User (FK userId) \\
-  \hline
-\end{longtable}
-}
+\begin{table}[H]
+  \caption{The eight entities, their attributes, and their relationships}
+  \label{tab:entities}
+  \centering\small
+  \begin{tabular}{|p{2.2cm}|p{8.3cm}|p{3.6cm}|}
+    \hline
+    \textbf{Entity} & \textbf{Attributes} & \textbf{Relationships} \\
+    \hline
+    Operator     & id, name, slug, logoUrl, websiteUrl, primaryColor, createdAt & 1:N Offer; 1:N ScrapeLog \\
+    \hline
+    Offer        & id, operatorId, name, slug, type, priceDA, dataGB, voiceMinutes, smsCount, validityDays, network, features, isActive, isFeatured, sourceUrl, scrapedAt, createdAt, updatedAt & N:1 Operator (FK operatorId); 1:N PriceHistory; N:M User (via SavedOffer) \\
+    \hline
+    PriceHistory & id, offerId, priceDA, recordedAt & N:1 Offer (FK offerId) \\
+    \hline
+    ScrapeLog    & id, operatorId, status, offersFound, offersAdded, offersUpdated, offersDeactivated, errorMessage, details, duration, startedAt, completedAt & N:1 Operator (FK operatorId) \\
+    \hline
+    User         & id, name, email, emailVerified, image, passwordHash, role, createdAt, updatedAt & 1:1 UserProfile; 1:N SavedOffer; 1:N Notification \\
+    \hline
+    UserProfile  & id, userId, monthlyBudget, dataUsageGB, voiceMinutes, smsCount, preferredType, preferredNet, preferredOperator, priorities & 1:1 User (FK userId) \\
+    \hline
+    SavedOffer   & id, userId, offerId, savedAt & N:1 User (FK userId); N:1 Offer (FK offerId) \\
+    \hline
+    Notification & id, userId, title, message, type, isRead, offerId, createdAt & N:1 User (FK userId) \\
+    \hline
+  \end{tabular}
+\end{table}
 
-With the data model now defined, the next question is how the application code is organised around it. The entities of Table~\ref{tab:entities} naturally cluster into four groups: the catalogue layer (Operator, Offer, PriceHistory, ScrapeLog), the user layer (User, UserProfile, SavedOffer, Notification), the authentication layer (Account, Session, VerificationToken), and the system level RateLimit table. The next section describes the three tier architecture that exposes these entities to the application's presentation, business logic, and data access layers.
+With the data model now defined, the next question is how the application code is organised around it. The eight entities of Table~\ref{tab:entities} naturally cluster into three groups: the catalogue layer (Operator, Offer, PriceHistory, ScrapeLog), the user layer (User, UserProfile, SavedOffer, Notification), and the relations that bridge them. The next section describes the three tier architecture that exposes these entities to the application's presentation, business logic, and data access layers.
 
 \section{System Architecture}
 
