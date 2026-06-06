@@ -66,7 +66,7 @@ export async function rebuildOfferFtsIndex(): Promise<void> {
  * Run an FTS5 MATCH query against the index.
  *
  * Each word is wrapped with a trailing `*` so the query becomes a prefix match
- * — typing "djez" finds "Djezzy", typing "stream" finds "streaming". Words are
+ * — typing "djez" finds "Djezzy", typing "face" finds "facebook". Words are
  * ANDed by default (FTS5's standard behaviour) so all words must appear in the
  * same offer. Results come back ordered by BM25 relevance — SQLite's built-in
  * ranking function, the same one used by industrial search engines, scaled to

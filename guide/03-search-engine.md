@@ -7,7 +7,7 @@ tags: []
 # Guide 3 — The Search Engine (token parser + SQLite FTS5), the simple version
 
 How Mobile Match Algeria turns a free-text search like *"djezzy 5gb unlimited prepaid
-streaming"* into the right plans, in plain words, with a worked example and ready answers
+youtube"* into the right plans, in plain words, with a worked example and ready answers
 for the jury.
 
 ---
@@ -32,7 +32,7 @@ black box.
    *about 5 GB* (or unlimited), "300 da" means *around 300 DA*, "5g" the network,
    "prepaid" the type, "unlimited" means unlimited calls or SMS.
 4. **Send the leftover words to full-text search:** any word left over (here,
-   "streaming") is matched against an indexed copy of every plan's name and features,
+   "youtube") is matched against an indexed copy of every plan's name and features,
    **ranked by relevance** (BM25, the same scoring search engines use).
 5. **Keep the plans that pass both** the structured filter **and** the text match, best
    match first, and show the parsed tokens as **"Read as" chips**.
@@ -47,16 +47,16 @@ A query has **two kinds of words**, and each kind needs a different tool.
 become exact database filters via the token parser. This is the part you already
 understand: operator, data, price, network, type.
 
-**Words the engine does NOT recognise** (`youtube`, `streaming`, `family`, `student`,
+**Words the engine does NOT recognise** (`youtube`, `facebook`, `family`, `student`,
 `social`…) are not operators or numbers, but they often sit **inside a plan's name or its
-features** (for example a feature line like "Free YouTube" or "unlimited social media").
+features** (for example a feature line like "Free YouTube" or "Facebook Gratuit").
 A database filter cannot match those words. That is exactly what FTS5 and BM25 are for:
 
 - **FTS5 is the finder.** FTS5 is SQLite's built-in **full-text search**. At scrape time
   we build a small **index** of every plan's name and features, like the index at the back
   of a book: *word → the plans that contain it*. So when a leftover word like "youtube"
   arrives, FTS5 returns the matching plans **instantly**, instead of scanning every row
-  letter by letter. It also does **prefix matching** ("stream" finds "streaming") and
+  letter by letter. It also does **prefix matching** ("face" finds "facebook") and
   **accent folding** ("donnees" finds "données").
 - **BM25 is the sorter.** When several plans contain the word, which comes first? **BM25**
   is a standard relevance score (the same family the big search engines use) that FTS5
@@ -98,7 +98,7 @@ text is ranked by FTS5. The scoring itself is BM25, computed by SQLite.
 
 ## 5. A worked example
 
-Query typed by the user: **`djezzy 5gb unlimited prepaid streaming`**
+Query typed by the user: **`djezzy 5gb unlimited prepaid youtube`**
 
 **Step 1 — the parser pulls out the tokens** and leaves the rest as text:
 
@@ -108,7 +108,7 @@ Query typed by the user: **`djezzy 5gb unlimited prepaid streaming`**
 | `5gb`      | data ≈ 5 GB | |
 | `unlimited`| unlimited calls or SMS | |
 | `prepaid`  | type = Prepaid | |
-| `streaming`| | → "streaming" |
+| `youtube`  | | → "youtube" |
 
 **Step 2 — the tokens become a database filter** (Prisma `where`):
 
@@ -117,14 +117,14 @@ Query typed by the user: **`djezzy 5gb unlimited prepaid streaming`**
 - type = Prepaid
 - calls **or** SMS unlimited
 
-**Step 3 — the leftover word goes to full-text search:** `streaming*` is matched against
+**Step 3 — the leftover word goes to full-text search:** `youtube*` is matched against
 the FTS5 index of plan names and features and ranked by BM25.
 
 **Step 4 — keep the overlap.** The result is the set of **Djezzy prepaid plans of roughly
-5 GB (or unlimited) with unlimited calls or SMS whose features mention streaming**, with
+5 GB (or unlimited) with unlimited calls or SMS whose features mention youtube**, with
 the most relevant first.
 
-**Step 5 — the UI shows the chips:** `[Djezzy] [≈ 5 GB] [Unlimited] [Prepaid] [streaming]`,
+**Step 5 — the UI shows the chips:** `[Djezzy] [≈ 5 GB] [Unlimited] [Prepaid] [youtube]`,
 so the user can see and remove any part of how the query was read.
 
 ---
