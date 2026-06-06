@@ -69,6 +69,11 @@ contain the other words, and BM25 puts the best match first.** Example: typing `
 matches nothing in the parser, so it goes to FTS5, which finds every plan whose features
 mention YouTube and lists the most relevant first.
 
+**The card shows *why* a plan matched.** A keyword can sit in a feature the card does not
+normally print (a long line, or an Arabic one such as "YouTube غير محدود…"). So when the
+search has a free-text word, each result card highlights the matching feature in a small
+accent chip (e.g. **…YouTube…**). The user never has to wonder why a plan came up.
+
 The search bar is "fuzzy" on purpose: "5 gb" matches *roughly* 5 GB and "300 da" matches
 *around* 300 DA, because a user rarely knows the exact catalogue value. The **filter
 panel** (separate sliders) is the place for strict minimum-data / maximum-price control.
@@ -152,6 +157,11 @@ so the user can see and remove any part of how the query was read.
   finds "données".
 - **How does the user know how the query was understood?** Every recognised token is shown
   as a chip under the search bar, and the user can remove any of them.
+- **A plan showed up for "youtube" but I don't see YouTube on its card — is that a bug?**
+  No. The match is real: one of the plan's features mentions YouTube, but it may be a line
+  the card normally hides (too long, or Arabic). The results now **highlight that exact
+  feature** on the card, so the reason for every match is visible. (Verified: a search for
+  "youtube" returns exactly the plans whose data genuinely contains it — no false matches.)
 
 ---
 

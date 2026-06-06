@@ -180,6 +180,13 @@ export default function OffersPage() {
 
   const goToPage = (n: number) => { setPage(n); fetchOffers(n) }
 
+  // Free-text words from the active query — passed to each card so the feature
+  // that matched (e.g. "youtube") is highlighted, even when it lives in a long
+  // or Arabic feature string the card would otherwise hide.
+  const highlightTerms = parseSearchTokens(debouncedSearch)
+    .filter((tok): tok is Extract<SearchToken, { kind: 'text' }> => tok.kind === 'text')
+    .map(tok => tok.value)
+
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg-page)' }}>
 
@@ -300,6 +307,7 @@ export default function OffersPage() {
                 <li>{t('search.helpNetwork')}</li>
                 <li>{t('search.helpOperator')}</li>
                 <li>{t('search.helpType')}</li>
+                <li>{t('search.helpText')}</li>
               </ul>
               <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid var(--border-subtle)', fontSize: 13, color: 'var(--text-secondary)', fontWeight: 500 }}>
                 {t('search.helpCombine')}
@@ -417,6 +425,7 @@ export default function OffersPage() {
                   isSaving={savingId === offer.id}
                   isRecommended={recommendedIds.has(offer.id)}
                   isLoggedIn={status === 'authenticated'}
+                  highlight={highlightTerms}
                 />
               </motion.div>
             ))}

@@ -366,11 +366,6 @@ export default function CompareContent({ initialIds, fromRecommend, fromSaved }:
                 <MiniChart title={t('compare.chartSavings')} data={savingsChart} betterWhen="high" colors={chartColors} />
               )}
             </div>
-            {showSavingsChart && (
-              <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: '0.75rem', lineHeight: 1.5 }}>
-                {t('compare.savingsFormula')}
-              </p>
-            )}
           </div>
         )}
 

@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { Signal, Wifi, Phone, MessageSquare, Calendar, Zap, Bookmark, BookmarkCheck, CheckCircle2, BarChart3, Loader2, Wallet } from 'lucide-react'
+import { Signal, Wifi, Phone, MessageSquare, Calendar, Zap, Bookmark, BookmarkCheck, CheckCircle2, BarChart3, Loader2, Wallet, Search } from 'lucide-react'
 import { formatData, formatCalls, formatSmsScoped, formatValidity, getPricePerGB, getNetworkStyle, OPERATOR_LOGOS, cleanOfferName, offerCredit } from '@/lib/utils'
 import { useLang } from '@/lib/lang-context'
 
@@ -29,6 +29,10 @@ interface OfferCardProps {
   isSaving?: boolean
   isRecommended?: boolean
   isLoggedIn?: boolean
+  /** Free-text search words; when one matches a feature, that feature is shown
+   *  highlighted on the card so the user sees WHY the offer matched (e.g. a
+   *  "youtube" hit buried in an Arabic or long feature the card would otherwise hide). */
+  highlight?: string[]
 }
 
 
@@ -40,6 +44,7 @@ export function OfferCard({
   onToggleSave,
   isSaving = false,
   isLoggedIn = true,
+  highlight,
 }: OfferCardProps) {
   const { t } = useLang()
   const pricePerGB = getPricePerGB(offer.priceDA, offer.dataGB)
@@ -69,6 +74,37 @@ export function OfferCard({
         .slice(0, 3)
     }
   } catch { /* features is not valid JSON; show none */ }
+
+  // When the card is rendered for a free-text search, surface the feature that
+  // matched the query — even if it is Arabic, long, or otherwise hidden above —
+  // so the user always sees WHY the offer came up. We return a small snippet
+  // centred on the matched term so the keyword is visible even in a long string.
+  let matched: { before: string; term: string; after: string } | null = null
+  if (highlight && highlight.length > 0) {
+    const terms = highlight.map(h => h.toLowerCase()).filter(h => h.length >= 2)
+    try {
+      const parsed = JSON.parse(offer.features)
+      if (Array.isArray(parsed)) {
+        for (const raw of parsed) {
+          if (typeof raw !== 'string') continue
+          const f = raw.trim()
+          const lower = f.toLowerCase()
+          const term = terms.find(h => lower.includes(h))
+          if (term) {
+            const idx = lower.indexOf(term)
+            const start = Math.max(0, idx - 12)
+            const end = Math.min(f.length, idx + term.length + 26)
+            matched = {
+              before: (start > 0 ? '…' : '') + f.slice(start, idx),
+              term: f.slice(idx, idx + term.length),
+              after: f.slice(idx + term.length, end) + (end < f.length ? '…' : ''),
+            }
+            break
+          }
+        }
+      }
+    } catch { /* features not JSON; no highlight */ }
+  }
 
   const specs = [
     { icon: <Wifi size={14} />,          label: t('offer.data'),     value: formatData(offer.dataGB, t) },
@@ -203,6 +239,22 @@ export function OfferCard({
             </span>
           )}
         </div>
+
+        {/* ── Search match: the feature that matched the free-text query ── */}
+        {matched && (
+          <div style={{ marginBottom: perks.length > 0 ? 8 : '1rem', display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+            <span style={{
+              display: 'inline-flex', alignItems: 'center', gap: 5, maxWidth: '100%',
+              fontSize: 10.5, fontWeight: 600, padding: '3px 9px', borderRadius: 20,
+              background: 'var(--accent-muted)', color: 'var(--accent)', border: '1px solid var(--accent-border)',
+            }}>
+              <Search size={11} style={{ flexShrink: 0 }} />
+              <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                {matched.before}<strong style={{ fontWeight: 800 }}>{matched.term}</strong>{matched.after}
+              </span>
+            </span>
+          </div>
+        )}
 
         {/* ── Perks preview ── */}
         {perks.length > 0 && (
