@@ -76,15 +76,20 @@ export function rocWeights(n: number): number[] {
 }
 
 /**
- * The raw value of a criterion for an offer, with unlimited (-1) mapped to the
- * best value present in the pool so an unlimited allowance counts as ideal.
+ * The value of a criterion for an offer, used to build the TOPSIS decision matrix.
+ * Price is measured as cost efficiency (dinars per GB), not absolute price, so
+ * ranking price first returns the best value for money within budget rather than
+ * the cheapest, near-empty plan. An unlimited allowance (-1) is mapped to 1.5x the
+ * best finite value in the pool so it counts as ideal on a benefit criterion.
  */
 function criterionValue(c: Criterion, offer: any, poolMax: Record<string, number>): number {
-  // An unlimited allowance (-1) is encoded as 1.5x the largest finite value in
-  // the pool, so on a benefit criterion it ranks strictly above any finite plan
-  // (it becomes the ideal), rather than merely tying the finite maximum.
   switch (c) {
-    case 'price': return offer.priceDA
+    case 'price': {
+      // Cost efficiency: dinars per GB. Lower is better (still a cost criterion).
+      // Data is floored at 0.1 GB to avoid division by zero for data-less plans.
+      const data = offer.dataGB === -1 ? poolMax.data * 1.5 : Math.max(0, offer.dataGB)
+      return offer.priceDA / Math.max(data, 0.1)
+    }
     case 'data':  return offer.dataGB === -1 ? poolMax.data * 1.5 : Math.max(0, offer.dataGB)
     case 'calls': return offer.voiceMinutes === -1 ? poolMax.calls * 1.5 : Math.max(0, offer.voiceMinutes)
     case 'sms':   return offer.smsCount === -1 ? poolMax.sms * 1.5 : Math.max(0, offer.smsCount)

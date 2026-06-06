@@ -56,8 +56,8 @@ The recommendation engine is a deterministic function: given a fixed input profi
     \checkmark \\
     \hline
     Budget 1\,400\,DA, data 20\,Go, priorities = [price, data] &
-    Price ranked first (ROC weight 0.75) dominates the TOPSIS closeness, so the cheapest in-budget plan leads; data orders the rest. &
-    Djezzy Basic 1\,Go / 300\,DA \newline \textit{Cheapest plan; the 1\,000\,DA / 15\,Go plan ranks lower} &
+    Price ranked first (ROC weight 0.75) scores price as cost per gigabyte, so the best value for money plan leads, not the cheapest near empty plan; data orders the rest. &
+    Djezzy Flexy 15\,Go / 1\,000\,DA \newline \textit{Best value (66.7 DA/GB); the 300\,DA / 1\,Go plan, worst value, ranks last} &
     \checkmark \\
     \hline
     Budget 50\,DA (below every catalogue price) &
@@ -80,7 +80,7 @@ Because the platform stores a personal profile, a list of saved plans, and a pri
 
 Four accounts were provisioned and driven concurrently from separate browser sessions on a single development machine: one administrator, one demo account loaded from the seed script, and two ordinary test accounts. Operating them in parallel, rather than one after another, is what makes the test meaningful, because it reproduces the realistic situation in which several authenticated requests are in flight at once and a server side mistake, such as a query missing its user filter or a shared session token, would let one account observe another's data.
 
-The verification covered four isolation properties. Session isolation requires that signing in as one account never exposes another account's session or identity. Profile separation requires that one account's profile is never returned in another user's request, so the recommendation engine always reads the correct budget and usage profile. Saved plans separation requires that one account's saved list is never visible to, or modifiable by, another account. Notification separation requires that administrator stream notifications, such as scrape completed or scrape failed, never reach an ordinary user, and that a user's personal notifications, such as a new offer, a price drop, or a recommendation, never reach a different user. Each property was checked both in the rendered interface and in the raw API responses behind it, and no leakage was observed in any of the four dimensions.
+The verification covered four isolation properties. Session isolation requires that signing in as one account never exposes another account's session or identity. Profile separation requires that one account's profile is never returned in another user's request, so the recommendation engine always reads the correct budget and usage profile. Saved plans separation requires that one account's saved list is never visible to, or modifiable by, another account. Notification separation requires that administrator stream notifications, such as scrape completed or scrape failed, never reach an ordinary user, and that a user's personal notifications, such as a new offer or a price drop, never reach a different user. Each property was checked both in the rendered interface and in the raw API responses behind it, and no leakage was observed in any of the four dimensions.
 
 This functional verification confirms that the access control and the per user data scoping behave as designed. It is complementary to, and does not substitute for, the formal usability study with end users that is identified in the Perspectives section.
 

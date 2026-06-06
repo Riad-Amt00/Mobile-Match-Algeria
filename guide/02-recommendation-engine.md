@@ -19,8 +19,8 @@ other users' data, only this user's profile, so it works from day one.
 1. **Filter:** drop any plan over budget, or with the wrong operator / type / network.
 2. **Weights:** a fixed formula (Rank-Order Centroid) turns the user's ranking into
    numbers — price #1, data #2 → **0.75 / 0.25**. (We don't pick these; see §7.)
-3. **Two reference plans:** the **dream** (cheapest *and* most data) and the **nightmare**
-   (priciest, least data).
+3. **Two reference plans:** the **dream** (best value — lowest price per GB — *and* most
+   data) and the **nightmare** (worst value, least data).
 4. **Closeness:** measure how near each plan is to the dream versus the nightmare — a
    score from **0 (worst) to 1 (best)**.
 5. **Rank by closeness**, show the **top 3** (the score becomes the match %).
@@ -53,75 +53,84 @@ Nothing here is invented — each step is a published method:
 | **Ranking by closeness** | the formula in §3 | **TOPSIS — Hwang & Yoon (1981)**; recent guide: **Taherdoost & Madanchian (2023)** |
 
 **What is *ours* are setup choices, not formulas:** which attributes are filters vs ranked
-criteria (price, data), that the budget is a hard ceiling, and two small conventions
-("unlimited" counts as the best value; equal weights if the user ranks nothing). None of
-these computes a score — the scoring is entirely the cited methods.
+criteria (price, data), that the budget is a hard ceiling, that price is scored as value
+for money (dinars per GB) rather than raw price, and two small conventions ("unlimited"
+counts as the best value; equal weights if the user ranks nothing). None of these computes
+a score — the scoring is entirely the cited methods.
 
 ---
 
 ## 5. A worked example — with the full numbers
 
-Setup: **budget 2000 DA**, **need 10 GB**, user ranks **price #1, data #2**. Three plans
+Setup: **budget 2000 DA**, **need 20 GB**, user ranks **price #1, data #2**. Three plans
 pass the budget filter:
 
-| Plan | Price | Data |
-|------|-------|------|
-| A | 1000 DA | 8 GB |
-| B | 1100 DA | 15 GB |
-| C | 600 DA  | 4 GB |
+| Plan | Price | Data | Value (price ÷ data) |
+|------|-------|------|----------------------|
+| A | 600 DA  | 30 GB | **20 DA/GB** (best value) |
+| B | 2000 DA | 50 GB | 40 DA/GB (most data) |
+| C | 400 DA  | 5 GB  | 80 DA/GB (cheapest, worst value) |
+
+**Price is scored as value for money, not raw dinars.** The engine divides each plan's
+price by its data, so "price" really means **cost per GB**. This is the key idea: ranking
+price first finds the **best value**, not the cheapest near-empty plan. (That is what fixes
+the old behaviour where "price first" kept surfacing a tiny 400 DA plan with almost no data.)
 
 **Step 1 — turn each plan into two comparable scores.**
-Dinars and GB can't be compared directly, so we rescale each column. First a **scaling
+DA/GB and GB can't be compared directly, so we rescale each column. First a **scaling
 number** for the column = square every value, add them, take the square root:
 
-$$\text{price scaling} = \sqrt{1000^2 + 1100^2 + 600^2} = \sqrt{2{,}570{,}000} = 1603$$
-$$\text{data scaling} = \sqrt{8^2 + 15^2 + 4^2} = \sqrt{305} = 17.46$$
+$$\text{price scaling} = \sqrt{20^2 + 40^2 + 80^2} = \sqrt{8400} = 91.65$$
+$$\text{data scaling} = \sqrt{30^2 + 50^2 + 5^2} = \sqrt{3425} = 58.52$$
 
 Then each **score = (value ÷ the column's scaling number) × its weight** (price × 0.75,
-data × 0.25):
+data × 0.25). Price here is the cost per GB:
 
-| Plan | price-score = (price ÷ 1603) × 0.75 | data-score = (data ÷ 17.46) × 0.25 |
-|------|-------------------------------------|-------------------------------------|
-| A | (1000 ÷ 1603) × 0.75 = **0.468** | (8 ÷ 17.46) × 0.25 = **0.114** |
-| B | (1100 ÷ 1603) × 0.75 = **0.515** | (15 ÷ 17.46) × 0.25 = **0.215** |
-| C | (600 ÷ 1603) × 0.75 = **0.281** | (4 ÷ 17.46) × 0.25 = **0.057** |
+| Plan | price-score = (DA/GB ÷ 91.65) × 0.75 | data-score = (GB ÷ 58.52) × 0.25 |
+|------|--------------------------------------|-----------------------------------|
+| A | (20 ÷ 91.65) × 0.75 = **0.164** | (30 ÷ 58.52) × 0.25 = **0.128** |
+| B | (40 ÷ 91.65) × 0.75 = **0.327** | (50 ÷ 58.52) × 0.25 = **0.214** |
+| C | (80 ÷ 91.65) × 0.75 = **0.655** | (5 ÷ 58.52) × 0.25 = **0.021** |
 
 Each plan is now **two numbers** — picture it as a dot on a graph (across = price-score, up = data-score).
 
-**Step 2 — build the dream and nightmare dots** from those two score columns. Price: lower
-is better, so the *smallest* price-score is best. Data: higher is better, so the *largest*
-data-score is best:
+**Step 2 — build the dream and nightmare dots** from those two score columns. Price (cost
+per GB): lower is better, so the *smallest* price-score is best. Data: higher is better, so
+the *largest* data-score is best:
 
-- **Dream** = smallest price-score **0.281** (C's) + largest data-score **0.215** (B's) → **(0.281, 0.215)**
-- **Nightmare** = largest price-score **0.515** (B's) + smallest data-score **0.057** (C's) → **(0.515, 0.057)**
+- **Dream** = smallest price-score **0.164** (A's) + largest data-score **0.214** (B's) → **(0.164, 0.214)**
+- **Nightmare** = largest price-score **0.655** (C's) + smallest data-score **0.021** (C's) → **(0.655, 0.021)**
 
-**Step 3 — plug each dot into the two formulas from §3.** Take **C** (dot $x=0.281$,
-$y=0.057$), measured against the dream $(0.281,\,0.215)$ and the nightmare $(0.515,\,0.057)$.
+**Step 3 — plug each dot into the two formulas from §3.** Take **A** (dot $x=0.164$,
+$y=0.128$), measured against the dream $(0.164,\,0.214)$ and the nightmare $(0.655,\,0.021)$.
 
 Distance to the dream:
 
-$$d_{\text{dream}} = \sqrt{(0.281-0.281)^2 + (0.057-0.215)^2} = \sqrt{0 + 0.025} = 0.158$$
+$$d_{\text{dream}} = \sqrt{(0.164-0.164)^2 + (0.128-0.214)^2} = \sqrt{0 + 0.0074} = 0.086$$
 
 Distance to the nightmare:
 
-$$d_{\text{nightmare}} = \sqrt{(0.281-0.515)^2 + (0.057-0.057)^2} = \sqrt{0.055 + 0} = 0.234$$
+$$d_{\text{nightmare}} = \sqrt{(0.164-0.655)^2 + (0.128-0.021)^2} = \sqrt{0.241 + 0.011} = 0.503$$
 
 Closeness:
 
-$$C = \frac{0.234}{0.158 + 0.234} = \frac{0.234}{0.392} = 0.60$$
+$$C = \frac{0.503}{0.086 + 0.503} = \frac{0.503}{0.589} = 0.85$$
 
 The same two formulas, applied to every plan, give:
 
 | Plan | distance to dream | distance to nightmare | closeness C | Rank |
 |------|-------------------|-----------------------|-------------|------|
-| C | 0.158 | 0.234 | 0.234 / 0.392 = **0.60** | 1st |
-| B | 0.234 | 0.158 | 0.158 / 0.392 = **0.40** | 2nd |
-| A | 0.212 | 0.074 | 0.074 / 0.286 = **0.26** | 3rd |
+| A | 0.086 | 0.503 | 0.503 / 0.589 = **0.85** | 1st |
+| B | 0.163 | 0.381 | 0.381 / 0.544 = **0.70** | 2nd |
+| C | 0.528 | 0.000 | 0.000 / 0.528 = **0.00** | 3rd |
 
-**Result: C → B → A.** C is the cheapest, so on price it sits *exactly on the dream*
-(distance 0) and price weighs most → highest closeness, 0.60. B is best on data but is the
-priciest → 0.40. A is middling and sits close to the nightmare → 0.26. If the user ranked
-**data first**, the 0.75 weight would shift to data and **B** would jump to the top.
+**Result: A → B → C.** A has the best value for money (20 DA/GB), so on price it sits
+*exactly on the dream* (distance 0 on the price axis) and price weighs most → highest
+closeness, 0.85. B has the most data but worse value → 0.70. C is the cheapest in dinars,
+but its value is the worst *and* it has the least data, so it sits right on the nightmare →
+0.00. **Notice the cheapest plan (C) comes last** — "price first" rewards value for money,
+not a low sticker price. If the user ranked **data first**, the 0.75 weight would shift to
+data and **B** (the most data) would jump to the top.
 
 ---
 
@@ -137,6 +146,10 @@ priciest → 0.40. A is middling and sits close to the nightmare → 0.26. If th
 
 - **What are you calculating? A straight-line (Euclidean) distance?** → Yes. Each plan's
   distance to the dream and the nightmare plan, combined into a closeness score (TOPSIS).
+- **Why doesn't "price first" just give the cheapest plan?** → Because price is scored as
+  **value for money** (dinars per GB), not the raw sticker price. So ranking price first
+  returns the plan that gives the most data per dinar within budget, not a cheap near-empty
+  plan. The budget is still a strict ceiling.
 - **Why are the weights 0.75 and 0.25, not 0.70 / 0.30?** → We don't pick them. The
   **Rank-Order Centroid** formula turns a *ranking* into weights, and for two ranked
   criteria it always gives exactly 0.75 and 0.25. Choosing 0.70/0.30 would be inventing

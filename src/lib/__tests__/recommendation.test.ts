@@ -68,16 +68,17 @@ describe('thesis test cases (Table 4.2)', () => {
     expect(top.dataGB === -1 || top.dataGB >= 40).toBe(true)
   })
 
-  it('TC3 — budget 1400DA, data 20Go, priorities [price, data]: price (ROC weight 0.75) dominates the TOPSIS ranking', () => {
+  it('TC3 — budget 1400DA, data 20Go, priorities [price, data]: best value-for-money (ROC weight 0.75 on price) leads', () => {
     const results = recommendOffers(OFFERS, { budget: 1400, dataGB: 20, voiceMinutes: 0, smsCount: 0 }, 8, ['price', 'data'])
-    // Survivors ≤1400DA: o8 (300/1Go), o5 (500/2Go), o4 (800/5Go), o1 (1000/15Go).
-    // ROC weights price 0.75 vs data 0.25, so TOPSIS closeness is driven mainly by
-    // price: the cheapest in-budget plan (o8) ranks first. Data still nudges the
-    // order, so o5 (cheaper) stays ahead of o1 (pricier, more data).
-    expect(results[0].offer.id).toBe('o8')
-    const o5i = results.findIndex(r => r.offer.id === 'o5')
-    const o1i = results.findIndex(r => r.offer.id === 'o1')
-    expect(o5i).toBeLessThan(o1i)
+    // Survivors ≤1400DA, with price scored as cost-per-GB (DA/GB):
+    //   o1 1000/15 = 66.7,  o4 800/5 = 160,  o5 500/2 = 250,  o8 300/1 = 300.
+    // ROC weights price 0.75 vs data 0.25, so the ranking is driven by value for
+    // money: the best-value plan (o1) leads, while the cheapest, near-empty plan
+    // (o8 — worst value) ranks last. Cheap no longer means "best".
+    expect(results[0].offer.id).toBe('o1')
+    const o8i = results.findIndex(r => r.offer.id === 'o8')
+    const o4i = results.findIndex(r => r.offer.id === 'o4')
+    expect(o4i).toBeLessThan(o8i)
   })
 
   it('TC4 — budget 50DA (below all prices): engine returns empty result', () => {
@@ -91,13 +92,15 @@ describe('thesis test cases (Table 4.2)', () => {
 // (closeness to the user's target); the 2nd priority orders offers within a tier.
 
 describe('ranked priority elicitation', () => {
-  it('priorities=[price]: the cheapest in-budget offer rises to top', () => {
-    // The budget is the user's monthly CEILING (cheaper is better on the
-    // Price priority — consistent with the per-card savings indicator that
-    // uses the same ceiling semantics).
+  it('priorities=[price]: the best value-for-money in-budget offer rises to top', () => {
+    // Price is scored as cost per GB (value for money), so a price priority surfaces
+    // the plan with the lowest DA/GB within budget — not necessarily the cheapest.
     const withPriority = recommendOffers(OFFERS, { budget: 3000, dataGB: 10, voiceMinutes: 0, smsCount: 0 }, 3, ['price'])
-    const inBudgetMin = Math.min(...OFFERS.filter(o => o.priceDA <= 3000).map(o => o.priceDA))
-    expect(withPriority[0].offer.priceDA).toBe(inBudgetMin)
+    const bestValue = OFFERS
+      .filter(o => o.priceDA <= 3000)
+      .reduce((best, o) =>
+        o.priceDA / Math.max(o.dataGB, 0.1) < best.priceDA / Math.max(best.dataGB, 0.1) ? o : best)
+    expect(withPriority[0].offer.id).toBe(bestValue.id)
   })
 
   it('priorities=[data]: every top result covers the stated data need', () => {
@@ -120,24 +123,28 @@ describe('ranked priority elicitation', () => {
     expect(reasons).toContain('match.priority.calls')
   })
 
-  it('price priority surfaces the cheapest offer within the budget ceiling', () => {
+  it('price priority surfaces the best value-for-money offer within the budget ceiling', () => {
     const yesP = recommendOffers(OFFERS, { budget: 4000, dataGB: 0, voiceMinutes: 0, smsCount: 0 }, 3, ['price'])
-    const inBudgetMin = Math.min(...OFFERS.filter(o => o.priceDA <= 4000).map(o => o.priceDA))
-    // top result = the cheapest in-budget offer (lex strict priority on price)
-    expect(yesP[0].offer.priceDA).toBe(inBudgetMin)
+    const bestValue = OFFERS
+      .filter(o => o.priceDA <= 4000)
+      .reduce((best, o) =>
+        o.priceDA / Math.max(o.dataGB, 0.1) < best.priceDA / Math.max(best.dataGB, 0.1) ? o : best)
+    // top result = the best value-for-money (lowest DA/GB) in-budget offer
+    expect(yesP[0].offer.id).toBe(bestValue.id)
     expect(yesP[0].matchReasons.some(m => m.key === 'match.priority.price')).toBe(true)
   })
 
-  it('priority weighting: ranking price first favours the cheap plan more than ranking data first', () => {
-    // TOPSIS is compensatory, so price does not STRICTLY tier the result. But the
-    // ROC weights make the order respond to the priority: the cheapest plan (o8)
-    // ranks at least as high when price is #1 as when data is #1, and results are
-    // always ordered by closeness (score) descending.
+  it('priority weighting: ranking price first favours value-for-money, data first favours volume', () => {
+    // TOPSIS is compensatory, so a priority does not STRICTLY tier the result, but the
+    // ROC weights steer the order: a high-value, modest-data plan (o1, 66.7 DA/GB)
+    // climbs when price is #1, while a higher-data, weaker-value plan (o2) climbs when
+    // data is #1. Results are always ordered by closeness (score) descending.
     const needs = { budget: 5000, dataGB: 100, voiceMinutes: 0, smsCount: 0 }
     const priceFirst = recommendOffers(OFFERS, needs, 8, ['price', 'data'])
     const dataFirst  = recommendOffers(OFFERS, needs, 8, ['data', 'price'])
     const rankOf = (res: any[], id: string) => res.findIndex(r => r.offer.id === id)
-    expect(rankOf(priceFirst, 'o8')).toBeLessThanOrEqual(rankOf(dataFirst, 'o8'))
+    expect(rankOf(priceFirst, 'o1')).toBeLessThan(rankOf(dataFirst, 'o1'))
+    expect(rankOf(dataFirst, 'o2')).toBeLessThan(rankOf(priceFirst, 'o2'))
     for (let i = 1; i < priceFirst.length; i++) {
       expect(priceFirst[i - 1].score).toBeGreaterThanOrEqual(priceFirst[i].score)
     }

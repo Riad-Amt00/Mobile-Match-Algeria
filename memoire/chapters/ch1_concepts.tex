@@ -328,7 +328,7 @@ The engine first applies \emph{hard filters} (preferred operator, plan type, net
   \item each offer's Euclidean distances to those two reference points, $S_i^{+} = \sqrt{\sum_j (v_{ij}-A^{+}_j)^2}$ and $S_i^{-} = \sqrt{\sum_j (v_{ij}-A^{-}_j)^2}$, give the closeness coefficient $C_i = S_i^{-}/(S_i^{+}+S_i^{-}) \in [0,1]$ \parencite{HwangYoon1981};
   \item offers are ranked by $C_i$ and the top three returned, with $C_i$ reported as the match score.
 \end{enumerate}
-Each formula above carries its reference at the step that uses it: the weighting is the rank order centroid of \textcite{BarronBarrett1996}, and the normalisation, the ideal points, and the closeness coefficient are the TOPSIS procedure of \textcite{HwangYoon1981}. The only project specific decisions are which criteria a user may rank and that the budget is a hard ceiling. The full algorithm with a worked example is in Chapter~3, Section~3.4.
+Each formula above carries its reference at the step that uses it: the weighting is the rank order centroid of \textcite{BarronBarrett1996}, and the normalisation, the ideal points, and the closeness coefficient are the TOPSIS procedure of \textcite{HwangYoon1981}. The only project specific decisions are which criteria a user may rank, that price enters the decision matrix as cost efficiency (dinars per gigabyte) rather than absolute price, so that ranking price first returns the best value for money rather than the cheapest near empty plan, and that the budget is a hard ceiling. The full algorithm with a worked example is in Chapter~3, Section~3.4.
 
 \subsection{Search engine}
 

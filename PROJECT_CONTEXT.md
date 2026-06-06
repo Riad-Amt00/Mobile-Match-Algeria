@@ -40,7 +40,7 @@ Run: `npm run dev` · Test: `npm test` (**121 tests pass**, `tsc --noEmit` clean
 | **Recommendation** | [src/lib/recommendation.ts](src/lib/recommendation.ts) | **TOPSIS + ROC** (see §5) — fully researched |
 | **Search** | `src/app/api/offers/route.ts`, `src/lib/search-tokens.ts`, `src/lib/search-fts.ts` | regex token parser → Prisma `where` + SQLite FTS5 (BM25); "Read as" chips |
 | **Comparison / charts** | `src/app/compare/compare-content.tsx`, `src/components/offer-card.tsx` | side-by-side table + Recharts bar charts + faceted filters + savings indicator |
-| **Notifications** | `index.ts` + `src/components/navbar.tsx`, `src/app/admin/page.tsx` | split streams: user (new_offer/price_drop/recommendation) vs admin (scrape_complete/failed/data_stale) |
+| **Notifications** | `index.ts` + `src/components/navbar.tsx`, `src/app/admin/page.tsx` | split streams: user (new_offer/price_drop) vs admin (scrape_complete/failed) |
 | **Auth / admin** | NextAuth config, `src/app/admin/` | admin claim code; admin can trigger scrape |
 
 Offer field sentinels: `voiceMinutes`/`smsCount`/`dataGB` = **-1 means unlimited**, `0` means none. Cross-network SMS/calls and recharge credit are parsed into `features` and surfaced on the card (`offerCredit` regex is accent-tolerant for the "CRÈDIT" typo).
@@ -65,7 +65,7 @@ Rewritten on 2026-06-02 to **TOPSIS + Rank-Order-Centroid weights** after the us
 2. **Weights** from the user's criterion ranking via **Rank-Order Centroid (ROC)** — *Barron & Barrett (1996)* — e.g. price #1, data #2 → 0.75 / 0.25.
 3. **Ranking** = **TOPSIS** — *Hwang & Yoon (1981)*; recent guide *Taherdoost & Madanchian (2023)*: vector-normalise → weight → ideal/anti-ideal → Euclidean distances → closeness `C = S⁻/(S⁺+S⁻)`. Score = `C×100`.
 
-**Researched vs ours:** method + formula + weights are all published. *Ours* = configuration only (not formulas): which attributes are filters vs ranked criteria; budget = hard ceiling; encoding conventions (unlimited = 1.5× pool max so it's the ideal; equal weights when no ranking). The priority order ("price first") is the **user's input**, not ours. TOPSIS is **compensatory** (accepted). Answers the supervisor's "Euclidean distance?" → yes. Full detail in [memory: recommendation_engine] and thesis Ch.3 §3.4.
+**Researched vs ours:** method + formula + weights are all published. *Ours* = configuration only (not formulas): which attributes are filters vs ranked criteria; budget = hard ceiling; encoding conventions (price scored as **cost-per-GB / value for money** so "price first" returns the best value, not the cheapest near-empty plan; unlimited = 1.5× pool max so it's the ideal; equal weights when no ranking). The priority order ("price first") is the **user's input**, not ours. TOPSIS is **compensatory** (accepted). Answers the supervisor's "Euclidean distance?" → yes. Full detail in [memory: recommendation_engine] and thesis Ch.3 §3.4.
 
 ---
 
