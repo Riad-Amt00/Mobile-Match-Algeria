@@ -9,10 +9,10 @@ import { useLang } from '@/lib/lang-context'
 import { OPERATOR_LOGOS } from '@/lib/utils'
 import type { Lang } from '@/lib/i18n'
 
-const LANG_OPTIONS: { code: Lang; flag: string; label: string; sub: string; dir: 'ltr' | 'rtl' }[] = [
-  { code: 'en', flag: '🇬🇧', label: 'English',  sub: 'Browse & compare plans',  dir: 'ltr' },
-  { code: 'fr', flag: '🇫🇷', label: 'Français', sub: 'Comparez les forfaits',   dir: 'ltr' },
-  { code: 'ar', flag: '🇩🇿', label: 'العربية',  sub: 'تصفح وقارن العروض',       dir: 'rtl' },
+const LANG_OPTIONS: { code: Lang; label: string; sub: string; dir: 'ltr' | 'rtl' }[] = [
+  { code: 'en', label: 'English',  sub: 'Browse & compare plans',  dir: 'ltr' },
+  { code: 'fr', label: 'Français', sub: 'Comparez les forfaits',   dir: 'ltr' },
+  { code: 'ar', label: 'العربية',  sub: 'تصفح وقارن العروض',       dir: 'rtl' },
 ]
 
 const OPERATORS = [
@@ -227,7 +227,7 @@ export default function LandingPage() {
 
               {/* Flag + label */}
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: '0.75rem', flexDirection: opt.dir === 'rtl' ? 'row-reverse' : 'row' }}>
-                <span style={{ fontSize: 28, lineHeight: 1 }}>{opt.flag}</span>
+                <span style={{ fontSize: 13, fontWeight: 800, letterSpacing: '0.05em', color: 'var(--text-secondary)', background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: 8, padding: '4px 9px', lineHeight: 1 }}>{opt.code.toUpperCase()}</span>
                 <span style={{ fontSize: 22, fontWeight: 900, color: 'var(--text-primary)', letterSpacing: '-0.02em', lineHeight: 1 }}>{opt.label}</span>
               </div>
 
