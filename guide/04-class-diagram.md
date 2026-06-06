@@ -17,8 +17,13 @@ The class diagram is just **the list of things the app stores**, drawn as boxes.
 is one kind of record (one table in the database). A box has **two parts**, top to bottom:
 
 1. **Name** — the kind of thing (Operator, Offer, User…).
-2. **Attributes** — the pieces of data it keeps, named exactly as in the database
-   (an Offer keeps `name`, `priceDA`, `dataGB`, `validityDays`, …).
+2. **Attributes** — the pieces of data it keeps, named exactly as in the database and
+   each shown with its type (an Offer keeps `name : String`, `priceDA : Float`,
+   `dataGB : Float`, `validityDays : Int`, …).
+
+The diagram marks the two kinds of key visually: the **primary key** (`id`) is
+**underlined**, and the **foreign keys** (the `…Id` columns) are in **bold blue** — a small
+legend under the diagram says the same.
 
 There is deliberately **no "methods" part**. This is a *data* model — the database tables —
 so the boxes hold data, not behaviour. The behaviour (filtering offers, ranking, login
@@ -30,11 +35,11 @@ boxes show how the records are linked.
 
 ## 2. The eight boxes, one line each
 
-- **Operator** — a mobile operator (Djezzy, Ooredoo, Mobilis). Stores its `name`,
+- **Operator** — a mobile operator (Djezzy, Ooredoo, Mobilis). Stores its `name`, `slug`,
   `websiteUrl`, `logoUrl`, and brand `primaryColor`.
-- **Offer** — one mobile plan. Stores `name`, `type` (prepaid / postpaid / data only),
-  `priceDA`, `dataGB`, `voiceMinutes`, `smsCount`, `validityDays`, `network`, `features`,
-  and `isActive`.
+- **Offer** — one mobile plan. Stores `name`, `slug`, `type` (prepaid / postpaid / data
+  only), `priceDA`, `dataGB`, `voiceMinutes`, `smsCount`, `validityDays`, `network`,
+  `features`, and `isActive`.
 - **PriceHistory** — one row per price change of an offer (so the price over time can be
   shown). Stores `priceDA` and `recordedAt`.
 - **User** — a registered account. Stores `name`, `email`, `passwordHash`, and `role`
@@ -43,8 +48,8 @@ boxes show how the records are linked.
   `monthlyBudget`, `dataUsageGB`, `voiceMinutes`, `smsCount`, the preferences, and the
   `priorities` ranking.
 - **SavedOffer** — a bookmark linking one user to one offer they saved. Stores `savedAt`.
-- **Notification** — one alert for a user (new offer, price drop, recommendation, or an
-  admin alert). Stores `title`, `message`, `type`, and `isRead`.
+- **Notification** — one alert for a user (a new offer or a price drop) or an admin alert
+  (scrape complete / failed). Stores `title`, `message`, `type`, and `isRead`.
 - **ScrapeLog** — one record per scrape run, for the admin dashboard. Stores `status`,
   the offers `found` / `added` / `updated` / `deactivated` counts, any `errorMessage`, and
   the `duration`.
@@ -81,19 +86,20 @@ user has one profile, many notifications, and many saved offers."*
 - **1 and N** — how many on each side. **1 — N** = "one to many"; **1 — 1** = "one to
   one".
 - **slug** — a short, web-safe version of a name: lowercase, with dashes instead of
-  spaces and accents removed. For example the offer "Djezzy LEGEND 4000" has the slug
-  `djezzy-legend-4000`. It is used inside web addresses and to match a freshly scraped
-  offer back to its existing database row. It is a technical detail the user never sees,
-  which is why it is **left out of the simplified diagram**.
+  spaces and accents removed. For example the operator "Ooredoo" has the slug `ooredoo`,
+  and the offer "Djezzy LEGEND 4000" has the slug `djezzy-legend-4000`. It is used inside
+  web addresses (e.g. `/offers?operator=ooredoo`) and to match a freshly scraped offer back
+  to its existing database row. It is shown on the Operator and Offer boxes.
 - **-1 means unlimited, 0 means none** — a convention for calls, SMS, and data, so the
   app can tell "unlimited" apart from "zero".
 - **Primary key (PK)** — the **underlined `id`** at the top of every box: a unique value (a
   cuid) that identifies one record. Every entity has one. The diagram marks it by
   underlining the `id` (the standard UML convention) instead of writing a "(PK)" tag.
-- **Foreign key (FK)** — how one record points to another's `id`. These are exactly the
-  **arrows**: e.g. the Operator → Offer arrow is the `operatorId` foreign key stored on each
-  Offer; SavedOffer holds `userId` and `offerId`. So the keys are not missing — the PK is the
-  `id` row, and every FK is an arrow.
+- **Foreign key (FK)** — how one record points to another's `id`. In the diagram each FK
+  column is shown in **bold blue** (`operatorId` on Offer and ScrapeLog, `userId` and
+  `offerId` on SavedOffer, `userId` on UserProfile and Notification, `offerId` on
+  PriceHistory), and the **arrow** between the two boxes is that same link. So every foreign
+  key appears twice over: as the bold-blue `…Id` column and as the association arrow.
 - **Unique key** — a field whose value cannot repeat: a User's `email`, an Operator's `name`
   and `slug`.
 
@@ -119,9 +125,9 @@ user has one profile, many notifications, and many saved offers."*
   exactly.
 - **What does the underlined `id` mean / where are the keys?** The **underlined `id`** at the
   top of every box is the **primary key** — the unique identifier each record has (that's why
-  every table has one). The **foreign keys** are the arrows: each association (Operator→Offer,
-  Offer→PriceHistory, User→SavedOffer→Offer, …) is stored as a foreign-key column
-  (`operatorId`, `offerId`, `userId`). Table 2.5 lists each FK next to its relationship.
+  every table has one). The **foreign keys** are the **bold-blue `…Id` columns**
+  (`operatorId`, `userId`, `offerId`) — each one is also drawn as an arrow to the table it
+  points at. Table 2.5 lists each FK next to its relationship.
 - **Where is the full detail (every field, every type)?** In the entities table (Table 2.5)
   next to the diagram in Chapter 2; the diagram is the simple overview.
 
