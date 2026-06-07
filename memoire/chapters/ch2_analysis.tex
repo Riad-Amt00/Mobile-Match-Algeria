@@ -267,45 +267,46 @@ The data model comprises eight application defined classes: Operator, Offer, Pri
 \resizebox{\textwidth}{!}{%
 \begin{tikzpicture}[
   clshdr/.style={rectangle, draw=black!70, fill=black!10, line width=0.6pt,
-    font=\scriptsize\bfseries, align=center, minimum width=4.0cm, minimum height=0.46cm, inner sep=2pt, anchor=north},
+    font=\scriptsize\bfseries, align=center, minimum width=3.7cm, minimum height=0.46cm, inner sep=2pt, anchor=north},
   clsbody/.style={rectangle, draw=black!70, fill=white, line width=0.6pt,
-    font=\scriptsize, align=left, text width=3.7cm, inner sep=3pt, anchor=north},
+    font=\scriptsize, align=left, text width=3.5cm, inner sep=3pt, anchor=north},
   assoc/.style={line width=0.6pt, draw=black!70},
   comp/.style={line width=0.6pt, draw=black!70, {Diamond[fill=black,length=3mm,width=2mm]}-},
   mult/.style={font=\tiny, fill=white, inner sep=0.8pt},
-  verb/.style={font=\tiny\itshape, text=black!60, fill=white, inner sep=0.8pt},
 ]
-\newcommand{\umlc}[5]{%
-  \node[clshdr] (#1h) at (#2,#3) {#4};
-  \node[clsbody, anchor=north] (#1b) at (#1h.south) {#5};
+\newcommand{\umlc}[4]{%
+  \node[clshdr] (#1h) at #2 {#3};
+  \node[clsbody, anchor=north] (#1b) at (#1h.south) {#4};
   \node[fit=(#1h)(#1b), inner sep=0pt, draw=none] (#1) {};
 }
-\umlc{operator}{0}{0}{Operator}{%
+% ── Row 1 : Operator — Offer — SavedOffer — User — Notification ──
+\umlc{operator}{(0,0)}{Operator}{%
   - \underline{id} : String\\- name : String\\- slug : String\\- logoUrl : String\\- websiteUrl : String\\- primaryColor : String\\- createdAt : DateTime}
-\umlc{offer}{4.4}{0}{Offer}{%
+\umlc{offer}{(4.0,0)}{Offer}{%
   - \underline{id} : String\\- operatorId : String\\- name : String\\- slug : String\\- type : OfferType\\- priceDA : Float\\- dataGB : Float\\- voiceMinutes : Int\\- smsCount : Int\\- validityDays : Int\\- network : String\\- features : String\\- isActive : Boolean\\- isFeatured : Boolean\\- sourceUrl : String\\- scrapedAt : DateTime\\- createdAt : DateTime\\- updatedAt : DateTime}
-\umlc{user}{8.8}{0}{User}{%
-  - \underline{id} : String\\- name : String\\- email : String\\- emailVerified : DateTime\\- image : String\\- passwordHash : String\\- role : Role\\- createdAt : DateTime\\- updatedAt : DateTime}
-\umlc{notif}{13.2}{0}{Notification}{%
-  - \underline{id} : String\\- userId : String\\- title : String\\- message : String\\- type : String\\- isRead : Boolean\\- offerId : String\\- createdAt : DateTime}
-\umlc{scrape}{0}{-10.0}{ScrapeLog}{%
-  - \underline{id} : String\\- operatorId : String\\- status : ScrapeStatus\\- offersFound : Int\\- offersAdded : Int\\- offersUpdated : Int\\- offersDeactivated : Int\\- errorMessage : String\\- details : String\\- duration : Int\\- startedAt : DateTime\\- completedAt : DateTime}
-\umlc{history}{4.4}{-10.0}{PriceHistory}{%
-  - \underline{id} : String\\- offerId : String\\- priceDA : Float\\- recordedAt : DateTime}
-\umlc{saved}{8.8}{-10.0}{SavedOffer}{%
+\umlc{saved}{(8.0,0)}{SavedOffer}{%
   - \underline{id} : String\\- userId : String\\- offerId : String\\- savedAt : DateTime}
-\umlc{profile}{13.2}{-10.0}{UserProfile}{%
+\umlc{user}{(12.0,0)}{User}{%
+  - \underline{id} : String\\- name : String\\- email : String\\- emailVerified : DateTime\\- image : String\\- passwordHash : String\\- role : Role\\- createdAt : DateTime\\- updatedAt : DateTime}
+\umlc{notif}{(16.0,0)}{Notification}{%
+  - \underline{id} : String\\- userId : String\\- title : String\\- message : String\\- type : String\\- isRead : Boolean\\- offerId : String\\- createdAt : DateTime}
+% ── Row 2 : each placed 0.8 cm below its parent so it always clears it ──
+\umlc{scrape}{([yshift=-0.8cm]operator.south)}{ScrapeLog}{%
+  - \underline{id} : String\\- operatorId : String\\- status : ScrapeStatus\\- offersFound : Int\\- offersAdded : Int\\- offersUpdated : Int\\- offersDeactivated : Int\\- errorMessage : String\\- details : String\\- duration : Int\\- startedAt : DateTime\\- completedAt : DateTime}
+\umlc{history}{([yshift=-0.8cm]offer.south)}{PriceHistory}{%
+  - \underline{id} : String\\- offerId : String\\- priceDA : Float\\- recordedAt : DateTime}
+\umlc{profile}{([yshift=-0.8cm]user.south)}{UserProfile}{%
   - \underline{id} : String\\- userId : String\\- monthlyBudget : Float\\- dataUsageGB : Float\\- voiceMinutes : Int\\- smsCount : Int\\- preferredType : String\\- preferredNet : String\\- preferredOperator : String\\- priorities : String}
-% ── associations (plain line) and compositions (filled diamond at the owner) ──
-\draw[assoc] (operator.east) -- node[mult,pos=0.07]{1} node[verb,pos=0.5]{publishes} node[mult,pos=0.93]{*} (offer.west);
-\draw[assoc] (operator.south) -- node[mult,pos=0.05]{1} node[mult,pos=0.95]{*} (scrape.north);
-\draw[comp]  (offer.south) -- node[mult,pos=0.08]{1} node[mult,pos=0.94]{*} (history.north);
-\draw[assoc] (offer.south east) -- node[mult,pos=0.1]{1} node[mult,pos=0.9]{*} (saved.north west);
-\draw[assoc] (user.south) -- node[mult,pos=0.07]{1} node[verb,pos=0.5]{saves} node[mult,pos=0.95]{*} (saved.north);
-\draw[comp]  (user.south east) -- node[mult,pos=0.1]{1} node[mult,pos=0.9]{0..1} (profile.north west);
-\draw[comp]  (user.east) -- node[mult,pos=0.07]{1} node[verb,pos=0.5]{receives} node[mult,pos=0.93]{*} (notif.west);
+% ── straight (orthogonal) relationships ──
+\draw[assoc] (operator.east) -- node[mult,pos=0.12]{1} node[mult,pos=0.9]{*} (offer.west |- operator.east);
+\draw[assoc] (saved.west) -- node[mult,pos=0.12]{1} node[mult,pos=0.9]{*} (offer.east |- saved.west);
+\draw[assoc] (user.west) -- node[mult,pos=0.12]{1} node[mult,pos=0.9]{*} (saved.east |- user.west);
+\draw[comp]  (user.east) -- node[mult,pos=0.12]{1} node[mult,pos=0.9]{*} (notif.west |- user.east);
+\draw[assoc] (operator.south) -- node[mult,pos=0.25]{1} node[mult,pos=0.82]{*} (scrape.north);
+\draw[comp]  (offer.south) -- node[mult,pos=0.25]{1} node[mult,pos=0.82]{*} (history.north);
+\draw[comp]  (user.south) -- node[mult,pos=0.25]{1} node[mult,pos=0.82]{0..1} (profile.north);
 % ── legend ──
-\node[font=\scriptsize, anchor=west, align=left] at (3.4,-15.8)
+\node[font=\scriptsize, anchor=north] at (8.0,-13.2)
   {\underline{id} = primary key \quad\quad $\blacklozenge$\,---\, composition \quad\quad 1\,,\,* = multiplicity};
 \end{tikzpicture}}
 \caption{Class diagram of the data model}
