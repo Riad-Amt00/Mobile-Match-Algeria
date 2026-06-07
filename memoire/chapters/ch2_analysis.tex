@@ -171,7 +171,7 @@ The main use cases of the system are organised around three actors. Figure~\ref{
   \draw[assoc] (admin.east) -- (uc9.west);
   \draw[assoc] (admin.east) -- (uc10.west);
 \end{tikzpicture}
-\caption{Top level use case diagram for Mobile Match Algeria}
+\caption{Use case diagram of Mobile Match Algeria}
 \label{fig:usecase-main}
 \end{figure}
 
@@ -250,7 +250,7 @@ Figure~\ref{fig:activity-scrape} represents the activity flow of the automated s
   \draw[arrow] (deact) -- node[right, font=\scriptsize]{catalogue synced} (log);
   \draw[arrow] (log) -- node[right, font=\scriptsize]{done} (end);
 \end{tikzpicture}
-\caption{Activity diagram of the automated scraping pipeline}
+\caption{Activity diagram of the scraping pipeline}
 \label{fig:activity-scrape}
 \end{figure}
 
@@ -390,7 +390,7 @@ Figure~\ref{fig:arch-overview} illustrates the high level component architecture
   \draw[biarrow] (7.0, 3.2) -- node[right=2mm, font=\scriptsize]{HTTP requests / JSON responses} (7.0, 2.8);
   \draw[biarrow] (7.0, 1.2) -- node[right=2mm, font=\scriptsize]{Prisma queries / typed results}  (7.0, 0.8);
 \end{tikzpicture}
-\caption{High level three tier architecture of Mobile Match Algeria}
+\caption{Three tier architecture of Mobile Match Algeria}
 \label{fig:arch-overview}
 \end{figure}
 

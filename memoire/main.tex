@@ -21,6 +21,9 @@
 \input{front/acknowledgments}  % Acknowledgments
 \input{front/abstract}         % Résumé (FR) + Abstract (EN) + ملخص (AR)
 
+% Front-matter lists are single-spaced (compact) so a final entry is not orphaned
+% onto a page of its own; the body keeps 1.5 spacing.
+{\singlespacing
 \tableofcontents
 
 \clearpage
@@ -35,6 +38,7 @@
 
 \input{lists/abbreviations}
 \clearpage
+}
 
 %% ── MAIN BODY (Arabic numerals from Introduction onward) ────────────────────
 \pagenumbering{arabic}
