@@ -125,3 +125,11 @@ add_transitions.py
 /test-site.js
 /convert_thesis.py
 /sms_bug.png
+
+# Personal deliverables — kept locally, NOT published to GitHub (repo = runnable app only)
+/memoire/
+/guide/
+/presentation/
+/PROJECT_CONTEXT.md
+/take-thesis-screenshots.mjs
+/build_deck.py
