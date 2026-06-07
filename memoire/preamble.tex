@@ -145,3 +145,14 @@
 % Bidi — right-to-left support for Arabic abstract (must load after hyperref)
 \usepackage{bidi}
 \newfontfamily\arabicfont[Script=Arabic, Scale=1.05]{Arial}
+
+% Re-apply the chapter heading format AFTER bidi: bidi re-patches \chapter on load
+% and would otherwise revert it to the default report style. This restores the IFAG
+% centered "Chapter N : Title" heading.
+\titleformat{\chapter}[block]
+  {\centering\bfseries\fontsize{14}{17}\selectfont}
+  {Chapter \thechapter~:~}{0pt}{}
+\titlespacing*{\chapter}{0pt}{0pt}{12pt}
+\titleformat{name=\chapter,numberless}[block]
+  {\centering\bfseries\fontsize{14}{17}\selectfont}{}{0pt}{}
+\titlespacing*{name=\chapter,numberless}{0pt}{0pt}{12pt}
