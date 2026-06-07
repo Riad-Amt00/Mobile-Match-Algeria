@@ -270,9 +270,8 @@ The data model comprises eight application defined classes: Operator, Offer, Pri
     font=\scriptsize\bfseries, align=center, minimum width=3.7cm, minimum height=0.46cm, inner sep=2pt, anchor=north},
   clsbody/.style={rectangle, draw=black!70, fill=white, line width=0.6pt,
     font=\scriptsize, align=left, text width=3.5cm, inner sep=3pt, anchor=north},
-  assoc/.style={line width=0.6pt, draw=black!70},
-  comp/.style={line width=0.6pt, draw=black!70, {Diamond[fill=black,length=3mm,width=2mm]}-},
-  mult/.style={font=\tiny, fill=white, inner sep=0.8pt},
+  rel/.style={line width=1.4pt, draw=blue!70!black, -{Stealth[length=3.4mm,width=2.6mm]}},
+  mult/.style={font=\footnotesize\bfseries, text=blue!70!black, fill=white, inner sep=1.2pt},
 ]
 \newcommand{\umlc}[4]{%
   \node[clshdr] (#1h) at #2 {#3};
@@ -290,24 +289,24 @@ The data model comprises eight application defined classes: Operator, Offer, Pri
   - \underline{id} : String\\- name : String\\- email : String\\- emailVerified : DateTime\\- image : String\\- passwordHash : String\\- role : Role\\- createdAt : DateTime\\- updatedAt : DateTime}
 \umlc{notif}{(16.0,0)}{Notification}{%
   - \underline{id} : String\\- userId : String\\- title : String\\- message : String\\- type : String\\- isRead : Boolean\\- offerId : String\\- createdAt : DateTime}
-% ── Row 2 : each placed 0.8 cm below its parent so it always clears it ──
-\umlc{scrape}{([yshift=-0.8cm]operator.south)}{ScrapeLog}{%
+% ── Row 2 : each placed below its parent ──
+\umlc{scrape}{([yshift=-0.9cm]operator.south)}{ScrapeLog}{%
   - \underline{id} : String\\- operatorId : String\\- status : ScrapeStatus\\- offersFound : Int\\- offersAdded : Int\\- offersUpdated : Int\\- offersDeactivated : Int\\- errorMessage : String\\- details : String\\- duration : Int\\- startedAt : DateTime\\- completedAt : DateTime}
-\umlc{history}{([yshift=-0.8cm]offer.south)}{PriceHistory}{%
+\umlc{history}{([yshift=-0.9cm]offer.south)}{PriceHistory}{%
   - \underline{id} : String\\- offerId : String\\- priceDA : Float\\- recordedAt : DateTime}
-\umlc{profile}{([yshift=-0.8cm]user.south)}{UserProfile}{%
+\umlc{profile}{([yshift=-0.9cm]user.south)}{UserProfile}{%
   - \underline{id} : String\\- userId : String\\- monthlyBudget : Float\\- dataUsageGB : Float\\- voiceMinutes : Int\\- smsCount : Int\\- preferredType : String\\- preferredNet : String\\- preferredOperator : String\\- priorities : String}
-% ── straight (orthogonal) relationships ──
-\draw[assoc] (operator.east) -- node[mult,pos=0.12]{1} node[mult,pos=0.9]{*} (offer.west |- operator.east);
-\draw[assoc] (saved.west) -- node[mult,pos=0.12]{1} node[mult,pos=0.9]{*} (offer.east |- saved.west);
-\draw[assoc] (user.west) -- node[mult,pos=0.12]{1} node[mult,pos=0.9]{*} (saved.east |- user.west);
-\draw[comp]  (user.east) -- node[mult,pos=0.12]{1} node[mult,pos=0.9]{*} (notif.west |- user.east);
-\draw[assoc] (operator.south) -- node[mult,pos=0.25]{1} node[mult,pos=0.82]{*} (scrape.north);
-\draw[comp]  (offer.south) -- node[mult,pos=0.25]{1} node[mult,pos=0.82]{*} (history.north);
-\draw[comp]  (user.south) -- node[mult,pos=0.25]{1} node[mult,pos=0.82]{0..1} (profile.north);
+% ── relationships: one big arrow from the "one" side to the "many" side ──
+\draw[rel] (operator.east) -- node[mult,pos=0.12]{1} node[mult,pos=0.88]{*} (offer.west |- operator.east);
+\draw[rel] (offer.east |- saved.west) -- node[mult,pos=0.12]{1} node[mult,pos=0.88]{*} (saved.west);
+\draw[rel] (user.west) -- node[mult,pos=0.12]{1} node[mult,pos=0.88]{*} (saved.east |- user.west);
+\draw[rel] (user.east) -- node[mult,pos=0.12]{1} node[mult,pos=0.88]{*} (notif.west |- user.east);
+\draw[rel] (operator.south) -- node[mult,pos=0.22]{1} node[mult,pos=0.84]{*} (scrape.north);
+\draw[rel] (offer.south) -- node[mult,pos=0.22]{1} node[mult,pos=0.84]{*} (history.north);
+\draw[rel] (user.south) -- node[mult,pos=0.22]{1} node[mult,pos=0.84]{0..1} (profile.north);
 % ── legend ──
-\node[font=\scriptsize, anchor=north] at (8.0,-13.2)
-  {\underline{id} = primary key \quad\quad $\blacklozenge$\,---\, composition \quad\quad 1\,,\,* = multiplicity};
+\node[font=\small, anchor=north] at (8.0,-13.4)
+  {\underline{id} = primary key \qquad\qquad 1 \;$\rightarrow$\; * \; = one-to-many relationship};
 \end{tikzpicture}}
 \caption{Class diagram of the data model}
 \label{fig:class-diagram-main}
