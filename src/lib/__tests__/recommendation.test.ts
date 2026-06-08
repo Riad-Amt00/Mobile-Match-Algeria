@@ -51,8 +51,8 @@ const OFFERS = [
 // ─── Thesis Table 4.2 — four validated test cases ────────────────────────────
 
 describe('thesis test cases (Table 4.2)', () => {
-  it('TC1 — budget 1000DA, data 5Go, priority [data]: top covers the need within the budget ceiling', () => {
-    const results = recommendOffers(OFFERS, { budget: 1000, dataGB: 5, voiceMinutes: 0, smsCount: 0 }, 3, ['data'])
+  it('TC1 — budget 1000DA, data 5Go, priorities [data, price]: top covers the need within the budget ceiling', () => {
+    const results = recommendOffers(OFFERS, { budget: 1000, dataGB: 5, voiceMinutes: 0, smsCount: 0 }, 3, ['data', 'price'])
     expect(results.length).toBeGreaterThan(0)
     const top = results[0].offer
     // Budget is a hard ceiling — even with data as the priority, no offer above 1000DA
@@ -62,8 +62,8 @@ describe('thesis test cases (Table 4.2)', () => {
     expect(top.dataGB === -1 || top.dataGB >= 5).toBe(true)
   })
 
-  it('TC2 — budget 5000DA, data 100Go, priority [data]: unlimited data is preferred over any finite volume', () => {
-    const results = recommendOffers(OFFERS, { budget: 5000, dataGB: 100, voiceMinutes: 0, smsCount: 0 }, 3, ['data'])
+  it('TC2 — budget 5000DA, data 100Go, priorities [data, price]: unlimited data is preferred over any finite volume', () => {
+    const results = recommendOffers(OFFERS, { budget: 5000, dataGB: 100, voiceMinutes: 0, smsCount: 0 }, 3, ['data', 'price'])
     expect(results.length).toBeGreaterThan(0)
     const top = results[0].offer
     // o7 (unlimited, 5000DA) wins — an unlimited allowance maps above the best finite volume.
@@ -84,8 +84,8 @@ describe('thesis test cases (Table 4.2)', () => {
     expect(o4i).toBeLessThan(o8i)
   })
 
-  it('TC4 — budget 50DA (below all prices), priority [price]: engine returns empty result', () => {
-    const results = recommendOffers(OFFERS, { budget: 50, dataGB: 5, voiceMinutes: 0, smsCount: 0 }, 3, ['price'])
+  it('TC4 — budget 50DA (below all prices), priorities [price, data]: engine returns empty result', () => {
+    const results = recommendOffers(OFFERS, { budget: 50, dataGB: 5, voiceMinutes: 0, smsCount: 0 }, 3, ['price', 'data'])
     expect(results).toHaveLength(0)
   })
 })

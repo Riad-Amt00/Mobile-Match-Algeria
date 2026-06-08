@@ -163,9 +163,9 @@ export function recommendOffers(
 
   // A priority ranking is REQUIRED. The engine optimises towards the criteria the
   // user ranks, so with no ranked criterion there is nothing to optimise and it
-  // returns no recommendations. (The /recommend page enforces the same rule: it
-  // will not call the engine until at least a top priority is chosen.) Empty
-  // strings from unfilled rank slots are discarded before this check.
+  // returns no recommendations. (The /recommend page goes further: it requires the
+  // user to rank BOTH trade-off criteria — price and data — before it calls the
+  // engine.) Empty strings from unfilled rank slots are discarded before this check.
   const valid: Criterion[] = ['price', 'data', 'calls', 'sms', 'network']
   const criteria = priorities.filter(p => valid.includes(p as Criterion)).slice(0, 4) as Criterion[]
   if (criteria.length === 0) return []

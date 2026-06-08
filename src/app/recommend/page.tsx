@@ -141,11 +141,14 @@ export default function RecommendPage() {
     onSliderChange(budget, dataGB, voiceMinutes, smsCount, type, network, next)
   }
 
+  // Both priorities must be ranked before the engine runs — the user orders the two
+  // trade-off criteria (price, data). The button is disabled until then; this guard
+  // is the matching safety net.
+  const canRun = Boolean(priorities[0] && priorities[1])
+
   // Explicitly run the recommendation: persist the profile, fetch results, reveal them.
-  // A ranking is required — without a top priority the engine has nothing to optimise,
-  // so the run is blocked here (the button is also disabled in that state).
   async function runRecommendations() {
-    if (!priorities[0]) return
+    if (!canRun) return
     setSaving(true)
     setShowResults(true)
     try {
@@ -331,10 +334,10 @@ export default function RecommendPage() {
                 </div>
               </div>
 
-              <button onClick={runRecommendations} disabled={saving || !priorities[0]} className="btn-primary" style={{
+              <button onClick={runRecommendations} disabled={saving || !canRun} className="btn-primary" style={{
                 width: '100%', marginTop: '1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center',
                 gap: 8, padding: '0.85rem', borderRadius: 'var(--radius-md)', fontSize: 14, fontWeight: 700,
-                opacity: priorities[0] ? 1 : 0.55, cursor: priorities[0] ? 'pointer' : 'not-allowed',
+                opacity: canRun ? 1 : 0.55, cursor: canRun ? 'pointer' : 'not-allowed',
               }}>
                 {saving
                   ? <Loader2 size={15} style={{ animation: 'spin 1s linear infinite' }} />
@@ -342,7 +345,7 @@ export default function RecommendPage() {
                 {t('recommend.getResults')}
               </button>
 
-              {!priorities[0] && (
+              {!canRun && (
                 <p style={{ marginTop: 10, textAlign: 'center', fontSize: 12.5, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
                   <AlertCircle size={13} /> {t('recommend.priorityRequired')}
                 </p>
