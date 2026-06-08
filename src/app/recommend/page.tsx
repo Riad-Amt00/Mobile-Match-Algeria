@@ -30,6 +30,10 @@ export default function RecommendPage() {
 
   const [budget, setBudget] = useState(2000)
   const [dataGB, setDataGB] = useState(20)
+  // Slider ceilings — sized from the real catalogue maxima so the budget hard
+  // ceiling and the data target can reach the most expensive / largest offers.
+  const [budgetMax, setBudgetMax] = useState(15000)
+  const [dataMax, setDataMax] = useState(400)
   // Calls / SMS are binary in the catalogue (unlimited or none) — 0 = "Any", -1 = "Unlimited"
   const [voiceMinutes, setVoiceMinutes] = useState(0)
   const [smsCount, setSmsCount] = useState(0)
@@ -48,7 +52,15 @@ export default function RecommendPage() {
   const [showResults, setShowResults] = useState(false)
 
   const rf = (v: number, mn: number, mx: number) =>
-    ({ width: '100%', '--fill': `${((v - mn) / (mx - mn) * 100).toFixed(1)}%` } as React.CSSProperties)
+    ({ width: '100%', '--fill': `${((v - mn) / Math.max(1, mx - mn) * 100).toFixed(1)}%` } as React.CSSProperties)
+
+  // Size the budget / data slider ceilings from the real catalogue maxima.
+  useEffect(() => {
+    fetch('/api/stats').then(r => r.json()).then(d => {
+      if (d?.maxPrice) setBudgetMax(Math.ceil(d.maxPrice / 1000) * 1000)
+      if (d?.maxData)  setDataMax(Math.max(10, Math.ceil(d.maxData / 10) * 10))
+    }).catch(() => {})
+  }, [])
 
   const typeOptions = [
     { id: 'any', label: t('type.any') },
@@ -250,9 +262,9 @@ export default function RecommendPage() {
                     <span>{t('recommend.monthlyBudget')}</span>
                     <span style={{ color: 'var(--accent)' }}>{formatDA(budget)}</span>
                   </label>
-                  <input type="range" min={100} max={8000} step={100} value={budget}
+                  <input type="range" min={100} max={budgetMax} step={100} value={budget}
                     onChange={e => { const v = +e.target.value; setBudget(v); onSliderChange(v, dataGB, voiceMinutes, smsCount, type, network) }}
-                    style={rf(budget, 100, 8000)} />
+                    style={rf(budget, 100, budgetMax)} />
                 </div>
 
                 {/* Data */}
@@ -261,9 +273,9 @@ export default function RecommendPage() {
                     <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}><Wifi size={13} /> {t('recommend.monthlyData')}</span>
                     <span style={{ color: 'var(--accent)' }}>{dataGB} GB</span>
                   </label>
-                  <input type="range" min={0} max={200} step={1} value={dataGB}
+                  <input type="range" min={0} max={dataMax} step={1} value={dataGB}
                     onChange={e => { const v = +e.target.value; setDataGB(v); onSliderChange(budget, v, voiceMinutes, smsCount, type, network) }}
-                    style={rf(dataGB, 0, 200)} />
+                    style={rf(dataGB, 0, dataMax)} />
                 </div>
 
               </div>

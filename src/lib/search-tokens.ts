@@ -23,6 +23,12 @@ export function parseSearchTokens(query: string): SearchToken[] {
   let s = query.toLowerCase().trim()
   const tokens: SearchToken[] = []
 
+  // Megabytes ("500mb", "500 mo", "512 mega") → stored as GB (1 GB = 1024 MB),
+  // matched before GB so "mb"/"mo" isn't treated as free text. Mirrors /api/offers.
+  s = s.replace(/(\d+(?:[.,]\d+)?)\s*(mb|mo|mega|megas|m[ée]ga|m[ée]gas)\b/g, (_m, n: string) => {
+    tokens.push({ kind: 'data', value: parseFloat(n.replace(',', '.')) / 1024 })
+    return ' '
+  })
   s = s.replace(/(\d+(?:[.,]\d+)?)\s*(gb|go|giga|gigas)\b/g, (_m, n: string) => {
     tokens.push({ kind: 'data', value: parseFloat(n.replace(',', '.')) })
     return ' '

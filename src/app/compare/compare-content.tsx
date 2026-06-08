@@ -94,7 +94,9 @@ export default function CompareContent({ initialIds, fromRecommend, fromSaved }:
     setLoading(true)
     setOffers([])
     Promise.all([
-      fetch('/api/offers').then(r => r.json()),
+      // limit=500 → the whole catalogue, so the picker lists every offer per
+      // operator (the default 24-item page previously hid most of them).
+      fetch('/api/offers?limit=500').then(r => r.json()),
       ids.length > 0
         ? fetch(`/api/offers?ids=${encodeURIComponent(initialIds)}`).then(r => r.json())
         : Promise.resolve({ offers: [] }),

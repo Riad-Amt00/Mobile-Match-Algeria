@@ -51,6 +51,14 @@ export async function GET(req: NextRequest) {
       // OR unlimited (-1). Band 0.7×–3× so "5gb" finds ~5 GB plans, not every
       // 200 GB plan; unlimited covers any finite need so it always passes.
       // Mirrors how the SMS and minutes parsers handle their unlimited sentinel.
+      // Megabytes first ("500mb", "500 mo", "512 mega"): the catalogue stores data
+      // in GB, so convert (1 GB = 1024 MB). Must run before the GB rule so "mb"/"mo"
+      // is not left for free-text search (which returned nothing for sub-GB plans).
+      s = s.replace(/(\d+(?:[.,]\d+)?)\s*(mb|mo|mega|megas|m[ée]ga|m[ée]gas)\b/g, (_m, n: string) => {
+        const gb = parseFloat(n.replace(',', '.')) / 1024
+        AND.push({ OR: [{ dataGB: -1 }, { dataGB: { gte: gb * 0.7, lte: gb * 3 } }] })
+        return ' '
+      })
       s = s.replace(/(\d+(?:[.,]\d+)?)\s*(gb|go|giga|gigas)\b/g, (_m, n: string) => {
         const gb = parseFloat(n.replace(',', '.'))
         AND.push({ OR: [{ dataGB: -1 }, { dataGB: { gte: gb * 0.7, lte: gb * 3 } }] })
@@ -122,7 +130,9 @@ export async function GET(req: NextRequest) {
     }
 
     const page  = Math.max(1, parseInt(searchParams.get('page')  ?? '1'))
-    const limit = Math.min(48, parseInt(searchParams.get('limit') ?? '24'))
+    // Cap 500 (was 48) so the comparison picker can request the whole catalogue in
+    // one call (?limit=500); the offers page still uses the 24 default for paging.
+    const limit = Math.min(500, parseInt(searchParams.get('limit') ?? '24'))
     const skip  = (page - 1) * limit
 
     const [offers, total] = await Promise.all([

@@ -18,7 +18,7 @@ import { parseSearchTokens, type SearchToken } from '@/lib/search-tokens'
 // Human label for one parsed search token — used by the chip row under the input.
 function tokenLabel(tok: SearchToken, t: (k: any) => string): string {
   switch (tok.kind) {
-    case 'data':      return `≈ ${tok.value} GB`
+    case 'data':      return tok.value < 1 ? `≈ ${Math.round(tok.value * 1024)} MB` : `≈ ${tok.value} GB`
     case 'price':     return `≈ ${tok.value} DA`
     case 'network':   return tok.value
     case 'unlimited': return t('common.unlimited')
@@ -50,8 +50,11 @@ export default function OffersPage() {
   const [loading, setLoading] = useState(true)
   const [activeType, setActiveType] = useState('all')
   const [activeOperator, setActiveOperator] = useState('all')
-  const [maxPrice, setMaxPrice] = useState(10000)
+  const [maxPrice, setMaxPrice] = useState(15000)
   const [minData, setMinData] = useState(0)
+  // Slider ceilings — sized from the real catalogue maxima (see stats effect below)
+  const [priceMax, setPriceMax] = useState(15000)
+  const [dataMax, setDataMax] = useState(400)
   const [activeNetwork, setActiveNetwork] = useState('all')
   const [compareList, setCompareList] = useState<string[]>([])
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set())
@@ -74,6 +77,15 @@ export default function OffersPage() {
     const id = setTimeout(() => setDebouncedSearch(search), 350)
     return () => clearTimeout(id)
   }, [search])
+
+  // Size the price / data slider ceilings from the real catalogue maxima so the
+  // filters can reach the biggest offers (rounded up to a tidy step).
+  useEffect(() => {
+    fetch('/api/stats').then(r => r.json()).then(d => {
+      if (d?.maxPrice) { const pm = Math.ceil(d.maxPrice / 1000) * 1000; setPriceMax(pm); setMaxPrice(pm) }
+      if (d?.maxData)  { setDataMax(Math.max(10, Math.ceil(d.maxData / 10) * 10)) }
+    }).catch(() => {})
+  }, [])
 
   useEffect(() => {
     if (status === 'authenticated') {
@@ -158,7 +170,7 @@ export default function OffersPage() {
       const params = new URLSearchParams()
       if (activeType !== 'all') params.set('type', activeType)
       if (activeOperator !== 'all') params.set('operator', activeOperator)
-      if (maxPrice < 10000) params.set('maxPrice', String(maxPrice))
+      if (maxPrice < priceMax) params.set('maxPrice', String(maxPrice))
       if (minData > 0) params.set('minData', String(minData))
       if (activeNetwork !== 'all') params.set('network', activeNetwork)
       if (debouncedSearch.trim()) params.set('search', debouncedSearch.trim())
@@ -173,7 +185,7 @@ export default function OffersPage() {
     } finally {
       setLoading(false)
     }
-  }, [activeType, activeOperator, maxPrice, minData, activeNetwork, debouncedSearch])
+  }, [activeType, activeOperator, maxPrice, minData, activeNetwork, debouncedSearch, priceMax])
 
   // Reset to page 1 whenever filters change (fetchOffers ref changes)
   useEffect(() => { setPage(1); fetchOffers(1) }, [fetchOffers])
@@ -342,15 +354,15 @@ export default function OffersPage() {
               <label style={{ fontSize: 12, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>
                 {t('filter.maxBudget')}: <strong style={{ color: 'var(--text-primary)' }}>{formatDA(maxPrice)}</strong>
               </label>
-              <input type="range" min={100} max={10000} step={100} value={maxPrice} onChange={e => setMaxPrice(+e.target.value)}
-                style={{ width: '100%', '--fill': `${((maxPrice - 100) / (10000 - 100) * 100).toFixed(1)}%` } as React.CSSProperties} />
+              <input type="range" min={100} max={priceMax} step={100} value={maxPrice} onChange={e => setMaxPrice(+e.target.value)}
+                style={{ width: '100%', '--fill': `${((maxPrice - 100) / Math.max(1, priceMax - 100) * 100).toFixed(1)}%` } as React.CSSProperties} />
             </div>
             <div>
               <label style={{ fontSize: 12, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>
                 {t('filter.minData')}: <strong style={{ color: 'var(--text-primary)' }}>{minData} GB</strong>
               </label>
-              <input type="range" min={0} max={200} step={1} value={minData} onChange={e => setMinData(+e.target.value)}
-                style={{ width: '100%', '--fill': `${(minData / 200 * 100).toFixed(1)}%` } as React.CSSProperties} />
+              <input type="range" min={0} max={dataMax} step={1} value={minData} onChange={e => setMinData(+e.target.value)}
+                style={{ width: '100%', '--fill': `${(minData / Math.max(1, dataMax) * 100).toFixed(1)}%` } as React.CSSProperties} />
             </div>
             <div>
               <label style={{ fontSize: 12, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>{t('filter.network')}</label>

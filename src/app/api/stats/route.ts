@@ -26,11 +26,20 @@ export async function GET() {
       _max: { priceDA: true },
     })
 
+    // Highest finite data volume in the catalogue (the -1 "unlimited" sentinel is
+    // the smallest value, so _max returns the largest real GB figure). Used by the
+    // recommend / offers sliders to size their ceilings dynamically.
+    const dataStats = await db.offer.aggregate({
+      where: { isActive: true },
+      _max: { dataGB: true },
+    })
+
     return NextResponse.json({
       totalOffers,
       avgPrice: Math.round(priceStats._avg.priceDA ?? 0),
       minPrice: priceStats._min.priceDA ?? 0,
       maxPrice: priceStats._max.priceDA ?? 0,
+      maxData: dataStats._max.dataGB ?? 0,
       operators: operators.map(op => ({
         name: op.name,
         slug: op.slug,
