@@ -11,6 +11,8 @@ export async function GET(req: NextRequest) {
     const maxPrice = searchParams.get('maxPrice')
     const minData = searchParams.get('minData')
     const network = searchParams.get('network')
+    const calls = searchParams.get('calls')   // 'unlimited' → only unlimited-calls plans
+    const sms = searchParams.get('sms')        // 'unlimited' → only unlimited-SMS plans
     const featured = searchParams.get('featured')
     const search = searchParams.get('search')
 
@@ -36,6 +38,10 @@ export async function GET(req: NextRequest) {
     if (maxPrice) where.priceDA = { ...where.priceDA, lte: parseFloat(maxPrice) }
     if (minData) where.dataGB = { gte: parseFloat(minData) }
     if (network && network !== 'all') where.network = { contains: network }
+    // Calls / SMS are binary in the catalogue (-1 unlimited, 0 none), so the only
+    // meaningful filter is "unlimited only" (mirrors the recommendation page).
+    if (calls === 'unlimited') where.voiceMinutes = -1
+    if (sms === 'unlimited') where.smsCount = -1
     if (featured === 'true') where.isFeatured = true
     if (search) {
       // ── Smart search: parse the query the way a user thinks. ────────────────

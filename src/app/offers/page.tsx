@@ -57,6 +57,9 @@ export default function OffersPage() {
   const [priceMax, setPriceMax] = useState(15000)
   const [dataMax, setDataMax] = useState(400)
   const [activeNetwork, setActiveNetwork] = useState('all')
+  // Calls / SMS are binary in the catalogue: 'any' = no preference, 'unlimited' = only unlimited
+  const [activeCalls, setActiveCalls] = useState('any')
+  const [activeSms, setActiveSms] = useState('any')
   const [compareList, setCompareList] = useState<string[]>([])
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set())
   const [recommendedIds, setRecommendedIds] = useState<Set<string>>(new Set())
@@ -174,6 +177,8 @@ export default function OffersPage() {
       if (maxPrice < priceMax) params.set('maxPrice', String(maxPrice))
       if (minData > 0) params.set('minData', String(minData))
       if (activeNetwork !== 'all') params.set('network', activeNetwork)
+      if (activeCalls === 'unlimited') params.set('calls', 'unlimited')
+      if (activeSms === 'unlimited') params.set('sms', 'unlimited')
       if (debouncedSearch.trim()) params.set('search', debouncedSearch.trim())
       params.set('page', String(targetPage))
       const res = await fetch(`/api/offers?${params}`)
@@ -186,7 +191,7 @@ export default function OffersPage() {
     } finally {
       setLoading(false)
     }
-  }, [activeType, activeOperator, maxPrice, minData, activeNetwork, debouncedSearch, priceMax])
+  }, [activeType, activeOperator, maxPrice, minData, activeNetwork, activeCalls, activeSms, debouncedSearch, priceMax])
 
   // Reset to page 1 whenever filters change (fetchOffers ref changes)
   useEffect(() => { setPage(1); fetchOffers(1) }, [fetchOffers])
@@ -375,6 +380,22 @@ export default function OffersPage() {
                 ))}
               </div>
             </div>
+            <div>
+              <label style={{ fontSize: 12, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>{t('recommend.priority.calls')}</label>
+              <div style={{ display: 'flex', gap: 6 }}>
+                {[['any', t('common.noPreference')], ['unlimited', t('common.unlimited')]].map(([v, lbl]) => (
+                  <button key={v} onClick={() => setActiveCalls(v)} className={`filter-pill ${activeCalls === v ? 'active' : ''}`} style={{ fontSize: 12 }}>{lbl}</button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <label style={{ fontSize: 12, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>{t('recommend.priority.sms')}</label>
+              <div style={{ display: 'flex', gap: 6 }}>
+                {[['any', t('common.noPreference')], ['unlimited', t('common.unlimited')]].map(([v, lbl]) => (
+                  <button key={v} onClick={() => setActiveSms(v)} className={`filter-pill ${activeSms === v ? 'active' : ''}`} style={{ fontSize: 12 }}>{lbl}</button>
+                ))}
+              </div>
+            </div>
           </div>
         )}
 
@@ -414,7 +435,7 @@ export default function OffersPage() {
               {t('filter.noResultsHint')}
             </p>
             <button
-              onClick={() => { setActiveType('all'); setActiveOperator('all'); setMaxPrice(10000); setMinData(0) }}
+              onClick={() => { setActiveType('all'); setActiveOperator('all'); setMaxPrice(priceMax); setMinData(0); setActiveNetwork('all'); setActiveCalls('any'); setActiveSms('any') }}
               className="btn-primary"
             >
               {t('filter.reset')}
