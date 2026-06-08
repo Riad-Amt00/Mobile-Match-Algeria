@@ -19,6 +19,7 @@ import { parseSearchTokens, type SearchToken } from '@/lib/search-tokens'
 function tokenLabel(tok: SearchToken, t: (k: any) => string): string {
   switch (tok.kind) {
     case 'data':      return tok.value < 1 ? `≈ ${Math.round(tok.value * 1024)} MB` : `≈ ${tok.value} GB`
+    case 'datalt':    return `MB plans (< ${tok.value} GB)`
     case 'price':     return `≈ ${tok.value} DA`
     case 'network':   return tok.value
     case 'unlimited': return t('common.unlimited')

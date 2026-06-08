@@ -12,6 +12,7 @@
 
 export type SearchToken =
   | { kind: 'data';      value: number }
+  | { kind: 'datalt';    value: number }
   | { kind: 'price';     value: number }
   | { kind: 'network';   value: '3G' | '4G' | '5G' }
   | { kind: 'unlimited' }
@@ -31,6 +32,11 @@ export function parseSearchTokens(query: string): SearchToken[] {
   })
   s = s.replace(/(\d+(?:[.,]\d+)?)\s*(gb|go|giga|gigas)\b/g, (_m, n: string) => {
     tokens.push({ kind: 'data', value: parseFloat(n.replace(',', '.')) })
+    return ' '
+  })
+  // Bare data unit with no number ("mb", "mo", "mega") → plans under 1 GB.
+  s = s.replace(/\b(mb|mo|mega|megas|m[ée]ga|m[ée]gas|megabytes?|m[ée]gaoctets?)\b/g, () => {
+    tokens.push({ kind: 'datalt', value: 1 })
     return ' '
   })
   s = s.replace(/(\d+)\s*(da|dzd|dinars?|dj)\b/g, (_m, n: string) => {

@@ -64,6 +64,12 @@ export async function GET(req: NextRequest) {
         AND.push({ OR: [{ dataGB: -1 }, { dataGB: { gte: gb * 0.7, lte: gb * 3 } }] })
         return ' '
       })
+      // A bare data unit with no number ("mb", "mo", "mega") → plans measured in
+      // megabytes, i.e. under 1 GB — lets the user browse the small / sub-GB plans.
+      s = s.replace(/\b(mb|mo|mega|megas|m[ée]ga|m[ée]gas|megabytes?|m[ée]gaoctets?)\b/g, () => {
+        AND.push({ dataGB: { gt: 0, lt: 1 } })
+        return ' '
+      })
       // Price: "1000da", "500 dinars" → within ±30% of the stated price
       s = s.replace(/(\d+)\s*(da|dzd|dinars?|dj)\b/g, (_m, n: string) => {
         const p = parseInt(n)
