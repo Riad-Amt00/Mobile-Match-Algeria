@@ -161,15 +161,16 @@ export function recommendOffers(
 
   if (feasible.length === 0) return []
 
-  // Criteria to rank on come from the user's priority ranking; default to
-  // price then data when none are given. ROC turns the ranking into weights.
+  // A priority ranking is REQUIRED. The engine optimises towards the criteria the
+  // user ranks, so with no ranked criterion there is nothing to optimise and it
+  // returns no recommendations. (The /recommend page enforces the same rule: it
+  // will not call the engine until at least a top priority is chosen.) Empty
+  // strings from unfilled rank slots are discarded before this check.
   const valid: Criterion[] = ['price', 'data', 'calls', 'sms', 'network']
-  let criteria = priorities.filter(p => valid.includes(p as Criterion)).slice(0, 4) as Criterion[]
-  const ranked = criteria.length > 0
-  if (!ranked) criteria = ['price', 'data']
-  // With a stated ranking, ROC turns it into weights; with no ranking, the
-  // criteria are weighted equally (the standard neutral default).
-  const weights = ranked ? rocWeights(criteria.length) : criteria.map(() => 1 / criteria.length)
+  const criteria = priorities.filter(p => valid.includes(p as Criterion)).slice(0, 4) as Criterion[]
+  if (criteria.length === 0) return []
+  // ROC turns the ranking (most important first) into descending weights summing to 1.
+  const weights = rocWeights(criteria.length)
 
   const closeness = topsis(feasible, criteria, weights)
 

@@ -142,7 +142,10 @@ export default function RecommendPage() {
   }
 
   // Explicitly run the recommendation: persist the profile, fetch results, reveal them.
+  // A ranking is required — without a top priority the engine has nothing to optimise,
+  // so the run is blocked here (the button is also disabled in that state).
   async function runRecommendations() {
+    if (!priorities[0]) return
     setSaving(true)
     setShowResults(true)
     try {
@@ -328,15 +331,22 @@ export default function RecommendPage() {
                 </div>
               </div>
 
-              <button onClick={runRecommendations} disabled={saving} className="btn-primary" style={{
+              <button onClick={runRecommendations} disabled={saving || !priorities[0]} className="btn-primary" style={{
                 width: '100%', marginTop: '1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center',
                 gap: 8, padding: '0.85rem', borderRadius: 'var(--radius-md)', fontSize: 14, fontWeight: 700,
+                opacity: priorities[0] ? 1 : 0.55, cursor: priorities[0] ? 'pointer' : 'not-allowed',
               }}>
                 {saving
                   ? <Loader2 size={15} style={{ animation: 'spin 1s linear infinite' }} />
                   : <Target size={15} />}
                 {t('recommend.getResults')}
               </button>
+
+              {!priorities[0] && (
+                <p style={{ marginTop: 10, textAlign: 'center', fontSize: 12.5, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                  <AlertCircle size={13} /> {t('recommend.priorityRequired')}
+                </p>
+              )}
 
             </div>
 

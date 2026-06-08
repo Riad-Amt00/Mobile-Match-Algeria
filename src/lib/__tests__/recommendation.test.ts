@@ -51,21 +51,24 @@ const OFFERS = [
 // ─── Thesis Table 4.2 — four validated test cases ────────────────────────────
 
 describe('thesis test cases (Table 4.2)', () => {
-  it('TC1 — budget 1000DA, data 5Go: top result covers ≥5GB within budget', () => {
-    const results = recommendOffers(OFFERS, { budget: 1000, dataGB: 5, voiceMinutes: 0, smsCount: 0 })
+  it('TC1 — budget 1000DA, data 5Go, priority [data]: top covers the need within the budget ceiling', () => {
+    const results = recommendOffers(OFFERS, { budget: 1000, dataGB: 5, voiceMinutes: 0, smsCount: 0 }, 3, ['data'])
     expect(results.length).toBeGreaterThan(0)
     const top = results[0].offer
-    // Budget is a hard ceiling — no offer above 1000DA may be recommended.
+    // Budget is a hard ceiling — even with data as the priority, no offer above 1000DA
+    // may be recommended; among in-budget offers the largest-data one (o1, 15GB) leads.
     expect(top.priceDA).toBeLessThanOrEqual(1000)
+    expect(top.id).toBe('o1')
     expect(top.dataGB === -1 || top.dataGB >= 5).toBe(true)
   })
 
-  it('TC2 — budget 5000DA, data 100Go: top result is highest-data offer within budget', () => {
-    const results = recommendOffers(OFFERS, { budget: 5000, dataGB: 100, voiceMinutes: 0, smsCount: 0 })
+  it('TC2 — budget 5000DA, data 100Go, priority [data]: unlimited data is preferred over any finite volume', () => {
+    const results = recommendOffers(OFFERS, { budget: 5000, dataGB: 100, voiceMinutes: 0, smsCount: 0 }, 3, ['data'])
     expect(results.length).toBeGreaterThan(0)
     const top = results[0].offer
-    // o7 (unlimited, 5000DA) or o3 (60GB, 4500DA) should win — both are within budget
-    expect(top.dataGB === -1 || top.dataGB >= 40).toBe(true)
+    // o7 (unlimited, 5000DA) wins — an unlimited allowance maps above the best finite volume.
+    expect(top.id).toBe('o7')
+    expect(top.dataGB).toBe(-1)
   })
 
   it('TC3 — budget 1400DA, data 20Go, priorities [price, data]: best value-for-money (ROC weight 0.75 on price) leads', () => {
@@ -81,8 +84,24 @@ describe('thesis test cases (Table 4.2)', () => {
     expect(o4i).toBeLessThan(o8i)
   })
 
-  it('TC4 — budget 50DA (below all prices): engine returns empty result', () => {
-    const results = recommendOffers(OFFERS, { budget: 50, dataGB: 5, voiceMinutes: 0, smsCount: 0 })
+  it('TC4 — budget 50DA (below all prices), priority [price]: engine returns empty result', () => {
+    const results = recommendOffers(OFFERS, { budget: 50, dataGB: 5, voiceMinutes: 0, smsCount: 0 }, 3, ['price'])
+    expect(results).toHaveLength(0)
+  })
+})
+
+// ─── A priority ranking is required ───────────────────────────────────────────
+// The engine optimises towards the ranked criteria, so with no ranking there is
+// nothing to optimise and it returns nothing (the /recommend page enforces this).
+
+describe('ranking is required', () => {
+  it('no priorities → no recommendations', () => {
+    const results = recommendOffers(OFFERS, { budget: 5000, dataGB: 20, voiceMinutes: 0, smsCount: 0 })
+    expect(results).toHaveLength(0)
+  })
+
+  it('empty rank slots (as the UI sends them) → no recommendations', () => {
+    const results = recommendOffers(OFFERS, { budget: 5000, dataGB: 20, voiceMinutes: 0, smsCount: 0 }, 3, ['', ''])
     expect(results).toHaveLength(0)
   })
 })
@@ -162,7 +181,8 @@ describe('ranked priority elicitation', () => {
 
 describe('budget hard ceiling', () => {
   it('no recommended offer ever exceeds the stated budget', () => {
-    const results = recommendOffers(OFFERS, { budget: 1000, dataGB: 5, voiceMinutes: 0, smsCount: 0 }, 8)
+    const results = recommendOffers(OFFERS, { budget: 1000, dataGB: 5, voiceMinutes: 0, smsCount: 0 }, 8, ['price'])
+    expect(results.length).toBeGreaterThan(0)
     results.forEach(r => {
       expect(r.offer.priceDA).toBeLessThanOrEqual(1000)
     })
@@ -170,7 +190,7 @@ describe('budget hard ceiling', () => {
 
   it('an offer priced just above budget is excluded', () => {
     // o1 is 1000DA — above a 900DA budget, so it must not appear.
-    const results = recommendOffers(OFFERS, { budget: 900, dataGB: 5, voiceMinutes: 0, smsCount: 0 }, 8)
+    const results = recommendOffers(OFFERS, { budget: 900, dataGB: 5, voiceMinutes: 0, smsCount: 0 }, 8, ['price'])
     expect(results.map(r => r.offer.id)).not.toContain('o1')
   })
 })
@@ -179,7 +199,8 @@ describe('budget hard ceiling', () => {
 
 describe('score bounds', () => {
   it('all scores are between 0 and 100', () => {
-    const results = recommendOffers(OFFERS, { budget: 3000, dataGB: 20, voiceMinutes: 100, smsCount: 50 }, 8)
+    const results = recommendOffers(OFFERS, { budget: 3000, dataGB: 20, voiceMinutes: 100, smsCount: 50 }, 8, ['price', 'data'])
+    expect(results.length).toBeGreaterThan(0)
     results.forEach(r => {
       expect(r.score).toBeGreaterThanOrEqual(0)
       expect(r.score).toBeLessThanOrEqual(100)
@@ -187,7 +208,7 @@ describe('score bounds', () => {
   })
 
   it('results are sorted descending by score', () => {
-    const results = recommendOffers(OFFERS, { budget: 5000, dataGB: 30, voiceMinutes: 60, smsCount: 0 }, 5)
+    const results = recommendOffers(OFFERS, { budget: 5000, dataGB: 30, voiceMinutes: 60, smsCount: 0 }, 5, ['data', 'price'])
     for (let i = 1; i < results.length; i++) {
       expect(results[i - 1].score).toBeGreaterThanOrEqual(results[i].score)
     }
