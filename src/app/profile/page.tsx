@@ -19,6 +19,10 @@ export default function ProfilePage() {
   const [saved, setSaved] = useState(false)
   const [budget, setBudget] = useState(2000)
   const [dataGB, setDataGB] = useState(20)
+  // Slider ceilings sized from the real catalogue maxima — same as /recommend, so
+  // the profile can reach the most expensive / largest offers in the catalogue.
+  const [budgetMax, setBudgetMax] = useState(15000)
+  const [dataMax, setDataMax] = useState(400)
   // Calls / SMS are binary in the catalogue (unlimited or none): 0 = "Any", -1 = "Unlimited"
   const [voice, setVoice] = useState(0)
   const [sms, setSms] = useState(0)
@@ -32,6 +36,14 @@ export default function ProfilePage() {
   useEffect(() => {
     if (status === 'unauthenticated') router.push('/login')
   }, [status, router])
+
+  // Size the budget / data slider ceilings from the real catalogue maxima.
+  useEffect(() => {
+    fetch('/api/stats').then(r => r.json()).then(d => {
+      if (d?.maxPrice) setBudgetMax(Math.ceil(d.maxPrice / 1000) * 1000)
+      if (d?.maxData)  setDataMax(Math.max(10, Math.ceil(d.maxData / 10) * 10))
+    }).catch(() => {})
+  }, [])
 
   useEffect(() => {
     if (status !== 'authenticated') return
@@ -157,7 +169,7 @@ export default function ProfilePage() {
                   <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><DollarSign size={13} /> {t('profile.monthlyBudget')}</span>
                   <span style={{ color: 'var(--accent)' }}>{formatDA(budget)}</span>
                 </label>
-                <input type="range" min={100} max={8000} step={100} value={budget} onChange={e => setBudget(+e.target.value)} style={rf(budget, 100, 8000)} />
+                <input type="range" min={100} max={budgetMax} step={100} value={budget} onChange={e => setBudget(+e.target.value)} style={rf(budget, 100, budgetMax)} />
               </div>
 
               {/* Data */}
@@ -166,7 +178,7 @@ export default function ProfilePage() {
                   <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Wifi size={13} /> {t('profile.dataMonth')}</span>
                   <span style={{ color: 'var(--accent)' }}>{dataGB} GB</span>
                 </label>
-                <input type="range" min={0} max={200} step={1} value={dataGB} onChange={e => setDataGB(+e.target.value)} style={rf(dataGB, 0, 200)} />
+                <input type="range" min={0} max={dataMax} step={1} value={dataGB} onChange={e => setDataGB(+e.target.value)} style={rf(dataGB, 0, dataMax)} />
               </div>
 
               {/* Operator */}
