@@ -113,7 +113,6 @@ export default function OffersPage() {
               type: profile.preferredType ?? 'any',
               network: profile.preferredNet ?? 'any',
               operator: profile.preferredOperator ?? 'any',
-              priorities: profile.priorities ? String(profile.priorities).split(',').filter(Boolean) : [],
             }),
           }).then(r => r.json())
         })

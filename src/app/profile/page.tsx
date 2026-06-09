@@ -25,8 +25,6 @@ export default function ProfilePage() {
   const [type, setType] = useState('any')
   const [network, setNetwork] = useState('any')
   const [operator, setOperator] = useState('any')
-  // Ranked priorities — index 0 = 1st (most weight), 1 = 2nd
-  const [priorities, setPriorities] = useState<string[]>(['', ''])
   const [profileLoaded, setProfileLoaded] = useState(false)
   const [notifications, setNotifications] = useState<any[]>([])
   const [notifLoading, setNotifLoading] = useState(true)
@@ -48,12 +46,6 @@ export default function ProfilePage() {
           if (d.profile.preferredType)     setType(d.profile.preferredType)
           if (d.profile.preferredNet)      setNetwork(d.profile.preferredNet)
           if (d.profile.preferredOperator) setOperator(d.profile.preferredOperator)
-          if (d.profile.priorities) {
-            // Keep only currently-valid criteria (drops legacy 'calls'/'sms'/'network').
-            const saved = String(d.profile.priorities).split(',')
-              .filter(x => ['price', 'data'].includes(x))
-            setPriorities([saved[0] || '', saved[1] || ''])
-          }
         }
         setProfileLoaded(true)
       })
@@ -72,7 +64,7 @@ export default function ProfilePage() {
       const res = await fetch('/api/profile', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ monthlyBudget: budget, dataUsageGB: dataGB, voiceMinutes: voice, smsCount: sms, preferredType: type, preferredNet: network, preferredOperator: operator, priorities }),
+        body: JSON.stringify({ monthlyBudget: budget, dataUsageGB: dataGB, voiceMinutes: voice, smsCount: sms, preferredType: type, preferredNet: network, preferredOperator: operator }),
       })
       if (!res.ok) throw new Error('save failed')
       setSaved(true)
@@ -112,25 +104,6 @@ export default function ProfilePage() {
 
   const rf = (v: number, mn: number, mx: number) =>
     ({ width: '100%', '--fill': `${((v - mn) / (mx - mn) * 100).toFixed(1)}%` } as React.CSSProperties)
-
-  // The two continuous trade-off criteria the user can rank. Calls/SMS (binary) and
-  // Network/Type (categorical) are not rankable — Network and Type are hard filters.
-  const PRIORITY_OPTIONS = [
-    { id: 'price', label: t('recommend.priority.price') },
-    { id: 'data',  label: t('recommend.priority.data') },
-  ]
-
-  // Set the criterion at rank slot `idx`; clear it from any other slot (no dupes).
-  function setPriorityAt(idx: number, value: string) {
-    setPriorities(prev => {
-      const next = [...prev]
-      const previous = next[idx]
-      next[idx] = value
-      // Swap with whatever slot already holds this criterion — never lock the user in.
-      if (value) next.forEach((p, i) => { if (i !== idx && p === value) next[i] = previous })
-      return next
-    })
-  }
 
   const unreadCount = notifications.filter(n => !n.isRead).length
 
@@ -194,42 +167,6 @@ export default function ProfilePage() {
                   <span style={{ color: 'var(--accent)' }}>{dataGB} GB</span>
                 </label>
                 <input type="range" min={0} max={200} step={1} value={dataGB} onChange={e => setDataGB(+e.target.value)} style={rf(dataGB, 0, 200)} />
-              </div>
-
-              {/* Ranked priorities — feeds the recommendation engine's graduated bonus */}
-              <div style={{ padding: '0.875rem 1rem', background: 'var(--bg-subtle)', borderRadius: 10, border: '1px solid var(--border-subtle)' }}>
-                <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
-                  <Target size={13} style={{ color: 'var(--accent)' }} /> {t('recommend.topPriority')}
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  {[0, 1].map(idx => (
-                    <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                      <div style={{
-                        width: 24, height: 24, borderRadius: '50%', flexShrink: 0,
-                        background: idx === 0 ? 'var(--accent)' : 'var(--accent-muted)',
-                        color: idx === 0 ? '#fff' : 'var(--accent)',
-                        opacity: idx === 2 ? 0.65 : 1,
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        fontSize: 12, fontWeight: 800,
-                      }}>{idx + 1}</div>
-                      <select
-                        value={priorities[idx] || ''}
-                        onChange={e => setPriorityAt(idx, e.target.value)}
-                        style={{
-                          flex: 1, padding: '7px 10px', borderRadius: 8,
-                          background: 'var(--bg-elevated)', border: '1px solid var(--border-base)',
-                          color: priorities[idx] ? 'var(--text-primary)' : 'var(--text-muted)',
-                          fontSize: 13, fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer',
-                        }}
-                      >
-                        <option value="">{t('recommend.priorityChoose')}</option>
-                        {PRIORITY_OPTIONS.map(o => (
-                          <option key={o.id} value={o.id}>{o.label}</option>
-                        ))}
-                      </select>
-                    </div>
-                  ))}
-                </div>
               </div>
 
               {/* Operator */}

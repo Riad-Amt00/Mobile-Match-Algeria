@@ -45,8 +45,6 @@ export default function RecommendPage() {
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
   const [initialLoaded, setInitialLoaded] = useState(false)
-  // Ranked priorities — index 0 = 1st (most weight), 1 = 2nd
-  const [priorities, setPriorities] = useState<string[]>(['', ''])
   // Results are shown only after the user explicitly runs the recommendation; any
   // settings change hides them again — no live auto-update, no response races.
   const [showResults, setShowResults] = useState(false)
@@ -69,24 +67,15 @@ export default function RecommendPage() {
     { id: 'DATA_ONLY', label: t('type.dataOnly') },
   ]
 
-  // Criteria the user can rank as their top priorities
-  // Only the continuous trade-off criteria are rankable. Calls/SMS (binary in the
-  // catalogue) and Network/Type (categorical) are not ranked — Network and Type are
-  // applied as hard filters below instead.
-  const PRIORITY_OPTIONS = [
-    { id: 'price', label: t('recommend.priority.price') },
-    { id: 'data',  label: t('recommend.priority.data') },
-  ]
-
   const fetchRecommendations = useCallback(async (
-    b: number, d: number, v: number, s: number, ty: string, net: string, op: string, pris: string[] = []
+    b: number, d: number, v: number, s: number, ty: string, net: string, op: string
   ) => {
     setLoading(true)
     try {
       const res = await fetch('/api/recommendations', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ budget: b, dataGB: d, voiceMinutes: v, smsCount: s, type: ty, network: net, operator: op, priorities: pris }),
+        body: JSON.stringify({ budget: b, dataGB: d, voiceMinutes: v, smsCount: s, type: ty, network: net, operator: op }),
       })
       if (res.status === 429) {
         // Rate limited — keep previous results rather than showing empty
@@ -116,13 +105,8 @@ export default function RecommendPage() {
         const ty = p?.preferredType ?? 'any'
         const net = p?.preferredNet ?? 'any'
         const op = p?.preferredOperator ?? 'any'
-        // Keep only currently-valid criteria (drops legacy 'calls'/'sms'/'network').
-        const pris = p?.priorities
-          ? String(p.priorities).split(',').filter(x => ['price', 'data'].includes(x))
-          : []
         setBudget(b); setDataGB(dg); setVoiceMinutes(v)
         setSmsCount(s); setType(ty); setNetwork(net); setOperator(op)
-        setPriorities([pris[0] || '', pris[1] || ''])
         setInitialLoaded(true)
       })
       .catch(() => setInitialLoaded(true))
@@ -137,39 +121,17 @@ export default function RecommendPage() {
     setShowResults(false)
   }
 
-  // Set the criterion at rank slot `idx`; clear it from any other slot (no dupes).
-  function setPriorityAt(idx: number, value: string) {
-    const next = [...priorities]
-    const previous = next[idx]
-    next[idx] = value
-    // If this criterion already sits in another slot, SWAP the two — so reordering
-    // is a single action and the user is never locked into their first choice.
-    if (value) {
-      for (let i = 0; i < next.length; i++) {
-        if (i !== idx && next[i] === value) next[i] = previous
-      }
-    }
-    setPriorities(next)
-    onSliderChange(budget, dataGB, voiceMinutes, smsCount, type, network, next)
-  }
-
-  // Both priorities must be ranked before the engine runs — the user orders the two
-  // trade-off criteria (price, data). The button is disabled until then; this guard
-  // is the matching safety net.
-  const canRun = Boolean(priorities[0] && priorities[1])
-
   // Explicitly run the recommendation: persist the profile, fetch results, reveal them.
   async function runRecommendations() {
-    if (!canRun) return
     setSaving(true)
     setShowResults(true)
     try {
       await fetch('/api/profile', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ monthlyBudget: budget, dataUsageGB: dataGB, voiceMinutes, smsCount, preferredType: type, preferredNet: network, preferredOperator: operator, priorities }),
+        body: JSON.stringify({ monthlyBudget: budget, dataUsageGB: dataGB, voiceMinutes, smsCount, preferredType: type, preferredNet: network, preferredOperator: operator }),
       })
-      await fetchRecommendations(budget, dataGB, voiceMinutes, smsCount, type, network, operator, priorities)
+      await fetchRecommendations(budget, dataGB, voiceMinutes, smsCount, type, network, operator)
     } finally {
       setSaving(false)
     }
@@ -218,42 +180,6 @@ export default function RecommendPage() {
               <h2 style={{ fontSize: '1rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: 8, color: 'var(--text-primary)', margin: '0 0 1.5rem' }}>
                 <Zap size={16} style={{ color: 'var(--accent)' }} /> {t('recommend.usageProfile')}
               </h2>
-
-              {/* Ranked priorities — user ranks up to 3 criteria; 1st gets the most weight */}
-              <div style={{ marginBottom: '1rem', padding: '0.875rem 1rem', background: 'var(--bg-subtle)', borderRadius: 10, border: '1px solid var(--border-subtle)' }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 10 }}>
-                  {t('recommend.topPriority')}
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  {[0, 1].map(idx => (
-                    <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                      <div style={{
-                        width: 24, height: 24, borderRadius: '50%', flexShrink: 0,
-                        background: idx === 0 ? 'var(--accent)' : 'var(--accent-muted)',
-                        color: idx === 0 ? '#fff' : 'var(--accent)',
-                        opacity: idx === 2 ? 0.65 : 1,
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        fontSize: 12, fontWeight: 800,
-                      }}>{idx + 1}</div>
-                      <select
-                        value={priorities[idx] || ''}
-                        onChange={e => setPriorityAt(idx, e.target.value)}
-                        style={{
-                          flex: 1, padding: '7px 10px', borderRadius: 8,
-                          background: 'var(--bg-elevated)', border: '1px solid var(--border-base)',
-                          color: priorities[idx] ? 'var(--text-primary)' : 'var(--text-muted)',
-                          fontSize: 13, fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer',
-                        }}
-                      >
-                        <option value="">{t('recommend.priorityChoose')}</option>
-                        {PRIORITY_OPTIONS.map(o => (
-                          <option key={o.id} value={o.id}>{o.label}</option>
-                        ))}
-                      </select>
-                    </div>
-                  ))}
-                </div>
-              </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.25rem' }}>
                 {/* Budget */}
@@ -346,22 +272,15 @@ export default function RecommendPage() {
                 </div>
               </div>
 
-              <button onClick={runRecommendations} disabled={saving || !canRun} className="btn-primary" style={{
+              <button onClick={runRecommendations} disabled={saving} className="btn-primary" style={{
                 width: '100%', marginTop: '1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center',
                 gap: 8, padding: '0.85rem', borderRadius: 'var(--radius-md)', fontSize: 14, fontWeight: 700,
-                opacity: canRun ? 1 : 0.55, cursor: canRun ? 'pointer' : 'not-allowed',
               }}>
                 {saving
                   ? <Loader2 size={15} style={{ animation: 'spin 1s linear infinite' }} />
                   : <Target size={15} />}
                 {t('recommend.getResults')}
               </button>
-
-              {!canRun && (
-                <p style={{ marginTop: 10, textAlign: 'center', fontSize: 12.5, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
-                  <AlertCircle size={13} /> {t('recommend.priorityRequired')}
-                </p>
-              )}
 
             </div>
 

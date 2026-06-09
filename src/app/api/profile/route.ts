@@ -12,7 +12,6 @@ const profileSchema = z.object({
   preferredType: z.string().optional(),
   preferredNet: z.string().optional(),
   preferredOperator: z.string().optional(),
-  priorities: z.union([z.array(z.string()), z.string()]).optional(),
 })
 
 export async function GET(req: NextRequest) {
@@ -35,17 +34,9 @@ export async function PUT(req: NextRequest) {
     if (!parsed.success) {
       return NextResponse.json({ error: 'Invalid profile data' }, { status: 400 })
     }
-    const { monthlyBudget, dataUsageGB, voiceMinutes, smsCount, preferredType, preferredNet, preferredOperator, priorities } = parsed.data
+    const { monthlyBudget, dataUsageGB, voiceMinutes, smsCount, preferredType, preferredNet, preferredOperator } = parsed.data
 
-    // Ranked priorities arrive as a string array; stored comma-separated.
-    const prioritiesStr = Array.isArray(priorities)
-      ? priorities.filter(Boolean).slice(0, 3).join(',')
-      : typeof priorities === 'string'
-        ? priorities
-        : undefined
-
-    const data = { monthlyBudget, dataUsageGB, voiceMinutes, smsCount, preferredType, preferredNet, preferredOperator,
-      ...(prioritiesStr !== undefined ? { priorities: prioritiesStr } : {}) }
+    const data = { monthlyBudget, dataUsageGB, voiceMinutes, smsCount, preferredType, preferredNet, preferredOperator }
 
     const profile = await db.userProfile.upsert({
       where: { userId: session.user.id },

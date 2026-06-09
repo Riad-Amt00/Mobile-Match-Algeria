@@ -14,7 +14,6 @@ const recommendSchema = z.object({
   type: z.string().default('any'),
   network: z.string().default('any'),
   operator: z.string().default('any'),
-  priorities: z.array(z.string()).default([]),
 })
 
 export async function POST(req: NextRequest) {
@@ -27,7 +26,7 @@ export async function POST(req: NextRequest) {
     if (!parsed.success) {
       return NextResponse.json({ error: 'Invalid request: a positive budget is required.' }, { status: 400 })
     }
-    const { budget, dataGB, voiceMinutes, smsCount, type, network, operator, priorities } = parsed.data
+    const { budget, dataGB, voiceMinutes, smsCount, type, network, operator } = parsed.data
 
     const allOffers = await db.offer.findMany({
       where: { isActive: true },
@@ -35,7 +34,7 @@ export async function POST(req: NextRequest) {
     })
 
     const needs = { budget, dataGB, voiceMinutes, smsCount, type, network, operator }
-    const recommendations = recommendOffers(allOffers, needs, 3, priorities)
+    const recommendations = recommendOffers(allOffers, needs, 3)
 
     return NextResponse.json({ recommendations, needs })
   } catch (error: any) {

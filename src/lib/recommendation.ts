@@ -1,20 +1,18 @@
 /**
  * Recommendation Engine — content-based multi-criteria ranking (cold-start safe).
  *
- * The engine ranks offers with TOPSIS (Technique for Order of Preference by
- * Similarity to Ideal Solution), a standard multi-criteria decision method that
- * orders alternatives by their Euclidean distance to an ideal and an anti-ideal
- * solution (Hwang & Yoon, 1981; recent guide: Taherdoost & Madanchian, 2023). It
- * is content/attribute-based, so it needs no interaction history and works at
- * cold-start. The criterion weights are derived from the user's ranking of the
- * criteria with Rank-Order Centroid (ROC) surrogate weights (Barron & Barrett,
- * 1996), so no weight is hand-tuned. Hard, categorical constraints (budget
- * ceiling, operator, plan type, network, unlimited toggles) are applied as a
- * screening step before ranking; the budget is a strict ceiling.
+ * Offers are ranked with TOPSIS (Technique for Order of Preference by Similarity to
+ * Ideal Solution), a standard multi-criteria decision method that orders alternatives
+ * by their Euclidean distance to an ideal and an anti-ideal solution (Hwang & Yoon,
+ * 1981; recent guide: Taherdoost & Madanchian, 2023). It is content/attribute-based,
+ * so it needs no interaction history and works at cold-start. Two criteria are used,
+ * weighted equally: value for money (price per GB — a cost criterion) and data volume
+ * (a benefit criterion). Hard, categorical constraints (budget ceiling, operator,
+ * plan type, network, unlimited toggles) are applied as a screening step before
+ * ranking; the budget is a strict ceiling.
  *
- * Pipeline:  hard filters  ->  ROC weights (from the criterion ranking)
- *            ->  TOPSIS over the surviving offers  ->  top-N by closeness.
- * The closeness coefficient C in [0,1] is reported as the match score (C*100).
+ * Pipeline:  hard filters  ->  TOPSIS over the survivors (value-for-money + data,
+ *            equal weights)  ->  top-N by closeness. C in [0,1] is the ranking score.
  */
 
 export interface UserNeeds {
@@ -40,67 +38,36 @@ interface Recommendation {
   mismatches: ReasonToken[]
 }
 
-// Criteria that can be ranked. Each has a direction: a benefit criterion is
-// better when larger, a cost criterion is better when smaller.
-type Criterion = 'price' | 'data' | 'calls' | 'sms' | 'network'
+// The two ranking criteria: 'price' is a cost criterion (smaller is better), 'data'
+// is a benefit criterion (larger is better). They are weighted equally.
+type Criterion = 'price' | 'data'
 const COST_CRITERIA = new Set<Criterion>(['price'])
-
-function clamp01(x: number): number {
-  return x < 0 ? 0 : x > 1 ? 1 : x
-}
-
-/** Newer technology ranks higher when "network" is chosen as a criterion. */
-function networkMerit(network: string): number {
-  const n = String(network || '').toLowerCase()
-  if (n.includes('5g')) return 1
-  if (n.includes('4g')) return 0.6
-  if (n.includes('3g')) return 0.3
-  return 0.15
-}
-
-/**
- * Rank-Order Centroid (ROC) surrogate weights (Barron & Barrett, 1996).
- * Turns a ranking of n criteria (most important first) into numeric weights
- * w_k = (1/n) * sum_{i=k}^{n} (1/i), which sum to 1. For two criteria this gives
- * 0.75 and 0.25; for one criterion, 1. No weight is chosen by hand.
- */
-export function rocWeights(n: number): number[] {
-  if (n <= 0) return []
-  const w: number[] = []
-  for (let k = 1; k <= n; k++) {
-    let s = 0
-    for (let i = k; i <= n; i++) s += 1 / i
-    w.push(s / n)
-  }
-  return w
-}
+const RANK_CRITERIA: Criterion[] = ['price', 'data']
+const RANK_WEIGHTS = [0.5, 0.5]
 
 /**
  * The value of a criterion for an offer, used to build the TOPSIS decision matrix.
- * Price is measured as cost efficiency (dinars per GB), not absolute price, so
- * ranking price first returns the best value for money within budget rather than
- * the cheapest, near-empty plan. An unlimited allowance (-1) is mapped to 1.5x the
- * best finite value in the pool so it counts as ideal on a benefit criterion.
+ * Price is measured as cost efficiency (dinars per GB), not absolute price, so the
+ * ranking favours the best value for money within budget rather than the cheapest,
+ * near-empty plan. An unlimited allowance (-1) is mapped to 1.5x the best finite
+ * value in the pool so it counts as ideal on the data criterion.
  */
 function criterionValue(c: Criterion, offer: any, poolMax: Record<string, number>): number {
   switch (c) {
     case 'price': {
-      // Cost efficiency: dinars per GB. Lower is better (still a cost criterion).
+      // Cost efficiency: dinars per GB. Lower is better (a cost criterion).
       // Data is floored at 0.1 GB to avoid division by zero for data-less plans.
       const data = offer.dataGB === -1 ? poolMax.data * 1.5 : Math.max(0, offer.dataGB)
       return offer.priceDA / Math.max(data, 0.1)
     }
-    case 'data':  return offer.dataGB === -1 ? poolMax.data * 1.5 : Math.max(0, offer.dataGB)
-    case 'calls': return offer.voiceMinutes === -1 ? poolMax.calls * 1.5 : Math.max(0, offer.voiceMinutes)
-    case 'sms':   return offer.smsCount === -1 ? poolMax.sms * 1.5 : Math.max(0, offer.smsCount)
-    case 'network': return networkMerit(offer.network)
+    case 'data': return offer.dataGB === -1 ? poolMax.data * 1.5 : Math.max(0, offer.dataGB)
   }
 }
 
 /**
- * TOPSIS (Hwang & Yoon, 1981). Returns the closeness coefficient C in [0,1] for
- * each offer, in input order. Steps: vector-normalise each criterion column,
- * apply the weights, find the ideal (A+) and anti-ideal (A-) solutions, then
+ * TOPSIS (Hwang & Yoon, 1981). Returns the closeness coefficient C in [0,1] for each
+ * offer, in input order. Steps: vector-normalise each criterion column, apply the
+ * weights, find the ideal (A+) and anti-ideal (A-) solutions, then
  * C_i = S_i^- / (S_i^+ + S_i^-) where S are Euclidean distances to A+ / A-.
  */
 export function topsis(offers: any[], criteria: Criterion[], weights: number[]): number[] {
@@ -109,9 +76,7 @@ export function topsis(offers: any[], criteria: Criterion[], weights: number[]):
   if (m === 1) return [1] // a single feasible offer is trivially the closest
 
   const poolMax: Record<string, number> = {
-    data:  Math.max(1, ...offers.map(o => (o.dataGB === -1 ? 0 : o.dataGB))),
-    calls: Math.max(1, ...offers.map(o => (o.voiceMinutes === -1 ? 0 : o.voiceMinutes))),
-    sms:   Math.max(1, ...offers.map(o => (o.smsCount === -1 ? 0 : o.smsCount))),
+    data: Math.max(1, ...offers.map(o => (o.dataGB === -1 ? 0 : o.dataGB))),
   }
 
   // Raw decision matrix [m offers x n criteria].
@@ -147,8 +112,7 @@ export function topsis(offers: any[], criteria: Criterion[], weights: number[]):
 export function recommendOffers(
   offers: any[],
   needs: UserNeeds,
-  topN = 3,
-  priorities: string[] = []
+  topN = 3
 ): Recommendation[] {
   // ── Hard constraints (categorical, go / no-go). Budget is a strict ceiling. ──
   const feasible = offers
@@ -161,21 +125,11 @@ export function recommendOffers(
 
   if (feasible.length === 0) return []
 
-  // A priority ranking is REQUIRED. The engine optimises towards the criteria the
-  // user ranks, so with no ranked criterion there is nothing to optimise and it
-  // returns no recommendations. (The /recommend page goes further: it requires the
-  // user to rank BOTH trade-off criteria — price and data — before it calls the
-  // engine.) Empty strings from unfilled rank slots are discarded before this check.
-  const valid: Criterion[] = ['price', 'data', 'calls', 'sms', 'network']
-  const criteria = priorities.filter(p => valid.includes(p as Criterion)).slice(0, 4) as Criterion[]
-  if (criteria.length === 0) return []
-  // ROC turns the ranking (most important first) into descending weights summing to 1.
-  const weights = rocWeights(criteria.length)
-
-  const closeness = topsis(feasible, criteria, weights)
+  // Rank the survivors with TOPSIS on value-for-money and data volume, equally weighted.
+  const closeness = topsis(feasible, RANK_CRITERIA, RANK_WEIGHTS)
 
   const recs: Recommendation[] = feasible.map((offer, i) => {
-    const { matchReasons, mismatches } = buildReasons(offer, needs, criteria)
+    const { matchReasons, mismatches } = buildReasons(offer, needs)
     return {
       offer,
       score: Math.round(closeness[i] * 100),
@@ -190,21 +144,7 @@ export function recommendOffers(
   return recs.slice(0, topN)
 }
 
-/**
- * Per-criterion merit in [0,1], need-relative, used only to generate the
- * human-readable match reasons (not for ranking — TOPSIS does the ranking).
- */
-function reasonMerit(c: Criterion, offer: any, needs: UserNeeds): number {
-  switch (c) {
-    case 'price': return clamp01(1 - offer.priceDA / Math.max(needs.budget, 1))
-    case 'data':  return offer.dataGB === -1 ? 1 : needs.dataGB > 0 ? clamp01(offer.dataGB / needs.dataGB) : 0.5
-    case 'calls': return offer.voiceMinutes === -1 ? 1 : needs.voiceMinutes > 0 ? clamp01(offer.voiceMinutes / needs.voiceMinutes) : 0.5
-    case 'sms':   return offer.smsCount === -1 ? 1 : needs.smsCount > 0 ? clamp01(offer.smsCount / needs.smsCount) : 0.5
-    case 'network': return networkMerit(offer.network)
-  }
-}
-
-function buildReasons(offer: any, needs: UserNeeds, criteria: Criterion[]) {
+function buildReasons(offer: any, needs: UserNeeds) {
   const matchReasons: ReasonToken[] = []
   const mismatches: ReasonToken[] = []
 
@@ -226,11 +166,6 @@ function buildReasons(offer: any, needs: UserNeeds, criteria: Criterion[]) {
 
   if (offer.voiceMinutes === -1) matchReasons.push({ key: 'match.voice.unlimited' })
   if (offer.smsCount === -1) matchReasons.push({ key: 'match.sms.unlimited' })
-
-  // A "priority" reason for each ranked criterion the offer scores well on.
-  for (const c of criteria) {
-    if (reasonMerit(c, offer, needs) >= 0.66) matchReasons.push({ key: `match.priority.${c}` })
-  }
 
   return { matchReasons, mismatches }
 }
