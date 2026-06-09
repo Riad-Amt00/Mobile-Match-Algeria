@@ -16,14 +16,18 @@ export async function proxy(req: NextRequest) {
   const { nextUrl } = req
   const path = nextUrl.pathname
 
-  // getToken works in both Edge and Node runtimes and properly decrypts NextAuth JWTs
+  // getToken works in both Edge and Node runtimes and properly decrypts NextAuth JWTs.
+  // The session cookie carries the __Secure- prefix only over HTTPS — NODE_ENV is the
+  // wrong signal, because a production build served over plain HTTP (e.g. localhost)
+  // sets the unprefixed 'authjs.session-token'. Detect whichever cookie is present so
+  // auth works on both an HTTP localhost build and an HTTPS deployment.
+  const secureName = '__Secure-authjs.session-token'
+  const cookieName = req.cookies.has(secureName) ? secureName : 'authjs.session-token'
   const token = await getToken({
     req,
     secret: process.env.NEXTAUTH_SECRET,
-    // next-auth v5 / auth.js uses 'authjs.session-token' cookie name
-    cookieName: process.env.NODE_ENV === 'production'
-      ? '__Secure-authjs.session-token'
-      : 'authjs.session-token',
+    secureCookie: cookieName === secureName,
+    cookieName,
   })
 
   const isLoggedIn = !!token
