@@ -102,7 +102,13 @@ export default function CompareContent({ initialIds, fromRecommend, fromSaved }:
         : Promise.resolve({ offers: [] }),
     ]).then(([allData, selectedData]) => {
       setAllOffers(allData.offers || [])
-      if ((selectedData.offers || []).length > 0) setOffers(selectedData.offers.slice(0, 3))
+      // Reorder the fetched offers to match the id order in the URL — the API
+      // returns them in database order (WHERE id IN (...) ignores list order),
+      // but that order IS the ranking when arriving from /recommend, so the
+      // 1st/2nd/3rd slots (and the gold/silver/bronze medals) must follow it.
+      const fetched = selectedData.offers || []
+      const ordered = ids.map(id => fetched.find((o: any) => o.id === id)).filter(Boolean)
+      if (ordered.length > 0) setOffers(ordered.slice(0, 3))
       setLoading(false)
     }).catch(() => setLoading(false))
   }, [initialIds])
