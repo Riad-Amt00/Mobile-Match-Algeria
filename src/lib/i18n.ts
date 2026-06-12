@@ -88,7 +88,6 @@ export const translations = {
     'search.helpOperator':       'Operator: Djezzy · Ooredoo · Mobilis',
     'search.helpType':           'Plan: prepaid · postpaid',
     'search.helpText':           'Apps & perks: youtube · facebook',
-    'search.helpCombine':        'Combine them — e.g. “5 GB Djezzy” means plans ≥ 5 GB AND from Djezzy.',
 
     // ─── Offer card ────────────────────────────────────────────────────────
     'offer.data':     'Data',
@@ -447,7 +446,6 @@ export const translations = {
     'search.helpOperator':       'Opérateur : Djezzy · Ooredoo · Mobilis',
     'search.helpType':           'Forfait : prépayé · postpayé',
     'search.helpText':           'Apps & avantages : youtube · facebook',
-    'search.helpCombine':        'Combinez-les — ex. « 5 Go Djezzy » = forfaits ≥ 5 Go ET de Djezzy.',
 
     // ─── Offer card ────────────────────────────────────────────────────────
     'offer.data':     'Data',
@@ -806,7 +804,6 @@ export const translations = {
     'search.helpOperator':       'المشغل: Djezzy · Ooredoo · Mobilis',
     'search.helpType':           'النوع: prépayé · postpayé',
     'search.helpText':           'التطبيقات والمزايا: youtube · facebook',
-    'search.helpCombine':        'اجمعها — مثل « 5 GB Djezzy » يعني عروض ≥ 5 GB ومن Djezzy.',
 
     // ─── Offer card ────────────────────────────────────────────────────────
     'offer.data':     'بيانات',

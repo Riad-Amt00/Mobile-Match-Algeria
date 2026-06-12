@@ -326,9 +326,6 @@ export default function OffersPage() {
                 <li>{t('search.helpType')}</li>
                 <li>{t('search.helpText')}</li>
               </ul>
-              <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid var(--border-subtle)', fontSize: 13, color: 'var(--text-secondary)', fontWeight: 500 }}>
-                {t('search.helpCombine')}
-              </div>
             </div>
           )}
         </div>
