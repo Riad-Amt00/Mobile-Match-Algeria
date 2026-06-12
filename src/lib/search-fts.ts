@@ -55,11 +55,27 @@ export async function rebuildOfferFtsIndex(): Promise<void> {
     await db.$executeRawUnsafe(
       'INSERT INTO OfferFts(offerId, name, features, operatorName) VALUES (?, ?, ?, ?)',
       o.id,
-      o.name,
+      indexableName(o.name),
       o.features ?? '',
       o.operator.name,
     )
   }
+}
+
+/**
+ * Names like "N'YOOZ" are split by the unicode61 tokenizer at the apostrophe
+ * into the tokens "n" + "yooz", while the query side strips punctuation — so a
+ * user typing "nyooz" (or even the exact "n'yooz") can never match. To fix
+ * that, any name word containing internal punctuation is ALSO indexed in its
+ * squashed form ("N'YOOZ" → extra token "NYOOZ"). Plain names are unchanged.
+ */
+function indexableName(name: string): string {
+  const squashed = name
+    .split(/\s+/)
+    .map(w => w.replace(/[^\p{L}\p{N}]/gu, ''))
+    .filter(w => w.length >= 2)
+    .join(' ')
+  return squashed.toLowerCase() === name.toLowerCase() ? name : `${name} ${squashed}`
 }
 
 /**
